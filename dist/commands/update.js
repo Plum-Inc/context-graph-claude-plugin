@@ -19694,7 +19694,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.22.0";
+var CONTRACT_VERSION = "1.24.0";
 var IdSchema = external_exports.string().min(1).max(200);
 var TimestampSchema = external_exports.iso.datetime({ offset: true });
 var CountSchema = external_exports.number().int().nonnegative();
@@ -23663,6 +23663,27 @@ var PlumOntologyUpdateRequestSchema = external_exports.strictObject({
     })
   ).min(1).max(50)
 });
+var PlumProposalChangeSchema = PlumOntologyEntrySchema.extend({
+  status: external_exports.enum(["added", "modified", "deleted"])
+});
+var PlumProposalReviewSchema = external_exports.object({
+  proposal: PlumProposalSchema,
+  /** Why, as the proposer wrote it; for discovery, what it was written from and what it left out. */
+  rationale: external_exports.string().nullable(),
+  /** A member's subject, or `discovery-agent` for a discovery run's proposal. */
+  proposedBy: external_exports.string(),
+  /** The main commit the changes are compared with. */
+  base: external_exports.string(),
+  /** The proposal's branch commit; null when the branch no longer exists or the proposal was only recorded. */
+  head: external_exports.string().nullable(),
+  changes: external_exports.array(PlumProposalChangeSchema)
+});
+var PlumProposalFileSchema = PlumProposalChangeSchema.extend({
+  /** The file on main, or null when the proposal adds it. */
+  before: external_exports.string().nullable(),
+  /** The file on the proposal's branch, or null when the proposal deletes it. */
+  after: external_exports.string().nullable()
+});
 var PlumOntologySearchResultSchema = external_exports.object({
   ontologyVersion: external_exports.string(),
   query: external_exports.string(),
@@ -23675,6 +23696,56 @@ var PlumOntologySearchResultSchema = external_exports.object({
       score: external_exports.number()
     })
   )
+});
+var PLUM_EXEC_COMMAND_MAX_CHARS = 2e3;
+var PLUM_EXEC_OUTPUT_DEFAULT_CHARS = 3e4;
+var PLUM_EXEC_OUTPUT_MAX_CHARS = 4e5;
+var PLUM_EXEC_TIMEOUT_MS = 5e3;
+var PLUM_EXEC_MEMORY_MB = 128;
+var PLUM_EXEC_COMMANDS = [
+  "ls",
+  "cat",
+  "head",
+  "tail",
+  "wc",
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "find",
+  "tree",
+  "sort",
+  "uniq",
+  "cut",
+  "tr",
+  "sed",
+  "diff",
+  "echo",
+  "printf",
+  "basename",
+  "dirname",
+  "xargs",
+  "pwd",
+  "true",
+  "false"
+];
+var PLUM_EXEC_LIMITS_TEXT = `Allowed commands: ${PLUM_EXEC_COMMANDS.join(", ")}, plus shell builtins such as cd, test and [. No network, python, awk, jq or sqlite3; ${PLUM_EXEC_TIMEOUT_MS / 1e3} seconds and ${PLUM_EXEC_MEMORY_MB} MB per command; stdout and stderr each cut at maxOutput characters (${PLUM_EXEC_OUTPUT_DEFAULT_CHARS.toLocaleString("en-US")} by default, at most ${PLUM_EXEC_OUTPUT_MAX_CHARS.toLocaleString("en-US")}).`;
+var PlumOntologyExecRequestSchema = external_exports.object({
+  kind: external_exports.literal("bash").default("bash"),
+  command: external_exports.string().trim().min(1).max(PLUM_EXEC_COMMAND_MAX_CHARS),
+  version: external_exports.string().regex(/^[0-9a-f]{40}$/).optional(),
+  playbookVersion: external_exports.string().regex(/^[0-9a-f]{40}$/).optional(),
+  maxOutput: external_exports.number().int().min(1).max(PLUM_EXEC_OUTPUT_MAX_CHARS).default(PLUM_EXEC_OUTPUT_DEFAULT_CHARS)
+});
+var PlumOntologyExecResultSchema = external_exports.object({
+  ontologyVersion: external_exports.string(),
+  playbookVersion: external_exports.string().nullable().optional(),
+  kind: external_exports.literal("bash"),
+  command: external_exports.string(),
+  stdout: external_exports.string(),
+  stderr: external_exports.string(),
+  exitCode: external_exports.number().int(),
+  truncated: external_exports.boolean()
 });
 
 // ../../packages/shared/src/automations.ts
