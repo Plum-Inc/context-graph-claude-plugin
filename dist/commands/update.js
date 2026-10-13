@@ -19694,7 +19694,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.27.0";
+var CONTRACT_VERSION = "1.28.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -23743,6 +23743,9 @@ var PlumEngagementsResponseSchema = external_exports.object({
 });
 var PlumEngagementSelectRequestSchema = external_exports.strictObject({
   engagement: external_exports.string().trim().min(1).max(80).nullable().describe("A folder name under engagements/, or null to read the workspace's own repository.")
+});
+var PlumEngagementCreateRequestSchema = external_exports.strictObject({
+  name: external_exports.string().trim().min(1).max(80).describe("The client name, which becomes the folder name under engagements/.")
 });
 var PlumOntologyDocumentSchema = PlumOntologyEntrySchema.extend({
   ontologyVersion: external_exports.string(),
