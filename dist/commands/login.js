@@ -24061,7 +24061,7 @@ import os3 from "node:os";
 import fs from "node:fs";
 import os2 from "node:os";
 import path from "node:path";
-var DEFAULT_SERVICE_URL = "https://context-graph-geoff-yuens-projects.vercel.app";
+var DEFAULT_SERVICE_URL = "https://tryplum.io";
 var CONFIG_DIR = path.join(os2.homedir(), ".config", "context-graph");
 var CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 var CREDENTIALS_FILE = path.join(CONFIG_DIR, "credentials.json");

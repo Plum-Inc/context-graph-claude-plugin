@@ -24057,7 +24057,7 @@ var GranolaSearchResultSchema = external_exports.object({
 import fs2 from "node:fs";
 import os from "node:os";
 import path2 from "node:path";
-var DEFAULT_SERVICE_URL = "https://context-graph-geoff-yuens-projects.vercel.app";
+var DEFAULT_SERVICE_URL = "https://tryplum.io";
 var CONFIG_DIR = path2.join(os.homedir(), ".config", "context-graph");
 var CONFIG_FILE = path2.join(CONFIG_DIR, "config.json");
 var CREDENTIALS_FILE = path2.join(CONFIG_DIR, "credentials.json");
