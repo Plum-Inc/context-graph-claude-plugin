@@ -1,6 +1,6 @@
 {
   "name": "context-graph-claude-plugin",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Start plum's discovery agent, learn from the ontology repository it proposes, improve it through proposals, and grow the playbook's skills, context and workflows from Claude Code.",
   "type": "module",
   "license": "MIT",

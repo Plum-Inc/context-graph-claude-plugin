@@ -21,7 +21,7 @@ allowed-tools:
 
 # plum: Run discovery
 
-Discovery is the agent that works out what the business is and does. It starts from the intake (the company name and its website, the person to ask first), reads the connected sources, records every claim with the evidence behind it, asks a clarification question when the evidence cannot settle a meaning, and ends a run by opening a proposal on the ontology repository that an editor or admin approves. Nothing here writes a file: the proposal is the output, and `/plum:learn updates` shows it. Starting, answering and messaging take an admin of the workspace; reading is open to everyone.
+Discovery is the agent that works out what the business is and does. It starts from the intake (the company name and its website, the person to ask first), reads the connected sources, records every claim with the evidence behind it, asks a clarification question when the evidence cannot settle a meaning, and ends a run by opening a proposal on the ontology repository that an editor or admin approves. Nothing here writes a file: the proposal is the output, and `/plum:learn updates` shows it. Before anyone reads it, the agent grades its own files against the playbook's review rubric and writes the score, the criteria and what to fix first into the proposal; `status` relays that verdict with the proposal. Starting, answering and messaging take an admin of the workspace; reading is open to everyone.
 
 ## Output
 
@@ -45,7 +45,7 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 | Mode        | Trigger                                 | What it does                                                                                                      |
 | ----------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `start`     | `start [<company> <website>]` (default) | Save the intake when there is none, then queue a run                                                              |
-| `status`    | `status`                                | Where discovery stands: the latest run, what it is working through, counts, recent events, the proposal it opened |
+| `status`    | `status`                                | Where discovery stands: the latest run, what it is working through, counts, recent events, the proposal it opened and its score against the playbook rubric |
 | `findings`  | `findings`                              | The claims discovery has made, with their evidence and what stays uncertain                                       |
 | `questions` | `questions`                             | The clarification questions waiting for a person                                                                  |
 | `answer`    | `answer <question>: <answer>`           | Record the person's answer to one question                                                                        |
@@ -70,7 +70,7 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 
 1. Call `mcp__plugin_plum_Plum__get_discovery`. Relay in plain words: the newest run and its state (queued, running, waiting for input, completed, failed, superseded), what a running investigation is working through, how many claims, open questions and answers there are, and the last few events as one line each.
 2. When the newest run is `waiting_for_input`, name the open questions (`mcp__plugin_plum_Plum__list_discovery_questions`) and say `/plum:discovery answer` records an answer.
-3. When the newest run is `completed`, call `mcp__plugin_plum_Plum__list_ontology_updates` and name the proposal discovery opened (the newest one opened by `discovery-agent`) with its review link; an editor or admin approves it in the app or on GitHub. When no proposal appears, say the run ended without one and that `findings` shows what it recorded.
+3. When the newest run is `completed`, call `mcp__plugin_plum_Plum__list_ontology_updates` and name the proposal discovery opened (the newest one opened by `discovery-agent`) with its review link; an editor or admin approves it in the app or on GitHub. Then give the evals: call `mcp__plugin_plum_Plum__review_ontology_update` with its id and relay, from the proposal's rationale, the score against the playbook rubric and whether it passed, the hard fail if there is one, every criterion scored below 2 with its reason, and the "Fix first" line, as a short list. When the rationale says the model could not grade the files, say the proposal is ungraded and that the rubric is `skills/review-discovery-output.md` in the playbook. When no proposal appears, say the run ended without one and that `findings` shows what it recorded.
 4. When it `failed`, relay the failure in one line and say `/plum:discovery start` queues another run.
 
 ## Findings
