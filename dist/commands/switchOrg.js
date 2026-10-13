@@ -19674,7 +19674,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.24.0";
+var CONTRACT_VERSION = "1.25.0";
 var IdSchema = external_exports.string().min(1).max(200);
 var TimestampSchema = external_exports.iso.datetime({ offset: true });
 var CountSchema = external_exports.number().int().nonnegative();
@@ -23624,6 +23624,25 @@ var PlumOntologyFilesResponseSchema = external_exports.object({
   ontologyVersion: external_exports.string(),
   files: external_exports.array(PlumOntologyEntrySchema),
   repositoryUrl: external_exports.string().nullable()
+});
+var PlumEngagementSchema = external_exports.object({
+  /** The folder name under engagements/, shown as the engagement's name. */
+  name: external_exports.string(),
+  path: external_exports.string()
+});
+var PlumEngagementsResponseSchema = external_exports.object({
+  /** False when this deployment has no engagements repository; nothing can be chosen. */
+  available: external_exports.boolean(),
+  /** The engagements repository on GitHub, or null. */
+  repositoryUrl: external_exports.string().nullable(),
+  engagements: external_exports.array(PlumEngagementSchema),
+  /** The engagement this workspace reads, or null when it reads a repository of its own. */
+  selected: external_exports.string().nullable(),
+  /** Whether the caller may change the choice: workspace admins. */
+  canSelect: external_exports.boolean()
+});
+var PlumEngagementSelectRequestSchema = external_exports.strictObject({
+  engagement: external_exports.string().trim().min(1).max(80).nullable().describe("A folder name under engagements/, or null to read the workspace's own repository.")
 });
 var PlumOntologyDocumentSchema = PlumOntologyEntrySchema.extend({
   ontologyVersion: external_exports.string(),
