@@ -19694,7 +19694,9 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.25.0";
+var CONTRACT_VERSION = "1.26.0";
+var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
+var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
 var TimestampSchema = external_exports.iso.datetime({ offset: true });
 var CountSchema = external_exports.number().int().nonnegative();
@@ -19764,7 +19766,7 @@ var EntityTypeSchema = external_exports.strictObject({
   /** Exact identities of the same object in other providers, e.g. an ORM class naming its Postgres table (1.2.0). */
   aliases: external_exports.array(
     external_exports.strictObject({
-      provider: external_exports.enum(["salesforce", "codebase", "postgres", "notion", "website"]),
+      provider: SourceProviderSchema,
       nativeName: external_exports.string().min(1)
     })
   ).max(20).optional()
@@ -19852,7 +19854,7 @@ var SourceMetadataSchema = external_exports.record(
 );
 var SourceConnectionSchema = external_exports.strictObject({
   id: IdSchema,
-  provider: external_exports.enum(["salesforce", "codebase", "postgres", "notion", "website"]),
+  provider: SourceProviderSchema,
   displayName: external_exports.string().min(1),
   allowedObjects: external_exports.array(external_exports.string().min(1)),
   status: external_exports.enum(["connected", "disconnected", "error", "pending"]),
@@ -20903,6 +20905,51 @@ var NotionSearchResponseSchema = external_exports.strictObject({
       lastEditedAt: external_exports.string().nullable()
     })
   )
+});
+var GranolaKeyStatusSchema = external_exports.strictObject({
+  /** A key is saved for this organization. */
+  configured: external_exports.boolean(),
+  /** A hint for the saved key, its last characters; never the key. */
+  label: external_exports.string().nullable(),
+  savedBy: external_exports.string().nullable(),
+  savedAt: external_exports.string().nullable(),
+  /** The deployment has GRANOLA_API_KEY, which `fromEnv` copies into this organization's saved key. */
+  envAvailable: external_exports.boolean()
+});
+var GranolaKeyRequestSchema = external_exports.union([
+  external_exports.strictObject({ apiKey: external_exports.string().trim().min(1).max(4096) }),
+  external_exports.strictObject({ fromEnv: external_exports.literal(true) })
+]);
+var GranolaSpaceListSchema = external_exports.strictObject({
+  spaces: external_exports.array(external_exports.strictObject({ id: IdSchema, name: external_exports.string() }))
+});
+var GranolaFolderListSchema = external_exports.strictObject({
+  folders: external_exports.array(
+    external_exports.strictObject({
+      id: IdSchema,
+      name: external_exports.string(),
+      parentFolderId: IdSchema.nullable(),
+      spaceId: IdSchema.nullable()
+    })
+  )
+});
+var GranolaNotePickerQuerySchema = external_exports.strictObject({
+  spaceId: external_exports.string().regex(/^spa_[a-zA-Z0-9]{14}$/).optional(),
+  folderId: external_exports.string().regex(/^fol_[a-zA-Z0-9]{14}$/).optional(),
+  cursor: external_exports.string().max(2048).optional()
+});
+var GranolaNotePickerResponseSchema = external_exports.strictObject({
+  notes: external_exports.array(
+    external_exports.strictObject({
+      id: IdSchema,
+      title: external_exports.string().nullable(),
+      ownerName: external_exports.string().nullable(),
+      createdAt: external_exports.string(),
+      updatedAt: external_exports.string()
+    })
+  ),
+  cursor: external_exports.string().nullable(),
+  hasMore: external_exports.boolean()
 });
 var SyncAcceptedSchema = external_exports.strictObject({ runId: IdSchema, status: external_exports.literal("queued") });
 var DefinitionInputSchema = external_exports.strictObject({
@@ -24013,14 +24060,19 @@ var GranolaPersonSchema = external_exports.object({
   name: external_exports.string().nullable(),
   email: external_exports.string().nullable()
 });
+var GranolaNoteOriginSchema = external_exports.enum(["imported", "linked"]);
 var GranolaLinkedNoteSchema = external_exports.object({
   noteId: external_exports.string(),
   title: external_exports.string().nullable(),
   /** When the meeting's note was created in Granola. */
   meetingAt: external_exports.string(),
   webUrl: external_exports.string().nullable(),
-  linkedBy: external_exports.string(),
-  linkedAt: external_exports.string()
+  origin: GranolaNoteOriginSchema.default("linked"),
+  /** The connection that imported the note (1.26.0); null for a hand-linked note. */
+  connectionId: external_exports.string().nullable().optional(),
+  /** Who linked the note by hand; null for an imported note (nullable since 1.26.0). */
+  linkedBy: external_exports.string().nullable(),
+  linkedAt: external_exports.string().nullable()
 });
 var GranolaNoteListSchema = external_exports.object({ notes: external_exports.array(GranolaLinkedNoteSchema) });
 var GranolaTranscriptLineSchema = external_exports.object({
@@ -24040,13 +24092,14 @@ var GranolaLinkRequestSchema = external_exports.strictObject({
 });
 var GranolaSearchResultSchema = external_exports.object({
   query: external_exports.string(),
-  /** Linked notes searched; the search covers titles and summaries, not transcripts. */
+  /** Notes the search covered: every imported note (title, summary and transcript) and every linked note (title and summary). */
   searched: external_exports.number().int().nonnegative(),
   hits: external_exports.array(
     external_exports.object({
       noteId: external_exports.string(),
       title: external_exports.string().nullable(),
       meetingAt: external_exports.string(),
+      origin: GranolaNoteOriginSchema.default("linked"),
       excerpt: external_exports.string(),
       score: external_exports.number()
     })
