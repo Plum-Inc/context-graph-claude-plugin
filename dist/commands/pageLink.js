@@ -5,10 +5,21 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 var DEFAULT_SERVICE_URL = "https://tryplum.io";
-var CONFIG_DIR = path.join(os.homedir(), ".config", "context-graph");
+var CONFIG_DIR = path.join(os.homedir(), ".config", "plum");
 var CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 var CREDENTIALS_FILE = path.join(CONFIG_DIR, "credentials.json");
-var PROJECT_CONFIG = path.join(".context-graph", "config.local.json");
+var PROJECT_CONFIG = path.join(".plum", "config.local.json");
+var LEGACY_CONFIG_DIR = path.join(os.homedir(), ".config", "context-graph");
+var LEGACY_PROJECT_CONFIG = path.join(".context-graph", "config.local.json");
+function migrateLegacyConfig(from = LEGACY_CONFIG_DIR, to = CONFIG_DIR) {
+  try {
+    if (fs.existsSync(to) || !fs.existsSync(from)) return false;
+    fs.cpSync(from, to, { recursive: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
 function readJson(file) {
   try {
     const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
@@ -20,8 +31,11 @@ function readJson(file) {
 function findProjectConfig(start = process.cwd()) {
   let dir = path.resolve(start);
   for (; ; ) {
-    const candidate = readJson(path.join(dir, PROJECT_CONFIG));
-    if (candidate) return candidate;
+    for (const name of [PROJECT_CONFIG, LEGACY_PROJECT_CONFIG]) {
+      const file = path.join(dir, name);
+      const values = readJson(file);
+      if (values) return { file, values };
+    }
     const parent = path.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
@@ -34,7 +48,9 @@ function normalizeServiceUrl(value) {
   return url.href.replace(/\/$/, "");
 }
 function getConfig(env = process.env) {
-  const project = findProjectConfig();
+  migrateLegacyConfig();
+  const found = findProjectConfig();
+  const project = found?.values;
   const global = readJson(CONFIG_FILE) ?? {};
   const credentials = readJson(CREDENTIALS_FILE) ?? {};
   const fromEnv = env.CONTEXT_GRAPH_URL;
@@ -45,7 +61,9 @@ function getConfig(env = process.env) {
     serviceUrl: normalizeServiceUrl(serviceUrl),
     token,
     verbose: env.CONTEXT_GRAPH_VERBOSE === "1" || global.verbose === true,
-    telemetry
+    telemetry,
+    defaultWorkspaceId: typeof project?.workspaceId === "string" && project.workspaceId.trim() ? project.workspaceId.trim() : null,
+    projectConfigFile: found?.file ?? null
   };
 }
 var SESSION_FILE = path.join(CONFIG_DIR, "session.json");

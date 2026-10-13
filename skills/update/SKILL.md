@@ -1,5 +1,5 @@
 ---
-description: Update the plum plugin to the latest published version. TRIGGER when the user wants to update or upgrade the plum plugin, get its latest version, or the session banner said an update is available. SKIP when the user wants to sign in (use /context-graph:setup) or edit the graph or ontology.
+description: Update the plum plugin to the latest published version. TRIGGER when the user wants to update or upgrade the plum plugin, get its latest version, or the session banner said an update is available. SKIP when the user wants to sign in (use /plum:setup) or edit the graph or ontology.
 argument-hint: "[check]"
 allowed-tools: ["Bash"]
 ---
@@ -37,5 +37,5 @@ Read `$ARGUMENTS` first.
    node "${CLAUDE_PLUGIN_ROOT}/dist/commands/update.js"
    ```
 
-   The command reads the published `package.json` and `dist/buildInfo.json` from the release repository. It reports "up to date", a newer version, or a stale cached build of the same version (the marketplace served older bytes than the release). In apply mode it runs `claude plugin marketplace update context-graph` followed by `claude plugin update context-graph@context-graph --scope <scope>` for every scope the plugin is installed at (user, project, local, managed).
+   The command reads the published `package.json` and `dist/buildInfo.json` from the release repository. It reports "up to date", a newer version, or a stale cached build of the same version (the marketplace served older bytes than the release). In apply mode it runs `claude plugin marketplace update plum` followed by `claude plugin update plum@plum --scope <scope>` for every scope the plugin is installed at (user, project, local, managed).
 2. Relay the outcome. If the plugin was updated, remind the user to restart Claude Code so the new build loads. If the background update had already applied it this session, say that the restart is all that is left. If a command failed because the marketplace is not registered, tell the user to run `claude plugin marketplace add anikal2001/context-graph-claude-plugin` once and then retry.

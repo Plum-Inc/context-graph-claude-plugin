@@ -1,7 +1,7 @@
 ---
-description: Edit the context graph and business document (steps 3 and 4 of the plum app) from Claude Code, revision by revision, while the browser page follows along. TRIGGER when the user wants to change a concept, definition, workflow, rule or section of the context graph or business document, review or comment on sections, compare revisions, roll a section back, or says 'edit the context graph', 'change this definition', 'update the business document', 'what changed in revision'. SKIP when the user wants to publish or draft the ontology (use /context-graph:ontology) or is not signed in yet (use /context-graph:setup).
+description: Edit the context graph and business document (steps 3 and 4 of the plum app) from Claude Code, revision by revision, while the browser page follows along. TRIGGER when the user wants to change a concept, definition, workflow, rule or section of the context graph or business document, review or comment on sections, compare revisions, roll a section back, or says 'edit the context graph', 'change this definition', 'update the business document', 'what changed in revision'. SKIP when the user wants to publish or draft the ontology (use /plum:ontology) or is not signed in yet (use /plum:setup).
 argument-hint: "[edit|review|history|revert] [context-model-id]"
-allowed-tools: ["Bash", "AskUserQuestion", "mcp__plugin_context-graph_ContextGraph__list_context_models", "mcp__plugin_context-graph_ContextGraph__get_context_model", "mcp__plugin_context-graph_ContextGraph__get_context_document", "mcp__plugin_context-graph_ContextGraph__get_context_graph", "mcp__plugin_context-graph_ContextGraph__edit_context_section", "mcp__plugin_context-graph_ContextGraph__save_context_revision", "mcp__plugin_context-graph_ContextGraph__comment_context_section", "mcp__plugin_context-graph_ContextGraph__compare_context_revisions", "mcp__plugin_context-graph_ContextGraph__preview_context_publication", "mcp__plugin_context-graph_ContextGraph__get_imported_model", "mcp__plugin_context-graph_ContextGraph__search_entities", "mcp__plugin_context-graph_ContextGraph__get_plugin_activity"]
+allowed-tools: ["Bash", "AskUserQuestion", "mcp__plugin_plum_Plum__list_context_models", "mcp__plugin_plum_Plum__get_context_model", "mcp__plugin_plum_Plum__get_context_document", "mcp__plugin_plum_Plum__get_context_graph", "mcp__plugin_plum_Plum__edit_context_section", "mcp__plugin_plum_Plum__save_context_revision", "mcp__plugin_plum_Plum__comment_context_section", "mcp__plugin_plum_Plum__compare_context_revisions", "mcp__plugin_plum_Plum__preview_context_publication", "mcp__plugin_plum_Plum__get_imported_model", "mcp__plugin_plum_Plum__search_entities", "mcp__plugin_plum_Plum__get_plugin_activity"]
 ---
 
 # plum: Graph and document
@@ -24,14 +24,14 @@ The user wants the result, not the work. Do not narrate what you are about to do
 
 ## Tool access
 
-The `mcp__plugin_context-graph_ContextGraph__*` tools come from this plugin's MCP server. When one is not directly callable (Claude Code defers MCP tools when many servers are configured), load it with ToolSearch, for example `select:mcp__plugin_context-graph_ContextGraph__list_context_models`, then call it. If the tools still cannot be called, run the same tool from Bash; it prints the same result:
+The `mcp__plugin_plum_Plum__*` tools come from this plugin's MCP server. When one is not directly callable (Claude Code defers MCP tools when many servers are configured), load it with ToolSearch, for example `select:mcp__plugin_plum_Plum__list_context_models`, then call it. If the tools still cannot be called, run the same tool from Bash; it prints the same result:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" list_context_models
 node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" get_context_model '{"proposalId":"business-context"}'
 ```
 
-`tool.js --list` prints every tool. Never substitute curl, hand-written API calls, or files under `~/.config/context-graph` (the token there is a secret: do not read or print it). Never invent page links: only `pageLink.js` prints them. If neither route works, tell the user to run `/mcp`, check that the ContextGraph server is connected, and restart Claude Code, then stop.
+`tool.js --list` prints every tool. Never substitute curl, hand-written API calls, or files under `~/.config/plum` (the token there is a secret: do not read or print it). Never invent page links: only `pageLink.js` prints them. If neither route works, tell the user to run `/mcp`, check that the Plum server is connected, and restart Claude Code, then stop.
 
 ## Modes
 
@@ -46,8 +46,8 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 
 ## Pick the model and open the page
 
-1. Call `mcp__plugin_context-graph_ContextGraph__list_context_models`. With one model, use it. With several, ask with `AskUserQuestion`: the discovery model (`business-context`) holds what the agent found; an `ontology:<connectionId>` model is the bridged view of a published ontology. If none exist, tell the user to run discovery in the app first and stop.
-2. Call `mcp__plugin_context-graph_ContextGraph__get_context_model` with the chosen `proposalId`. Note the **revision** and the section list (id, heading, rule, review state). Print the page link so the user can watch:
+1. Call `mcp__plugin_plum_Plum__list_context_models`. With one model, use it. With several, ask with `AskUserQuestion`: the discovery model (`business-context`) holds what the agent found; an `ontology:<connectionId>` model is the bridged view of a published ontology. If none exist, tell the user to run discovery in the app first and stop.
+2. Call `mcp__plugin_plum_Plum__get_context_model` with the chosen `proposalId`. Note the **revision** and the section list (id, heading, rule, review state). Print the page link so the user can watch:
 
    ```bash
    node "${CLAUDE_PLUGIN_ROOT}/dist/commands/pageLink.js" --page graph --context <proposalId>
@@ -57,8 +57,8 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 
 ## Edit
 
-3. Find out what the user wants changed. When it is unclear which section they mean, list the candidate headings and ask with `AskUserQuestion`. When the user cannot find a heading in the model they opened, check the other models from step 1: `ontology:<connectionId>` models hold the entities and definitions of the published ontology. A section can be reworded but **never removed** from a context model: the server keeps every section's identity. To remove an entity, definition or metric, say so and hand off to `/context-graph:ontology edit` (`action: "remove"`, then save and publish); the bridged model is regenerated without it when the ontology is published. When the change is a rule, call `mcp__plugin_context-graph_ContextGraph__get_imported_model` (with `search` for the type) to use real field names and picklist values, and `mcp__plugin_context-graph_ContextGraph__search_entities` to check a few rows. A rule is `Type where field op value`, operators `=`, `!=`, `>`, `>=`, `<`, `<=`, joined with `and`; anything the data cannot decide stays `undetermined`.
-4. Call `mcp__plugin_context-graph_ContextGraph__edit_context_section` with `proposalId`, the `expectedRevision` you read, `sectionId` (preferred) or `heading`, and only the fields that change (`newHeading`, `body`, `rule`) plus a short `note`. One section per call.
+3. Find out what the user wants changed. When it is unclear which section they mean, list the candidate headings and ask with `AskUserQuestion`. When the user cannot find a heading in the model they opened, check the other models from step 1: `ontology:<connectionId>` models hold the entities and definitions of the published ontology. A section can be reworded but **never removed** from a context model: the server keeps every section's identity. To remove an entity, definition or metric, say so and hand off to `/plum:ontology edit` (`action: "remove"`, then save and publish); the bridged model is regenerated without it when the ontology is published. When the change is a rule, call `mcp__plugin_plum_Plum__get_imported_model` (with `search` for the type) to use real field names and picklist values, and `mcp__plugin_plum_Plum__search_entities` to check a few rows. A rule is `Type where field op value`, operators `=`, `!=`, `>`, `>=`, `<`, `<=`, joined with `and`; anything the data cannot decide stays `undetermined`.
+4. Call `mcp__plugin_plum_Plum__edit_context_section` with `proposalId`, the `expectedRevision` you read, `sectionId` (preferred) or `heading`, and only the fields that change (`newHeading`, `body`, `rule`) plus a short `note`. One section per call.
    - On success the tool names the new revision. Tell the user in one line, for example "Committed revision 7: tightened Customer." Do not paste the document back.
    - On `CONFLICT`, re-read with `get_context_model`, tell the user what changed, and retry with the new revision.
    - On `INVALID_REQUEST`, the server rejected the rule or heading; read the reason, fix it (usually the type or field name), and retry. Duplicated headings are repaired by the tool itself in the same commit (later duplicates get a numbered suffix); it says so in its result.
@@ -67,20 +67,20 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 
 ## Review
 
-3. Call `mcp__plugin_context-graph_ContextGraph__get_context_document` and walk the sections the user cares about (all of them when they say "review everything"). For each, summarize the prose and rule in one line and ask with `AskUserQuestion` whether to approve, request changes, or skip.
-4. For "approve" call `mcp__plugin_context-graph_ContextGraph__comment_context_section` with `decision: "approve"` and a short body. For "request changes" ask what is wrong, then call it with `decision: "request_changes"` and that text as the body. Each call creates the next revision, so re-read the revision from the tool result before the next call.
+3. Call `mcp__plugin_plum_Plum__get_context_document` and walk the sections the user cares about (all of them when they say "review everything"). For each, summarize the prose and rule in one line and ask with `AskUserQuestion` whether to approve, request changes, or skip.
+4. For "approve" call `mcp__plugin_plum_Plum__comment_context_section` with `decision: "approve"` and a short body. For "request changes" ask what is wrong, then call it with `decision: "request_changes"` and that text as the body. Each call creates the next revision, so re-read the revision from the tool result before the next call.
 5. When done, remind the user that "Ask agent to revise" on the page sends the open comments to the discovery agent. Go to Wrap up.
 
 ## History
 
-3. The current revision number from step 2 is the newest; revisions run from 1 to it. Ask which two to compare when the user did not say (default: previous and current). Call `mcp__plugin_context-graph_ContextGraph__compare_context_revisions` with `from` and `to` and relay the diff in a fenced block, trimming hunks the user did not ask about.
+3. The current revision number from step 2 is the newest; revisions run from 1 to it. Ask which two to compare when the user did not say (default: previous and current). Call `mcp__plugin_plum_Plum__compare_context_revisions` with `from` and `to` and relay the diff in a fenced block, trimming hunks the user did not ask about.
 4. To show an old revision on the page, the user opens the versions menu on the graph or document page and picks it; there is no link parameter for a past revision. Offer the document link for the current revision with `pageLink.js --page document --context <proposalId>`.
 
 ## Revert
 
-3. Call `mcp__plugin_context-graph_ContextGraph__get_context_document` twice: once for the current revision and once with `revision` set to the revision the user wants to go back to. Find the section in both by its `Context section` id.
-4. Show the before/after prose and rule in a short fenced block and confirm with `AskUserQuestion`. Then call `mcp__plugin_context-graph_ContextGraph__edit_context_section` on the current revision with the old `newHeading`, `body` and `rule` and a note like "revert Customer to r4". This lands as a new revision; history is never rewritten.
+3. Call `mcp__plugin_plum_Plum__get_context_document` twice: once for the current revision and once with `revision` set to the revision the user wants to go back to. Find the section in both by its `Context section` id.
+4. Show the before/after prose and rule in a short fenced block and confirm with `AskUserQuestion`. Then call `mcp__plugin_plum_Plum__edit_context_section` on the current revision with the old `newHeading`, `body` and `rule` and a note like "revert Customer to r4". This lands as a new revision; history is never rewritten.
 
 ## Wrap up
 
-6. Call `mcp__plugin_context-graph_ContextGraph__get_plugin_activity` with `limit: 5` and list what this session committed (one line per revision). If the user wants the reviewed model to become the live ontology, point them to `/context-graph:ontology publish`.
+6. Call `mcp__plugin_plum_Plum__get_plugin_activity` with `limit: 5` and list what this session committed (one line per revision). If the user wants the reviewed model to become the live ontology, point them to `/plum:ontology publish`.

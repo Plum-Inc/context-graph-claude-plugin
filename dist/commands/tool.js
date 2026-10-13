@@ -19677,7 +19677,7 @@ function date4(params) {
 import os2 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.26.0";
+var CONTRACT_VERSION = "1.27.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -23880,6 +23880,38 @@ var BusinessConversationReplySchema = external_exports.strictObject({
   usage: external_exports.strictObject({ inputTokens: external_exports.number().int().nonnegative(), outputTokens: external_exports.number().int().nonnegative() })
 });
 
+// ../../packages/shared/src/workspace.ts
+var WorkspaceScopeSchema = external_exports.enum(["organization", "personal"]);
+var WorkspaceMeSchema = external_exports.strictObject({ principal: PrincipalSchema, scope: WorkspaceScopeSchema });
+var ClearWorkspaceRequestSchema = external_exports.strictObject({ confirm: external_exports.literal("CLEAR") });
+var WorkspaceClearedSchema = external_exports.strictObject({
+  workspaceId: IdSchema,
+  clearedAt: TimestampSchema,
+  deleted: external_exports.record(external_exports.string().min(1).max(80), external_exports.number().int().nonnegative()),
+  total: external_exports.number().int().nonnegative()
+});
+var WORKSPACE_NAME_MAX = 80;
+var WorkspaceSummarySchema = external_exports.strictObject({
+  id: IdSchema,
+  /** What people call it. A workspace made before workspaces had names is shown as "Main". */
+  name: external_exports.string().min(1).max(200),
+  /** The engagement folder it reads, or null for a repository of its own (ADR 0011). */
+  engagement: external_exports.string().nullable(),
+  /** True for the workspace the caller's session or token acts in. */
+  current: external_exports.boolean(),
+  createdAt: TimestampSchema
+});
+var WorkspaceListSchema = external_exports.strictObject({
+  /** The organization these workspaces belong to; null outside organizations, where the list holds the one workspace. */
+  organizationId: IdSchema.nullable(),
+  items: external_exports.array(WorkspaceSummarySchema),
+  /** Whether the caller may create one: organization admins. */
+  canCreate: external_exports.boolean()
+});
+var CreateWorkspaceRequestSchema = external_exports.strictObject({
+  name: external_exports.string().trim().min(1).max(WORKSPACE_NAME_MAX)
+});
+
 // ../../packages/shared/src/plugin.ts
 var PLUGIN_HOSTS = ["claude"];
 var PluginHostSchema = external_exports.enum(PLUGIN_HOSTS);
@@ -23969,6 +24001,18 @@ var SwitchOrganizationResultSchema = external_exports.strictObject({
   /** The new bearer token, handed over once. Absent when the plugin was already in that organization. */
   token: external_exports.string().min(1).optional()
 });
+var SwitchWorkspaceRequestSchema = external_exports.strictObject({
+  /** A workspace id from GET /workspaces, in the organization the token acts in. */
+  workspaceId: IdSchema,
+  /** Label for the token minted in the new workspace; the old one is revoked. */
+  label: external_exports.string().min(1).max(120).optional()
+});
+var SwitchWorkspaceResultSchema = external_exports.strictObject({
+  status: external_exports.enum(["switched", "already-current"]),
+  workspace: WorkspaceSummarySchema,
+  /** The new bearer token, handed over once. Absent when the plugin was already in that workspace. */
+  token: external_exports.string().min(1).optional()
+});
 var PLUGIN_TELEMETRY_EVENTS = [
   "session.start",
   "skill.invoked",
@@ -23999,17 +24043,6 @@ var PluginTelemetryBatchSchema = external_exports.strictObject({
 var PluginTelemetryAcceptedSchema = external_exports.strictObject({ accepted: external_exports.number().int().min(0) });
 var PLUGIN_ACTIVE_WINDOW_MS = 2 * 60 * 1e3;
 var HANDOFF_TICKET_TTL_MS = 10 * 60 * 1e3;
-
-// ../../packages/shared/src/workspace.ts
-var WorkspaceScopeSchema = external_exports.enum(["organization", "personal"]);
-var WorkspaceMeSchema = external_exports.strictObject({ principal: PrincipalSchema, scope: WorkspaceScopeSchema });
-var ClearWorkspaceRequestSchema = external_exports.strictObject({ confirm: external_exports.literal("CLEAR") });
-var WorkspaceClearedSchema = external_exports.strictObject({
-  workspaceId: IdSchema,
-  clearedAt: TimestampSchema,
-  deleted: external_exports.record(external_exports.string().min(1).max(80), external_exports.number().int().nonnegative()),
-  total: external_exports.number().int().nonnegative()
-});
 
 // ../../packages/shared/src/interviews/index.ts
 var positive = external_exports.number().int().positive();
@@ -25069,10 +25102,21 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 var DEFAULT_SERVICE_URL = "https://tryplum.io";
-var CONFIG_DIR = path.join(os.homedir(), ".config", "context-graph");
+var CONFIG_DIR = path.join(os.homedir(), ".config", "plum");
 var CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 var CREDENTIALS_FILE = path.join(CONFIG_DIR, "credentials.json");
-var PROJECT_CONFIG = path.join(".context-graph", "config.local.json");
+var PROJECT_CONFIG = path.join(".plum", "config.local.json");
+var LEGACY_CONFIG_DIR = path.join(os.homedir(), ".config", "context-graph");
+var LEGACY_PROJECT_CONFIG = path.join(".context-graph", "config.local.json");
+function migrateLegacyConfig(from = LEGACY_CONFIG_DIR, to = CONFIG_DIR) {
+  try {
+    if (fs.existsSync(to) || !fs.existsSync(from)) return false;
+    fs.cpSync(from, to, { recursive: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
 function readJson(file2) {
   try {
     const parsed = JSON.parse(fs.readFileSync(file2, "utf8"));
@@ -25089,8 +25133,11 @@ function writeJson(file2, value) {
 function findProjectConfig(start = process.cwd()) {
   let dir = path.resolve(start);
   for (; ; ) {
-    const candidate = readJson(path.join(dir, PROJECT_CONFIG));
-    if (candidate) return candidate;
+    for (const name of [PROJECT_CONFIG, LEGACY_PROJECT_CONFIG]) {
+      const file2 = path.join(dir, name);
+      const values = readJson(file2);
+      if (values) return { file: file2, values };
+    }
     const parent = path.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
@@ -25103,7 +25150,9 @@ function normalizeServiceUrl(value) {
   return url2.href.replace(/\/$/, "");
 }
 function getConfig(env = process.env) {
-  const project = findProjectConfig();
+  migrateLegacyConfig();
+  const found = findProjectConfig();
+  const project = found?.values;
   const global = readJson(CONFIG_FILE) ?? {};
   const credentials = readJson(CREDENTIALS_FILE) ?? {};
   const fromEnv = env.CONTEXT_GRAPH_URL;
@@ -25114,7 +25163,9 @@ function getConfig(env = process.env) {
     serviceUrl: normalizeServiceUrl(serviceUrl),
     token,
     verbose: env.CONTEXT_GRAPH_VERBOSE === "1" || global.verbose === true,
-    telemetry
+    telemetry,
+    defaultWorkspaceId: typeof project?.workspaceId === "string" && project.workspaceId.trim() ? project.workspaceId.trim() : null,
+    projectConfigFile: found?.file ?? null
   };
 }
 function saveToken(token) {
@@ -25348,20 +25399,20 @@ function detectClaudeInstallScopes(pluginKey, homeDir = os3.homedir(), projectDi
 }
 
 // src/platform.ts
-var PLUGIN_KEY = "context-graph@context-graph";
+var PLUGIN_KEY = "plum@plum";
 var platform = {
   authPath: "claude",
   displayName: "Claude Code",
   cliBinary: "claude",
-  loginHint: "/context-graph:setup login",
-  setupHint: "/context-graph:setup",
-  updateHint: "/context-graph:update",
+  loginHint: "/plum:setup login",
+  setupHint: "/plum:setup",
+  updateHint: "/plum:update",
   repo: "anikal2001/context-graph-claude-plugin",
-  marketplaceName: "context-graph",
-  pluginName: "context-graph",
+  marketplaceName: "plum",
+  pluginName: "plum",
   detectInstallScopes: () => detectClaudeInstallScopes(PLUGIN_KEY),
   buildPluginUpdateCommands: (scopes) => [
-    "claude plugin marketplace update context-graph",
+    "claude plugin marketplace update plum",
     ...pluginUpdateScopes(scopes).map((scope) => `claude plugin update ${PLUGIN_KEY} --scope ${scope}`)
   ]
 };
@@ -25923,6 +25974,22 @@ var switchOrganization = {
     label: external_exports.string().min(1).max(120).optional().describe("Label for the new install, shown in the app. Defaults to the current one.")
   }
 };
+var listWorkspaces = {
+  name: "list_workspaces",
+  title: "List workspaces",
+  description: "The workspaces of the organization this install is in, each a tenant of its own (sources, ontology, context models, views), with the one the install acts in marked current and its engagement folder named. Call before switch_workspace, and when something the person expects is missing: it may be in another workspace of the same organization.",
+  inputSchema: {},
+  outputSchema: WorkspaceListSchema
+};
+var switchWorkspace = {
+  name: "switch_workspace",
+  title: "Switch workspace",
+  description: "Move this install to another workspace of the same organization and act there from now on. Takes a workspace id from list_workspaces; the server checks the membership, issues a new token bound to that workspace and retires the old one, so no browser sign-in is needed. Everything after the switch (sources, ontology, context model, views) is that workspace's. The browser does not follow: the person picks the same workspace in the sidebar to watch what the plugin is doing.",
+  inputSchema: {
+    workspaceId: external_exports.string().min(1).max(200).describe("Workspace id from list_workspaces."),
+    label: external_exports.string().min(1).max(120).optional().describe("Label for the new install, shown in the app. Defaults to the current one.")
+  }
+};
 var getPluginActivity = {
   name: "get_plugin_activity",
   title: "Get plugin activity",
@@ -25965,6 +26032,8 @@ var ALL_TOOL_CONTRACTS = [
   whoAmI,
   listOrganizations,
   switchOrganization,
+  listWorkspaces,
+  switchWorkspace,
   getPluginActivity,
   listOntologyFiles,
   getOntologyFile,
@@ -26156,7 +26225,7 @@ var TRUNCATION_HINTS = {
   get_plugin_activity: "Ask for a lower limit.",
   list_views: "Ask for a lower limit."
 };
-function capText(tool, value, budget = OUTPUT_BUDGET, directory = path4.join(os4.tmpdir(), "context-graph", "outputs")) {
+function capText(tool, value, budget = OUTPUT_BUDGET, directory = path4.join(os4.tmpdir(), "plum", "outputs")) {
   if (value.length <= budget) return { text: value, truncated: false };
   const lines = value.split("\n");
   const kept = [];
@@ -26857,7 +26926,7 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
         if (!page.page.nextCursor || !hasMore) break;
         cursor = page.page.nextCursor;
       }
-      const directory = path5.join(os5.tmpdir(), "context-graph", "exports");
+      const directory = path5.join(os5.tmpdir(), "plum", "exports");
       fs5.mkdirSync(directory, { recursive: true });
       const file2 = path5.join(directory, `${type.nativeName.replace(/[^A-Za-z0-9_-]/g, "_")}-${Date.now()}.json`);
       const snapshot = metadata ? { coverage: metadata.coverage.status, lastSuccessfulSyncAt: metadata.freshness.lastSuccessfulSyncAt } : null;
@@ -27223,6 +27292,39 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         ].join("\n")
       );
     },
+    async list_workspaces() {
+      const list = parse3(WorkspaceListSchema, await client.get("/workspaces"));
+      const lines = [
+        list.organizationId ? `Workspaces of this organization (${list.items.length}), each its own tenant:` : "This install is outside any organization; its one workspace:"
+      ];
+      for (const item of list.items)
+        lines.push(
+          `- ${item.current ? "* " : "  "}${item.name} \xB7 id ${item.id} \xB7 ${item.engagement ? `reads engagements/${item.engagement}` : "a repository of its own"}${item.current ? " \xB7 current" : ""}`
+        );
+      if (list.items.length > 1)
+        lines.push(
+          "Sources, ontology, context models and views are per workspace: what is missing here may be in another. switch_workspace moves this install; the browser follows when the person picks the same workspace in the sidebar."
+        );
+      if (list.canCreate) lines.push("An admin creates another with POST /workspaces from the app sidebar.");
+      return structured(lines.join("\n"), list);
+    },
+    async switch_workspace(args) {
+      const { workspaceId, label: label2 } = args;
+      const result = parse3(
+        SwitchWorkspaceResultSchema,
+        await client.post("/plugin/workspaces/switch", { workspaceId, ...label2 ? { label: label2 } : {} })
+      );
+      if (result.status === "already-current")
+        return text2(`Already working in ${result.workspace.name} (workspace ${result.workspace.id}). Nothing changed.`);
+      if (result.token) saveToken(result.token);
+      return text2(
+        [
+          `Switched to ${result.workspace.name} (workspace ${result.workspace.id}${result.workspace.engagement ? `, reads engagements/${result.workspace.engagement}` : ""}). Every tool now reads and writes that workspace.`,
+          "The browser does not follow on its own: pick the same workspace in the sidebar to watch the plugin work.",
+          "Sources, ontology, context models and views here are this workspace's own; re-read them rather than reusing what was in hand."
+        ].join("\n")
+      );
+    },
     async get_plugin_activity(args) {
       const { limit } = args;
       const activity = parse3(PluginActivitySchema, await client.get("/plugin/activity", { limit: limit ?? 20 }));
@@ -27339,7 +27441,7 @@ async function runTool(name, rawArgs, handlers) {
 if (process.env.VITEST === void 0) {
   void runCommand(
     {
-      description: "Run one of the plugin's MCP tools from the shell and print its result. Use when the mcp__plugin_context-graph_ContextGraph__* tools cannot be called directly.",
+      description: "Run one of the plugin's MCP tools from the shell and print its result. Use when the mcp__plugin_plum_Plum__* tools cannot be called directly.",
       positional: [
         { name: "tool", required: false, description: "Tool name, e.g. list_context_models or edit_context_section." },
         { name: "args", required: false, description: "The tool's arguments as one JSON object (default: {})." }

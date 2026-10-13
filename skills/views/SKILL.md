@@ -1,14 +1,14 @@
 ---
-description: Build and edit the views on the plum app's Views page (step 5) — whatever UI answers the question, over every imported record: a waterfall for revenue attribution, a funnel for pipeline stages, a trend, a sankey, a heatmap, a KPI row, a sortable table. TRIGGER when the user asks to see, chart, plot, visualize, break down, attribute, compare or trend anything held in the context graph's sources, to change or delete a view they already have, or says 'show me revenue by', 'make a waterfall', 'chart the pipeline', 'how is X distributed', 'dashboard of', 'edit the view', 'update the view', 'list my views'. SKIP when the user wants to change definitions or sections (use /context-graph:graph or /context-graph:ontology) or is not signed in yet (use /context-graph:setup).
+description: Build and edit the views on the plum app's Views page (step 5) — whatever UI answers the question, over every imported record: a waterfall for revenue attribution, a funnel for pipeline stages, a trend, a sankey, a heatmap, a KPI row, a sortable table. TRIGGER when the user asks to see, chart, plot, visualize, break down, attribute, compare or trend anything held in the context graph's sources, to change or delete a view they already have, or says 'show me revenue by', 'make a waterfall', 'chart the pipeline', 'how is X distributed', 'dashboard of', 'edit the view', 'update the view', 'list my views'. SKIP when the user wants to change definitions or sections (use /plum:graph or /plum:ontology) or is not signed in yet (use /plum:setup).
 argument-hint: "[edit|list|delete] <question, e.g. revenue attribution by lead source as a waterfall>"
-allowed-tools: ["Bash", "Read", "Write", "AskUserQuestion", "mcp__plugin_context-graph_ContextGraph__list_sources", "mcp__plugin_context-graph_ContextGraph__get_imported_model", "mcp__plugin_context-graph_ContextGraph__aggregate_records", "mcp__plugin_context-graph_ContextGraph__export_records", "mcp__plugin_context-graph_ContextGraph__search_entities", "mcp__plugin_context-graph_ContextGraph__get_ontology_version", "mcp__plugin_context-graph_ContextGraph__list_context_models", "mcp__plugin_context-graph_ContextGraph__get_context_document", "mcp__plugin_context-graph_ContextGraph__get_view_catalog", "mcp__plugin_context-graph_ContextGraph__save_view", "mcp__plugin_context-graph_ContextGraph__list_views", "mcp__plugin_context-graph_ContextGraph__delete_view", "mcp__plugin_context-graph_ContextGraph__list_organizations", "mcp__plugin_context-graph_ContextGraph__switch_organization", "mcp__plugin_context-graph_ContextGraph__whoami"]
+allowed-tools: ["Bash", "Read", "Write", "AskUserQuestion", "mcp__plugin_plum_Plum__list_sources", "mcp__plugin_plum_Plum__get_imported_model", "mcp__plugin_plum_Plum__aggregate_records", "mcp__plugin_plum_Plum__export_records", "mcp__plugin_plum_Plum__search_entities", "mcp__plugin_plum_Plum__get_ontology_version", "mcp__plugin_plum_Plum__list_context_models", "mcp__plugin_plum_Plum__get_context_document", "mcp__plugin_plum_Plum__get_view_catalog", "mcp__plugin_plum_Plum__save_view", "mcp__plugin_plum_Plum__list_views", "mcp__plugin_plum_Plum__delete_view", "mcp__plugin_plum_Plum__list_organizations", "mcp__plugin_plum_Plum__switch_organization", "mcp__plugin_plum_Plum__whoami"]
 ---
 
 # plum: Views
 
 Turn a question about the business into the UI that answers it, built from the numbers the app holds, and put it on the app's **Views** page (step 5) where the person and their team see it. The data comes from the workspace's imported records (every row, aggregated on the server), the meaning of business terms comes from the published ontology and the context document, and the view is a composition of the app's own components (the view catalog) chosen to fit the question. The Views page polls the API and shows a "Claude Code" panel, so a view saved here appears on screen within seconds; a view saved again with the same id is replaced in place and its link keeps working.
 
-**Views belong to one organization.** Each organization is its own workspace with its own sources, ontology and views. A view the person remembers but cannot find is very often saved in another one. Before telling anyone a view does not exist, call `list_organizations`; `/context-graph:setup org` moves the plugin.
+**Views belong to one organization.** Each organization is its own workspace with its own sources, ontology and views. A view the person remembers but cannot find is very often saved in another one. Before telling anyone a view does not exist, call `list_organizations`; `/plum:setup org` moves the plugin.
 
 **CLI commands** available via Bash (all paths relative to `${CLAUDE_PLUGIN_ROOT}/dist/commands/`):
 
@@ -24,14 +24,14 @@ The user wants the result, not the work. Do not narrate what you are about to do
 
 ## Tool access
 
-The `mcp__plugin_context-graph_ContextGraph__*` tools come from this plugin's MCP server. When one is not directly callable (Claude Code defers MCP tools when many servers are configured), load it with ToolSearch, for example `select:mcp__plugin_context-graph_ContextGraph__aggregate_records`, then call it. If the tools still cannot be called, run the same tool from Bash; it prints the same result:
+The `mcp__plugin_plum_Plum__*` tools come from this plugin's MCP server. When one is not directly callable (Claude Code defers MCP tools when many servers are configured), load it with ToolSearch, for example `select:mcp__plugin_plum_Plum__aggregate_records`, then call it. If the tools still cannot be called, run the same tool from Bash; it prints the same result:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" get_imported_model '{"search":"opportunity"}'
 node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" aggregate_records '{"typeId":"Opportunity","where":"StageName = \"Closed Won\"","groupBy":["LeadSource"],"metrics":["sum:Amount","count"]}'
 ```
 
-Never substitute curl, hand-written API calls, or files under `~/.config/context-graph` (the token there is a secret: do not read or print it). Never invent page links: only `save_view`, `list_views` and `pageLink.js` print them. If neither route works, tell the user to run `/mcp`, check that the ContextGraph server is connected, and restart Claude Code, then stop.
+Never substitute curl, hand-written API calls, or files under `~/.config/plum` (the token there is a secret: do not read or print it). Never invent page links: only `save_view`, `list_views` and `pageLink.js` print them. If neither route works, tell the user to run `/mcp`, check that the Plum server is connected, and restart Claude Code, then stop.
 
 ## Modes
 
@@ -45,11 +45,11 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 
 ### List
 
-Call `mcp__plugin_context-graph_ContextGraph__list_views`. Report each view on one line (title, form, when it was last saved, its link). When there are none, say so and name the other organizations from `list_organizations` if the person belongs to any. Stop.
+Call `mcp__plugin_plum_Plum__list_views`. Report each view on one line (title, form, when it was last saved, its link). When there are none, say so and name the other organizations from `list_organizations` if the person belongs to any. Stop.
 
 ### Delete
 
-The id comes from `$ARGUMENTS` or from `list_views`. Unless the person named the view themselves, confirm with `AskUserQuestion` first, naming its title. Then call `mcp__plugin_context-graph_ContextGraph__delete_view` and report it in one line. Stop.
+The id comes from `$ARGUMENTS` or from `list_views`. Unless the person named the view themselves, confirm with `AskUserQuestion` first, naming its title. Then call `mcp__plugin_plum_Plum__delete_view` and report it in one line. Stop.
 
 ### Edit
 
@@ -61,14 +61,14 @@ Run the steps below. When the person is changing a view that exists, find its id
 
 ## 2. Ground every term in the data and the definitions
 
-1. Call `mcp__plugin_context-graph_ContextGraph__get_imported_model` with `search` for the likely type (opportunity, account, order, ticket). Note the type's native name, record count, the exact field names, picklist values, and which fields are references (`→ Account`): a reference field groups by the related record's attribute as `AccountId.Industry`.
-2. Call `mcp__plugin_context-graph_ContextGraph__get_ontology_version` (the newest published version). When a word in the question is a defined term (Customer, Open opportunity, Churned account, a metric), use its `Rule:` predicates as the `where` clause and its formula as the measure, and name the definition in the caption. When the rule is `undetermined` or descriptive, the data cannot decide it: ask with `AskUserQuestion`, offering the picklist values the field actually has, or state the assumption you made in the caption. Business terms with no entry in the ontology may be defined in the context document (`get_context_document`); search its sections before assuming.
+1. Call `mcp__plugin_plum_Plum__get_imported_model` with `search` for the likely type (opportunity, account, order, ticket). Note the type's native name, record count, the exact field names, picklist values, and which fields are references (`→ Account`): a reference field groups by the related record's attribute as `AccountId.Industry`.
+2. Call `mcp__plugin_plum_Plum__get_ontology_version` (the newest published version). When a word in the question is a defined term (Customer, Open opportunity, Churned account, a metric), use its `Rule:` predicates as the `where` clause and its formula as the measure, and name the definition in the caption. When the rule is `undetermined` or descriptive, the data cannot decide it: ask with `AskUserQuestion`, offering the picklist values the field actually has, or state the assumption you made in the caption. Business terms with no entry in the ontology may be defined in the context document (`get_context_document`); search its sections before assuming.
 3. Never compute a total from `search_entities`: it is a sample. Use it only to check that a field holds what you think (a few rows) before aggregating.
 4. When the type or the field the question needs is not in this workspace at all, check `list_organizations` before concluding the data does not exist.
 
 ## 3. Pull the numbers
 
-Call `mcp__plugin_context-graph_ContextGraph__aggregate_records` once per series or panel. It groups every record of the type on the server and returns a caption line, the snapshot and coverage, and a JSON block (`columns`, `rows`, `totals`, `count`) to embed as is.
+Call `mcp__plugin_plum_Plum__aggregate_records` once per series or panel. It groups every record of the type on the server and returns a caption line, the snapshot and coverage, and a JSON block (`columns`, `rows`, `totals`, `count`) to embed as is.
 
 | Question shape | Call |
 |---|---|
@@ -83,7 +83,7 @@ Call `mcp__plugin_context-graph_ContextGraph__aggregate_records` once per series
 
 **Ask for every measure the reader might want on the chart, not only the one you will draw.** A single `metrics` list of `["count","sum:Amount"]` costs one call and lets the same chart write the count on the steps, draw the amount behind them with `overlay`, and show both on hover with `tooltip: "detailed"`. Two calls for the same grouping is a mistake.
 
-When the reader needs individual records (a scatter of amount against age, a gallery of the largest deals, a drill-down table), call `mcp__plugin_context-graph_ContextGraph__export_records` with the `fields` the page needs; it writes a JSON file on this machine and reports the path. Read the file and embed the rows; a browser cannot fetch a local file. Keep exports under a few thousand rows and never include fields that look like secrets, emails or phone numbers unless the question is about them.
+When the reader needs individual records (a scatter of amount against age, a gallery of the largest deals, a drill-down table), call `mcp__plugin_plum_Plum__export_records` with the `fields` the page needs; it writes a JSON file on this machine and reports the path. Read the file and embed the rows; a browser cannot fetch a local file. Keep exports under a few thousand rows and never include fields that look like secrets, emails or phone numbers unless the question is about them.
 
 ## 4. Choose the form from the reader's job
 
@@ -129,9 +129,9 @@ Every word in a Callout, Quote, Note or Checklist comes from a tool result or fr
 
 ## 6. Compose the view from the catalog and save it
 
-A view is not a page you draw: it is a **spec** the app renders with its own components. Call `mcp__plugin_context-graph_ContextGraph__get_view_catalog` once per session and compose a json-render spec from it: a flat tree `{ "root": "page", "elements": { "<key>": { "type": "<Component>", "props": { … }, "children": ["<key>", …] } } }` whose root is a `Page`. Every chart takes `data` as the `{ columns, rows }` block `aggregate_records` returned, copied as is, and names the columns it draws by their headers. Every view is: the Page, then a Caption (type and record count, the `where` clause in words, the definition applied with its ontology version, the snapshot date and coverage, and "exact" or the reason counts are not exact, all copied from the tool result; an assumption goes in a Note with tone `warning` or a Callout with tone `warning`), then the chart or charts, then a DataTable of the same numbers. Nothing in a view identifies the machine: no ids, tokens or paths. Do not write HTML, SVG or scripts anywhere: the catalog is the whole vocabulary, and a spec outside it is refused with the list of problems, which you fix and save again.
+A view is not a page you draw: it is a **spec** the app renders with its own components. Call `mcp__plugin_plum_Plum__get_view_catalog` once per session and compose a json-render spec from it: a flat tree `{ "root": "page", "elements": { "<key>": { "type": "<Component>", "props": { … }, "children": ["<key>", …] } } }` whose root is a `Page`. Every chart takes `data` as the `{ columns, rows }` block `aggregate_records` returned, copied as is, and names the columns it draws by their headers. Every view is: the Page, then a Caption (type and record count, the `where` clause in words, the definition applied with its ontology version, the snapshot date and coverage, and "exact" or the reason counts are not exact, all copied from the tool result; an assumption goes in a Note with tone `warning` or a Callout with tone `warning`), then the chart or charts, then a DataTable of the same numbers. Nothing in a view identifies the machine: no ids, tokens or paths. Do not write HTML, SVG or scripts anywhere: the catalog is the whole vocabulary, and a spec outside it is refused with the list of problems, which you fix and save again.
 
-Then call `mcp__plugin_context-graph_ContextGraph__save_view` with:
+Then call `mcp__plugin_plum_Plum__save_view` with:
 
 - `title`: two to six words naming the view;
 - `question`: the person's words;
@@ -139,7 +139,7 @@ Then call `mcp__plugin_context-graph_ContextGraph__save_view` with:
 - `caption`: the same text as the Caption;
 - `facts`: the machine-readable version, copied from the `aggregate_records` result, for example `{"typeId":"Opportunity","where":"StageName = \"Closed Won\"","records":90,"snapshot":"2026-09-15","coverage":"complete","exact":true,"definition":"none"}`;
 - `spec`: the spec;
-- `id`: only when replacing a view the person already has (find it with `mcp__plugin_context-graph_ContextGraph__list_views`), so its link keeps working.
+- `id`: only when replacing a view the person already has (find it with `mcp__plugin_plum_Plum__list_views`), so its link keeps working.
 
 The tool answers with the view id and the Views page link. The view is private to the workspace: the person and their teammates see it on step 5, where they can also delete it.
 
