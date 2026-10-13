@@ -24390,7 +24390,11 @@ var KNOWN_MODES = /* @__PURE__ */ new Set([
   "settings",
   "discard",
   "check",
-  "apply"
+  "apply",
+  "skill",
+  "read",
+  "search",
+  "updates"
 ]);
 var INVOCATION = /^\/context-graph:([a-z-]+)(?:\s+([a-z-]+))?/;
 function readInvocation(prompt) {

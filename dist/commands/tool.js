@@ -24628,6 +24628,8 @@ var PlumOntologyDocumentSchema = PlumOntologyEntrySchema.extend({
   viewUrl: external_exports.string().nullable(),
   editUrl: external_exports.string().nullable()
 });
+var PLUM_ONTOLOGY_PATH = /^(?:[a-z0-9][a-z0-9_-]{0,80}\/){0,5}(?:[a-z0-9][a-z0-9_.-]{0,100}|AGENT|README)\.md$/;
+var isPlumOntologyPath = (path8) => PLUM_ONTOLOGY_PATH.test(path8) && !path8.includes("..");
 var PlumOntologyUpdateRequestSchema = external_exports.strictObject({
   title: external_exports.string().trim().min(1).max(200).describe("What the change does, in a few words."),
   rationale: external_exports.string().trim().min(1).max(4e3).describe("Why, and which sources it comes from. The reviewer reads this before approving."),
@@ -25518,17 +25520,24 @@ var execBash = {
     )
   }
 };
+var ontologyUpdateFiles = external_exports.preprocess(
+  parseJson,
+  external_exports.array(external_exports.object({ path: ontologyPath, content: external_exports.string().max(6e4).describe("The whole new file.") })).min(1).max(50)
+).describe("Every file to create or replace, each in full.");
+var previewOntologyUpdate = {
+  name: "preview_ontology_update",
+  title: "Preview ontology update",
+  description: "Diff new or changed ontology files against the current approved version before proposing them: one unified diff per changed file, new files marked as such, unchanged files named so they can be dropped, and every path or file that the repository would refuse (a path outside the layout, a file without frontmatter). Nothing is written. Show the person this diff and get their go-ahead before propose_ontology_update.",
+  inputSchema: { files: ontologyUpdateFiles }
+};
 var proposeOntologyUpdate = {
   name: "propose_ontology_update",
   title: "Propose ontology update",
-  description: "Propose new or changed ontology files as one change for a person to approve in the app. Nothing reaches the approved ontology until they do. Send each file whole, frontmatter included, following the repository layout: one topic per file, edit the file that owns a topic instead of adding another, label statements confirmed, inferred or unknown, write unknowns as OPEN, and update AGENT.md's navigation or the folder README when you add a file. Read the files you change first.",
+  description: "Open new or changed ontology files as one pull request on the ontology repository for a person to approve in the app or on GitHub. Nothing reaches the approved ontology until they do. Send each file whole, frontmatter included, following the repository layout: one topic per file, edit the file that owns a topic instead of adding another, label statements confirmed, inferred or unknown, write unknowns as OPEN, and update AGENT.md's navigation or the folder README when you add a file. Read the files you change first and preview_ontology_update the result.",
   inputSchema: {
     title: external_exports.string().trim().min(1).max(200).describe("What the change does, in a few words."),
     rationale: external_exports.string().trim().min(1).max(4e3).describe("Why, and which sources it comes from (document names, meeting dates). The reviewer reads this."),
-    files: external_exports.preprocess(
-      parseJson,
-      external_exports.array(external_exports.object({ path: ontologyPath, content: external_exports.string().max(6e4).describe("The whole new file.") })).min(1).max(50)
-    ).describe("Every file to create or replace, each in full.")
+    files: ontologyUpdateFiles
   }
 };
 var listOntologyUpdates = {
@@ -25536,6 +25545,15 @@ var listOntologyUpdates = {
   title: "List ontology updates",
   description: "Recent ontology updates in this workspace, newest first, with status (open: waiting for approval; merged: in the approved ontology) and their review links.",
   inputSchema: {}
+};
+var reviewOntologyUpdate = {
+  name: "review_ontology_update",
+  title: "Review ontology update",
+  description: "One ontology update from list_ontology_updates: its status, who opened it and why, the review link, every file it adds, changes or deletes against the approved version, and the diff of each (or of one file when path is given). Read-only; approving happens in the app or on GitHub.",
+  inputSchema: {
+    id: external_exports.string().trim().min(1).max(100).describe("The update id (pr_\u2026) from list_ontology_updates."),
+    path: ontologyPath.optional().describe("Show only this file of the update.")
+  }
 };
 var listContextModels = {
   name: "list_context_models",
@@ -25899,8 +25917,10 @@ var ALL_TOOL_CONTRACTS = [
   getOntologyFile,
   searchOntology,
   execBash,
+  previewOntologyUpdate,
   proposeOntologyUpdate,
   listOntologyUpdates,
+  reviewOntologyUpdate,
   listGranolaNotes,
   getGranolaNote,
   searchGranolaNotes,
@@ -26146,6 +26166,8 @@ async function resolveType(client, requested, connectionId) {
 }
 var shorten = (value, max = 160) => value.length > max ? `${value.slice(0, max - 1)}\u2026` : value;
 var when = (iso) => iso.replace("T", " ").replace(/\.\d+Z$/, "Z");
+var FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
+var REVIEW_DIFF_FILES = 10;
 function versionLine(version2, published) {
   const executable = version2.definitions.filter((definition) => definition.rule.kind === "filter").length;
   return `- v${version2.version} \xB7 ${version2.version === published ? "PUBLISHED" : version2.state} \xB7 ${when(version2.createdAt)} \xB7 by ${version2.author} \xB7 ${version2.definitions.length} definitions (${executable} executable)`;
@@ -26918,6 +26940,46 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
         ].join("\n")
       );
     },
+    async preview_ontology_update(args) {
+      const { files } = args;
+      const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files"));
+      const existing = new Set(list.files.map((file2) => file2.path));
+      const problems = [];
+      const sections2 = [];
+      const counts = { added: 0, changed: 0, unchanged: 0 };
+      for (const file2 of files) {
+        if (!isPlumOntologyPath(file2.path))
+          problems.push(
+            `${file2.path}: not a path the repository accepts. Use lowercase, hyphenated folders and a .md file (AGENT.md and README.md are the exceptions).`
+          );
+        if (!FRONTMATTER.test(file2.content))
+          problems.push(`${file2.path}: no frontmatter block. Every file starts with --- type: \u2026 --- lines.`);
+        if (!existing.has(file2.path)) {
+          counts.added += 1;
+          sections2.push(`+++ ${file2.path} (new file, ${file2.content.split("\n").length} lines)`);
+          continue;
+        }
+        const current = parse3(PlumOntologyDocumentSchema, await client.get("/plum/document", { path: file2.path }));
+        if (current.text === file2.content) {
+          counts.unchanged += 1;
+          sections2.push(`=== ${file2.path} is unchanged; drop it from the update.`);
+          continue;
+        }
+        counts.changed += 1;
+        sections2.push(unifiedDiff(current.text, file2.content, { before: `a/${file2.path}`, after: `b/${file2.path}` }));
+      }
+      const summary = `${counts.added} new, ${counts.changed} changed, ${counts.unchanged} unchanged against ontology ${list.ontologyVersion.slice(0, 12)}.`;
+      return text2(
+        [
+          `Preview of ${files.length} file${files.length === 1 ? "" : "s"}: ${summary}`,
+          ...problems.length ? ["", "The repository would refuse this update:", ...problems.map((p) => `- ${p}`)] : [],
+          "",
+          ...sections2,
+          "",
+          problems.length ? "Fix the problems above before propose_ontology_update." : "Nothing is written yet. Show this to the person; on their go-ahead, propose_ontology_update opens the pull request."
+        ].join("\n")
+      );
+    },
     async propose_ontology_update(args) {
       const body = args;
       const proposal = parse3(PlumProposalSchema, await client.post("/plum/proposals", body));
@@ -26926,6 +26988,46 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
           `Proposed "${proposal.title}" (${body.files.length} file${body.files.length === 1 ? "" : "s"}) as ${proposal.id}. It is waiting for an editor or admin to approve it in the app; until then the ontology is unchanged.`,
           ...proposal.url ? [`Review: ${proposal.url}`] : [],
           "list_ontology_updates shows when it has merged."
+        ].join("\n")
+      );
+    },
+    async review_ontology_update(args) {
+      const { id, path: only } = args;
+      const review = parse3(
+        PlumProposalReviewSchema,
+        await client.get(`/plum/proposals/${encodeURIComponent(id)}/review`)
+      );
+      const { proposal } = review;
+      const changes = only ? review.changes.filter((change) => change.path === only) : review.changes;
+      if (only && !changes.length)
+        return text2(
+          `${proposal.id} does not touch ${only}. Its files: ${review.changes.map((c) => c.path).join(", ") || "none"}.`
+        );
+      const head = [
+        `${proposal.id} \xB7 ${proposal.status} \xB7 "${proposal.title}" \xB7 opened ${when(proposal.createdAt)} by ${review.proposedBy}${proposal.url ? ` \xB7 ${proposal.url}` : ""}`,
+        ...review.rationale ? [`Why: ${review.rationale}`] : [],
+        review.head ? `${review.changes.length} file${review.changes.length === 1 ? "" : "s"} against ontology ${review.base.slice(0, 12)}:` : proposal.status === "merged" ? `Merged${proposal.mergeCommit ? ` as ${proposal.mergeCommit.slice(0, 12)}` : ""}; its branch is gone, so there is no diff left to show.` : "Its branch no longer exists, so there is no diff to show.",
+        ...review.changes.map((change) => `- ${change.status} ${change.path} (${change.title})`)
+      ];
+      const diffs = [];
+      if (review.head)
+        for (const change of changes.slice(0, REVIEW_DIFF_FILES)) {
+          const file2 = parse3(
+            PlumProposalFileSchema,
+            await client.get(`/plum/proposals/${encodeURIComponent(id)}/file`, { path: change.path })
+          );
+          diffs.push(
+            file2.before === null ? `+++ ${change.path} (new file)
+${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : unifiedDiff(file2.before, file2.after, { before: `a/${change.path}`, after: `b/${change.path}` })
+          );
+        }
+      return text2(
+        [
+          ...head,
+          ...diffs.length ? ["", ...diffs] : [],
+          ...review.head && changes.length > REVIEW_DIFF_FILES ? ["", `Showing ${REVIEW_DIFF_FILES} of ${changes.length} files; pass path to see another.`] : [],
+          "",
+          proposal.status === "open" ? "An editor or admin approves it in the app or merges the pull request on GitHub." : "This update is already decided."
         ].join("\n")
       );
     },
