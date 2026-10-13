@@ -1,7 +1,7 @@
 {
   "name": "context-graph-claude-plugin",
-  "version": "0.6.1",
-  "description": "Edit context graph revisions and ontology versions from Claude Code, with the browser page following along.",
+  "version": "0.8.0",
+  "description": "Start plum's discovery agent, learn from the ontology repository it proposes, improve it through proposals, and grow the playbook's skills, context and workflows from Claude Code.",
   "type": "module",
   "license": "MIT",
   "engines": {

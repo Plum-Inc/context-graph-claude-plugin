@@ -24327,6 +24327,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
     serviceUrl: config2.serviceUrl,
     get: (path8, query) => request("GET", path8, { query, auth: true }),
     post: (path8, body) => request("POST", path8, { body, auth: true }),
+    put: (path8, body) => request("PUT", path8, { body, auth: true }),
     delete: (path8) => request("DELETE", path8, { auth: true }),
     anonymous: (method, path8, body) => request(method, path8, { body, auth: false })
   };
@@ -24633,7 +24634,7 @@ function describeConnection(connection, organizations = null) {
     case "connected": {
       const current = organizations?.find((item) => item.workspaceId === connection.workspaceId);
       const where = current ? `${current.name} (workspace ${connection.workspaceId})` : `workspace ${connection.workspaceId}`;
-      return `[plum] Connected to ${where}${formatEndpointSuffix(connection.serviceUrl)} as "${connection.label}" (${connection.role}). Skills: /plum:graph, /plum:ontology, /plum:views.`;
+      return `[plum] Connected to ${where}${formatEndpointSuffix(connection.serviceUrl)} as "${connection.label}" (${connection.role}). Pipeline: /plum:learn \u2192 /plum:improve \u2192 /plum:harness; /plum:discovery starts the agent.`;
     }
     case "rejected":
       return `[plum] The saved sign-in for ${connection.serviceUrl} was rejected. Run ${platform.loginHint} to connect again.`;

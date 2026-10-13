@@ -166,10 +166,8 @@ async function runCommand(spec, work) {
 
 // src/links.ts
 function buildPagePath(page, options = {}) {
+  if (page === "ontology") return options.path ? `/#ontology:${encodeURIComponent(options.path)}` : "/#ontology";
   const params = new URLSearchParams({ stage: page });
-  if (options.contextId) params.set("context", options.contextId);
-  if (options.sectionId) params.set("section", options.sectionId);
-  if (options.nodeId) params.set("node", options.nodeId);
   if (options.viewId) params.set("view", options.viewId);
   return `/?${params}`;
 }
@@ -178,41 +176,34 @@ function buildPagePath(page, options = {}) {
 function validateRelativePath(path2) {
   const url = new URL(path2, "https://context-graph.invalid");
   if (!path2.startsWith("/") || path2.startsWith("//") || path2.includes("\\") || url.origin !== "https://context-graph.invalid" || url.pathname.startsWith("/api/"))
-    throw new Error("Provide an app page path such as /?stage=graph.");
+    throw new Error("Provide an app page path such as /#ontology.");
   return path2;
 }
 if (process.env.VITEST === void 0) {
   void runCommand(
     {
-      description: "Print a link to an app page and exit. With no path, links the context graph page.",
+      description: "Print a link to an app page and exit. With no path, links the Ontology page.",
       positional: [
         {
           name: "path",
           required: false,
-          description: "Relative app path, e.g. /?stage=document&context=business-context."
+          description: "Relative app path, e.g. /#ontology:gtm/icp.md or /?stage=views&view=view_1."
         }
       ],
       flags: [
         {
           name: "page",
-          description: "graph (step 3), document (step 4) or views (step 5) when no path is given.",
-          default: "graph"
+          description: "ontology (the repository, file by file) or views when no path is given.",
+          default: "ontology"
         },
-        { name: "context", description: "Context model id to open." },
-        { name: "section", description: "Section id to focus on the document page." },
-        { name: "node", description: "Node id to focus on the graph page." },
+        { name: "path", description: "Ontology file to open, e.g. AGENT.md or gtm/icp.md." },
         { name: "view", description: "View id to open on the views page." }
       ]
     },
     ({ positional, flags }) => {
-      const page = flags.page === "document" ? "document" : flags.page === "views" ? "views" : "graph";
+      const page = flags.page === "views" ? "views" : "ontology";
       const text = (name) => typeof flags[name] === "string" ? flags[name] : void 0;
-      const path2 = positional[0] ? validateRelativePath(positional[0]) : buildPagePath(page, {
-        contextId: text("context"),
-        sectionId: text("section"),
-        nodeId: text("node"),
-        viewId: text("view")
-      });
+      const path2 = positional[0] ? validateRelativePath(positional[0]) : buildPagePath(page, { path: text("path"), viewId: text("view") });
       emitPageLink(getConfig().serviceUrl, path2);
     }
   );

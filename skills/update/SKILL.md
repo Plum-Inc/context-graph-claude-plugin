@@ -1,5 +1,5 @@
 ---
-description: Update the plum plugin to the latest published version. TRIGGER when the user wants to update or upgrade the plum plugin, get its latest version, or the session banner said an update is available. SKIP when the user wants to sign in (use /plum:setup) or edit the graph or ontology.
+description: Update the plum plugin to the latest published version. TRIGGER when the user wants to update or upgrade the plum plugin, get its latest version, or the session banner said an update is available. SKIP when the user wants to sign in (use /plum:setup) or read or change the ontology or the playbook (use /plum:learn, /plum:improve or /plum:harness).
 argument-hint: "[check]"
 allowed-tools: ["Bash"]
 ---

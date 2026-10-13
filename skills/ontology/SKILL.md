@@ -1,26 +1,26 @@
 ---
-description: Edit and manage ontology versions from Claude Code: stage changes to entities, definitions, relationships, metrics or processes, show the diff against the original, and save them as the next draft only when the user says save; read versions, ask the model for a draft, preview exact membership changes, publish, compare versions and set automatic drafting. TRIGGER when the user wants to edit the ontology, change a definition or rule, add or remove an entity, publish the ontology, save or draft an ontology version, see what publishing would change, diff ontology versions, or turn auto-draft on or off, or says 'edit the ontology', 'change this definition', 'publish the ontology', 'new ontology version', 'what would publishing change', 'compare ontology versions'. SKIP when the user wants to edit sections of the context graph or business document (use /plum:graph).
+description: Edit and manage the numbered ontology versions that run over imported records (Salesforce objects and the like): stage changes to entities, definitions with executable rules, relationships, metrics or processes, show the diff against the original, and save them as the next draft only when the user says save; read versions, ask the model for a draft, preview exact membership changes, publish, compare versions and set automatic drafting. TRIGGER when the user wants to change a definition's rule over imported records, add or remove an entity sourced from an imported object, publish the ontology, save or draft a numbered ontology version, see what publishing would change for record counts, diff ontology versions, or turn auto-draft on or off, or says 'publish the ontology', 'new ontology version', 'what would publishing change', 'compare ontology versions', 'change the Customer rule'. SKIP when the user wants to read or change the Markdown files of the ontology repository (use /plum:learn or /plum:improve) or the playbook (use /plum:harness).
 argument-hint: "[edit|versions|save|draft|publish|compare|settings]"
-allowed-tools: ["Bash", "AskUserQuestion", "Read", "mcp__plugin_plum_Plum__get_ontology", "mcp__plugin_plum_Plum__get_ontology_version", "mcp__plugin_plum_Plum__save_ontology_version", "mcp__plugin_plum_Plum__edit_ontology_entry", "mcp__plugin_plum_Plum__show_ontology_changes", "mcp__plugin_plum_Plum__save_ontology_changes", "mcp__plugin_plum_Plum__discard_ontology_changes", "mcp__plugin_plum_Plum__configure_ontology", "mcp__plugin_plum_Plum__request_ontology_draft", "mcp__plugin_plum_Plum__preview_ontology_publication", "mcp__plugin_plum_Plum__publish_ontology", "mcp__plugin_plum_Plum__update_ontology_settings", "mcp__plugin_plum_Plum__compare_ontology_versions", "mcp__plugin_plum_Plum__get_context_document", "mcp__plugin_plum_Plum__list_context_models", "mcp__plugin_plum_Plum__list_sources", "mcp__plugin_plum_Plum__get_imported_model"]
+allowed-tools: ["Bash", "AskUserQuestion", "Read", "mcp__plugin_plum_Plum__get_ontology", "mcp__plugin_plum_Plum__get_ontology_version", "mcp__plugin_plum_Plum__save_ontology_version", "mcp__plugin_plum_Plum__edit_ontology_entry", "mcp__plugin_plum_Plum__show_ontology_changes", "mcp__plugin_plum_Plum__save_ontology_changes", "mcp__plugin_plum_Plum__discard_ontology_changes", "mcp__plugin_plum_Plum__configure_ontology", "mcp__plugin_plum_Plum__request_ontology_draft", "mcp__plugin_plum_Plum__preview_ontology_publication", "mcp__plugin_plum_Plum__publish_ontology", "mcp__plugin_plum_Plum__update_ontology_settings", "mcp__plugin_plum_Plum__compare_ontology_versions", "mcp__plugin_plum_Plum__list_sources", "mcp__plugin_plum_Plum__get_imported_model"]
 ---
 
 # plum: Ontology versions
 
-The ontology is the reviewed model of the business: immutable numbered versions, one of them published. Publishing runs the exact definitions against the imported records, so the preview shows how many records enter or leave each definition before anything changes. The versions menu on the graph and document pages (steps 3 and 4) shows the same versions and marks the published one as live; it refreshes while this plugin works.
+The numbered ontology is the reviewed model of the business over its imported records: immutable numbered versions, one of them published. Publishing runs the exact definitions against the imported records, so the preview shows how many records enter or leave each definition before anything changes. It is separate from the ontology repository's Markdown files, which `/plum:learn` reads and `/plum:improve` changes through proposals.
 
 Every write takes the ontology **head revision** from `get_ontology` as `expectedRevision`. Read it right before each write.
 
 ## Output
 
-The user wants the result, not the work. Do not narrate what you are about to do, which tool you are calling, or what you are checking; never write "Let me", "I'll", "First I'll" or a summary of your reasoning. Run the steps silently and answer with the outcome only: one or two lines (for example "Committed revision 7: tightened Customer." plus the page link), a fenced diff when a step calls for one, or a single question through `AskUserQuestion`. When something fails, say what failed and the one command that fixes it, nothing else.
+The user wants the result, not the work. Do not narrate what you are about to do, which tool you are calling, or what you are checking; never write "Let me", "I'll", "First I'll" or a summary of your reasoning. Run the steps silently and answer with the outcome only: one or two lines (for example "Saved draft v5 with 2 changes: tightened Customer, added Subscription."), a fenced diff when a step calls for one, or a single question through `AskUserQuestion`. When something fails, say what failed and the one command that fixes it, nothing else.
 
 ## Tool access
 
-The `mcp__plugin_plum_Plum__*` tools come from this plugin's MCP server. When one is not directly callable (Claude Code defers MCP tools when many servers are configured), load it with ToolSearch, for example `select:mcp__plugin_plum_Plum__list_context_models`, then call it. If the tools still cannot be called, run the same tool from Bash; it prints the same result:
+The `mcp__plugin_plum_Plum__*` tools come from this plugin's MCP server. When one is not directly callable (Claude Code defers MCP tools when many servers are configured), load it with ToolSearch, for example `select:mcp__plugin_plum_Plum__get_ontology`, then call it. If the tools still cannot be called, run the same tool from Bash; it prints the same result:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" list_context_models
-node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" get_context_model '{"proposalId":"business-context"}'
+node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" get_ontology
+node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" get_ontology_version '{"version":4}'
 ```
 
 `tool.js --list` prints every tool. Never substitute curl, hand-written API calls, or files under `~/.config/plum` (the token there is a secret: do not read or print it). Never invent page links: only `pageLink.js` prints them. If neither route works, tell the user to run `/mcp`, check that the Plum server is connected, and restart Claude Code, then stop.
@@ -33,7 +33,7 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 |------|---------|--------------|
 | `edit` | `edit` or a described change | Stage changes to entries (entity, definition, relationship, metric, process, …), show the diff against the original, save as the next draft only when the user says save |
 | `versions` | `versions` (default without arguments) | List versions and jobs, read one version's markdown |
-| `save` | `save` | Save markdown (from a file, the context document, or edits to a version) as the next draft |
+| `save` | `save` | Save markdown (from a file, or edits to a version) as the next draft |
 | `draft` | `draft` | Ask the model to draft the next version from the configured sources |
 | `publish` | `publish` | Preview membership changes, confirm, publish the newest draft |
 | `compare` | `compare` | Diff two versions |
@@ -60,21 +60,20 @@ Edits are **staged, never saved on their own**. Every staged edit is diffed agai
 
 1. Call `get_ontology` for the head revision. Decide where the markdown comes from:
    - **A file the user names**: Read it.
-   - **The reviewed context document**: call `mcp__plugin_plum_Plum__get_context_document` for the model the user means (default `business-context`) and use its markdown verbatim; this is what the page's "Preview publication" does.
    - **An edit to an existing version**: call `get_ontology_version`, apply the requested change to the markdown, and show the changed lines in a fenced block for confirmation with `AskUserQuestion`.
 2. Call `mcp__plugin_plum_Plum__save_ontology_version` with the head revision and the markdown. On `INVALID_REQUEST` the parser named the bad heading or rule: fix it (rules target only imported types; use `get_imported_model` for names) and retry. Report the new draft version number in one line and offer `publish`.
 
 ## Draft
 
 1. Call `get_ontology`. If the selection is empty, ask which sources and objects to include (`list_sources` and `get_imported_model` list them) and which business questions the draft should answer, then call `mcp__plugin_plum_Plum__configure_ontology`.
-2. Call `mcp__plugin_plum_Plum__request_ontology_draft` with the head revision. It queues a background job; `CONFLICT` means a draft is already running. Tell the user drafts usually take a few minutes and that the versions menu on the page shows the new version when it lands. Poll `get_ontology` at most every 30 seconds for up to ten minutes only when the user asks you to wait; otherwise stop and let them come back.
+2. Call `mcp__plugin_plum_Plum__request_ontology_draft` with the head revision. It queues a background job; `CONFLICT` means a draft is already running. Tell the user drafts usually take a few minutes and that `versions` lists the new one when it lands. Poll `get_ontology` at most every 30 seconds for up to ten minutes only when the user asks you to wait; otherwise stop and let them come back.
 
 ## Publish
 
-1. Call `get_ontology`. The newest version must be a draft; if the newest is already published, say so and stop. If the user just edited the context document (`/plum:graph`), run Save from the context document first so the draft matches what they reviewed.
-2. Call `mcp__plugin_plum_Plum__preview_ontology_publication` with the head revision. Relay the membership table (definition, before, after, entered, left) and the context changes. On `CONFLICT` ("Source data changed"), the sources were re-imported since the draft: run Save again, then preview again.
+1. Call `get_ontology`. The newest version must be a draft; if the newest is already published, say so and stop.
+2. Call `mcp__plugin_plum_Plum__preview_ontology_publication` with the head revision. Relay the membership table (definition, before, after, entered, left). On `CONFLICT` ("Source data changed"), the sources were re-imported since the draft: run Save again, then preview again.
 3. Publishing is irreversible (a new version is created, the old one stays). Confirm with `AskUserQuestion`: "Publish version N with these changes?" with options "Publish" and "Not now". Only on "Publish", call `mcp__plugin_plum_Plum__publish_ontology` with the same `expectedRevision` and the `previewToken` from the preview. A `CONFLICT` here means the draft or the data changed after the preview: preview again and re-confirm.
-4. Report the published version in one line. The versions menu on the graph and document pages now shows it as live, and a bridged context model appears per source (`list_context_models`).
+4. Report the published version in one line; it is the version answers and views now run against.
 
 ## Compare
 

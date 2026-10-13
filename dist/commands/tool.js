@@ -9314,8 +9314,8 @@ function ko_default() {
 }
 
 // ../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/locales/lt.js
-var capitalizeFirstCharacter = (text3) => {
-  return text3.charAt(0).toUpperCase() + text3.slice(1);
+var capitalizeFirstCharacter = (text4) => {
+  return text4.charAt(0).toUpperCase() + text4.slice(1);
 };
 function getUnitTypeFromNumber(number4) {
   const abs = Math.abs(number4);
@@ -20955,100 +20955,7 @@ var PrincipalSchema = external_exports.strictObject({
   orgId: IdSchema.optional()
 });
 
-// ../../packages/shared/src/ontology/rules.ts
-var OntologyParseError = class extends Error {
-  constructor(message, line) {
-    super(line === void 0 ? message : `Line ${line}: ${message}`);
-    this.line = line;
-    this.name = "OntologyParseError";
-  }
-  line;
-};
-var operators = {
-  "=": "eq",
-  "!=": "neq",
-  ">": "gt",
-  ">=": "gte",
-  "<": "lt",
-  "<=": "lte"
-};
-function validateDefinitionRule(input2, entityTypes) {
-  const rule = DefinitionRuleSchema.parse(input2);
-  if (rule.kind === "description") return rule;
-  const matches = entityTypes.filter((type2) => type2.id === rule.typeId || type2.nativeName === rule.typeId);
-  if (matches.length !== 1)
-    throw new OntologyParseError(`${matches.length ? "Ambiguous" : "Unknown"} entity type: ${rule.typeId}`);
-  const type = matches[0];
-  for (const predicate of rule.predicates) {
-    const field = type.fields.find((field2) => field2.name === predicate.field);
-    if (!field) {
-      throw new OntologyParseError(`Unknown field ${predicate.field} on ${type.nativeName}`);
-    }
-    const value = predicate.value;
-    const equality = ["eq", "neq"].includes(predicate.operator);
-    if (value === null) {
-      if (!equality) throw new OntologyParseError("Null only supports equality comparisons");
-      continue;
-    }
-    const expected = field.dataType === "number" ? "number" : field.dataType === "boolean" ? "boolean" : "string";
-    if (field.dataType === "json" || typeof value !== expected || typeof value === "number" && !Number.isFinite(value)) {
-      throw new OntologyParseError(`Invalid value type for ${predicate.field}`);
-    }
-    if (field.dataType === "boolean" && !equality)
-      throw new OntologyParseError("Boolean only supports equality comparisons");
-    if (field.dataType === "date" && (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString().slice(0, 10) !== value))
-      throw new OntologyParseError("Invalid date");
-    if (field.dataType === "datetime" && !TimestampSchema.safeParse(value).success)
-      throw new OntologyParseError("Invalid datetime");
-  }
-  return { ...rule, typeId: type.id };
-}
-function parseDefinitionRule(text3, entityTypes) {
-  let remaining = text3.trim();
-  if (remaining.startsWith("`") && remaining.endsWith("`")) remaining = remaining.slice(1, -1).trim();
-  if (/^undetermined$/i.test(remaining)) return { kind: "description", text: "undetermined" };
-  const start = /^([A-Za-z_][A-Za-z0-9_:./-]*)\s+where\s+/i.exec(remaining);
-  if (!start) {
-    if (/\bwhere\b/i.test(remaining)) throw new OntologyParseError("Invalid filter rule");
-    return { kind: "description", text: remaining || "undetermined" };
-  }
-  const typeId = start[1];
-  remaining = remaining.slice(start[0].length);
-  const predicates = [];
-  while (remaining) {
-    const comparison = /^([A-Za-z_][A-Za-z0-9_]*)\s*(>=|<=|!=|=|>|<)\s*/.exec(remaining);
-    if (!comparison) throw new OntologyParseError("Expected a field comparison");
-    remaining = remaining.slice(comparison[0].length);
-    const literal2 = /^("(?:[^"\\\r\n]|\\["\\/bfnrt]|\\u[0-9a-fA-F]{4})*"|true\b|false\b|null\b|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)/.exec(
-      remaining
-    );
-    if (!literal2) throw new OntologyParseError("Expected a JSON string, finite number, boolean, or null");
-    const value = JSON.parse(literal2[0]);
-    if (typeof value === "number" && !Number.isFinite(value))
-      throw new OntologyParseError("Rule numbers must be finite");
-    predicates.push({ field: comparison[1], operator: operators[comparison[2]], value });
-    remaining = remaining.slice(literal2[0].length);
-    if (!remaining.trim()) break;
-    const conjunction = /^\s+and\s+/i.exec(remaining);
-    if (!conjunction) throw new OntologyParseError("Only AND joins are supported; unexpected text after value");
-    remaining = remaining.slice(conjunction[0].length);
-    if (!remaining.trim()) throw new OntologyParseError("Expected a comparison after AND");
-  }
-  const rule = DefinitionRuleSchema.parse({ kind: "filter", typeId, predicates });
-  return entityTypes === void 0 ? rule : validateDefinitionRule(rule, entityTypes);
-}
-
 // ../../packages/shared/src/ontology/markdown.ts
-var sections = /* @__PURE__ */ new Set([
-  "entities",
-  "definitions",
-  "relationships",
-  "metrics",
-  "questions",
-  "workflows",
-  "processes",
-  "automations"
-]);
 var labelPattern = /^\s*(?:[-*]\s+)?(?:\*\*)?([A-Za-z][A-Za-z ]*)(?:\*\*)?:(?:\*\*)?\s*(.*)$/s;
 function parseLabeledLine(line) {
   const match = labelPattern.exec(line);
@@ -21063,175 +20970,6 @@ function fencedLines(lines) {
     else if (marker[0] === fence[0] && marker.length >= fence.length) fence = void 0;
     return true;
   });
-}
-function scalar(value, line) {
-  if (value.startsWith('"')) {
-    try {
-      const parsed = JSON.parse(value);
-      if (typeof parsed === "string") return parsed;
-    } catch {
-    }
-    throw new OntologyParseError("Invalid quoted frontmatter value", line);
-  }
-  if (value.startsWith("'")) {
-    if (!/^'(?:[^']|'')*'$/.test(value)) throw new OntologyParseError("Invalid quoted frontmatter value", line);
-    return value.slice(1, -1).replaceAll("''", "'");
-  }
-  if (/^(true|false|null)$/.test(value)) return JSON.parse(value);
-  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value)) {
-    const number4 = Number(value);
-    if (!Number.isFinite(number4)) throw new OntologyParseError("Frontmatter number must be finite", line);
-    return number4;
-  }
-  if (!value || /^[[\]{}&*!>|]/.test(value))
-    throw new OntologyParseError("Frontmatter supports scalar values only", line);
-  return value;
-}
-function parseOntologyMarkdown(markdown, entityTypes) {
-  const lines = markdown.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").split("\n");
-  if (lines[0]?.trim() !== "---") throw new OntologyParseError("Expected opening frontmatter delimiter", 1);
-  const frontmatter = {};
-  let cursor = 1;
-  for (; cursor < lines.length && lines[cursor].trim() !== "---"; cursor++) {
-    const line = lines[cursor];
-    if (!line.trim() || line.trimStart().startsWith("#")) continue;
-    const pair = /^([A-Za-z_][A-Za-z0-9_-]*):\s*(.*?)\s*$/s.exec(line);
-    if (!pair) throw new OntologyParseError("Expected a flat frontmatter key/value pair", cursor + 1);
-    if (Object.hasOwn(frontmatter, pair[1])) throw new OntologyParseError("Duplicate frontmatter key", cursor + 1);
-    Object.defineProperty(frontmatter, pair[1], { value: scalar(pair[2], cursor + 1), enumerable: true });
-  }
-  if (cursor === lines.length) throw new OntologyParseError("Unclosed frontmatter", 1);
-  const document = {
-    frontmatter,
-    title: "",
-    entities: [],
-    definitions: [],
-    relationships: [],
-    metrics: [],
-    questions: [],
-    workflows: [],
-    processes: [],
-    automations: []
-  };
-  let section;
-  let entry;
-  let group;
-  let fence;
-  const seenSections = /* @__PURE__ */ new Set();
-  const finish2 = () => {
-    if (!entry || !section) return;
-    const properties = {};
-    const prose = [];
-    let entryFence;
-    for (const [offset, line] of entry.lines.entries()) {
-      const marker = /^\s*(`{3,}|~{3,})/.exec(line)?.[1];
-      if (marker) {
-        if (!entryFence) entryFence = marker;
-        else if (marker[0] === entryFence[0] && marker.length >= entryFence.length) entryFence = void 0;
-        prose.push(line);
-        continue;
-      }
-      const label2 = entryFence ? null : parseLabeledLine(line);
-      if (label2) {
-        const { key } = label2;
-        if (Object.hasOwn(properties, key)) {
-          if (key === "rule") throw new OntologyParseError(`Duplicate ${key} line`, entry.line + offset + 1);
-          prose.push(line);
-          continue;
-        }
-        Object.defineProperty(properties, key, { value: label2.value, enumerable: true });
-        if (key === "rule") continue;
-      }
-      prose.push(line);
-    }
-    if (entry.process !== void 0 && !Object.hasOwn(properties, "process"))
-      Object.defineProperty(properties, "process", { value: entry.process, enumerable: true });
-    const parsed = {
-      name: entry.name,
-      line: entry.line,
-      markdown: entry.lines.join("\n").trim(),
-      properties
-    };
-    const sameProcess = (item) => (item.properties.process ?? "").toLowerCase() === (parsed.properties.process ?? "").toLowerCase();
-    if (document[section].some(
-      (item) => item.name.toLowerCase() === parsed.name.toLowerCase() && (section !== "processes" || sameProcess(item))
-    )) {
-      throw new OntologyParseError(`Duplicate ${section} entry: ${parsed.name}`, entry.line);
-    }
-    if (section === "definitions") {
-      const description = prose.join("\n").trim();
-      let rule;
-      try {
-        rule = properties.rule === void 0 ? { kind: "description", text: description || entry.name } : parseDefinitionRule(properties.rule, entityTypes);
-      } catch (error62) {
-        throw new OntologyParseError(error62 instanceof Error ? error62.message : "Invalid rule", entry.line);
-      }
-      if (rule.kind === "description")
-        rule = {
-          kind: "description",
-          text: properties.rule && !/^undetermined$/i.test(properties.rule) ? [description, rule.text].filter(Boolean).join("\n") : description || rule.text
-        };
-      document.definitions.push({ ...parsed, description, rule });
-    } else document[section].push(parsed);
-    entry = void 0;
-  };
-  for (cursor++; cursor < lines.length; cursor++) {
-    const line = lines[cursor];
-    const marker = /^\s*(`{3,}|~{3,})/.exec(line)?.[1];
-    if (marker) {
-      if (!fence) fence = marker;
-      else if (marker[0] === fence[0] && marker.length >= fence.length) fence = void 0;
-      if (!entry) throw new OntologyParseError("Code blocks must belong to an entry", cursor + 1);
-      entry.lines.push(line);
-      continue;
-    }
-    if (fence) {
-      entry.lines.push(line);
-      continue;
-    }
-    const heading = /^(#{1,6})\s+(.+?)(?:\s+#+)?\s*$/s.exec(line);
-    if (heading?.[1] === "#") {
-      if (document.title || section) throw new OntologyParseError("Unexpected document title", cursor + 1);
-      document.title = heading[2];
-    } else if (heading?.[1] === "##") {
-      finish2();
-      const name = heading[2].toLowerCase();
-      if (!sections.has(name)) throw new OntologyParseError(`Unknown section: ${heading[2]}`, cursor + 1);
-      if (seenSections.has(name)) throw new OntologyParseError(`Duplicate section: ${heading[2]}`, cursor + 1);
-      section = name;
-      seenSections.add(name);
-    } else if (heading?.[1] === "###") {
-      if (!section) throw new OntologyParseError("Entry must belong to a section", cursor + 1);
-      finish2();
-      group = section === "processes" ? heading[2] : void 0;
-      entry = { name: heading[2], line: cursor + 1, lines: [] };
-    } else if (heading?.[1] === "####" && section === "processes" && group !== void 0) {
-      if (entry?.name === group && entry.process === void 0) entry = void 0;
-      else finish2();
-      entry = { name: heading[2], line: cursor + 1, lines: [], process: group };
-    } else {
-      const item = section === "questions" ? /^\d+[.)]\s+(.+)$/s.exec(line) : section === "relationships" && !parseLabeledLine(line) ? /^[-*]\s+(.+)$/s.exec(line) : null;
-      if (item) {
-        finish2();
-        entry = { name: item[1], line: cursor + 1, lines: [item[1]] };
-      } else if (entry) entry.lines.push(line);
-      else if (line.trim() && !section)
-        throw new OntologyParseError("Content must belong to a section entry", cursor + 1);
-    }
-  }
-  if (fence) throw new OntologyParseError("Unclosed code block", cursor);
-  finish2();
-  if (!document.title) throw new OntologyParseError("Missing document title");
-  const definitionNames = new Set(document.definitions.map((definition) => definition.name.toLowerCase()));
-  for (const stage of document.processes) {
-    const target = stage.properties.definition;
-    if (target !== void 0 && !definitionNames.has(target.trim().toLowerCase()))
-      throw new OntologyParseError(`Unknown definition in process stage ${stage.name}: ${target}`, stage.line);
-    const order = stage.properties.order;
-    if (order !== void 0 && !/^\d{1,4}$/.test(order.trim()))
-      throw new OntologyParseError(`Process stage ${stage.name} needs a whole-number Order`, stage.line);
-  }
-  return document;
 }
 
 // ../../packages/shared/src/ontology/aggregate.ts
@@ -21388,177 +21126,6 @@ function removeEntry(markdown, section, name) {
 }
 
 // ../../packages/shared/src/context-document.ts
-var PROTECTED_LABELS = /* @__PURE__ */ new Set([
-  "context section",
-  "evidence",
-  "answers",
-  "questions",
-  "review"
-]);
-var contextHeading = (text3) => text3.replace(/[\r\n]+/g, " ").replace(/\s+#+\s*$/, "").trim();
-var rows2 = (markdown) => markdown.replace(/\r\n?/g, "\n").split("\n");
-function sectionRule(proposal, section) {
-  const mappings = proposal.mappings.filter((mapping) => mapping.conceptId === section.conceptId);
-  return mappings.length === 1 && mappings[0]?.execution === "executable" ? mappings[0].rule : null;
-}
-var headingOf2 = (line) => /^(#{1,6})\s+(.+?)(?:\s+#+)?\s*$/s.exec(line);
-function blocks(lines) {
-  const fenced = fencedLines(lines);
-  const found = [];
-  let group = "";
-  for (let index = 0; index < lines.length; index++) {
-    const heading = fenced[index] ? null : headingOf2(lines[index]);
-    if (heading?.[1] === "##") group = heading[2];
-    if (heading?.[1] !== "###") continue;
-    let end = lines.length;
-    for (let cursor = index + 1; cursor < lines.length; cursor++)
-      if (!fenced[cursor] && /^#{1,3}\s+/.test(lines[cursor])) {
-        end = cursor;
-        break;
-      }
-    const body = [];
-    let rule;
-    let sectionId = null;
-    for (let cursor = index + 1; cursor < end; cursor++) {
-      const line = lines[cursor];
-      const label2 = fenced[cursor] ? null : parseLabeledLine(line);
-      if (label2?.key === "rule" && rule === void 0) {
-        rule = label2.value;
-        continue;
-      }
-      if (label2?.key === "context section" && sectionId === null) {
-        try {
-          sectionId = decodeURIComponent(label2.value);
-        } catch {
-          sectionId = label2.value;
-        }
-        continue;
-      }
-      if (label2 && PROTECTED_LABELS.has(label2.key)) continue;
-      body.push(line);
-    }
-    found.push({
-      index: found.length,
-      group,
-      heading: heading[2],
-      sectionId,
-      rule: rule ?? "undetermined",
-      body: body.join("\n").trim(),
-      start: index,
-      end
-    });
-  }
-  return found;
-}
-var publicSection = ({ index, group, heading, sectionId, rule, body }) => ({
-  index,
-  group,
-  heading,
-  sectionId,
-  rule,
-  body
-});
-function listSections(markdown) {
-  return blocks(rows2(markdown)).map(publicSection);
-}
-function pick2(sections2, selector) {
-  const matches = sections2.filter(
-    (section) => (selector.sectionId ? section.sectionId === selector.sectionId : false) || (selector.heading ? section.heading.toLowerCase() === selector.heading.toLowerCase() : false)
-  );
-  if (matches.length === 1) return matches[0];
-  if (matches.length > 1)
-    throw new Error(
-      `"${selector.heading ?? selector.sectionId}" matches ${matches.length} sections; pass its sectionId.`
-    );
-  const wanted = selector.sectionId ?? selector.heading ?? "";
-  const nearby = sections2.filter((section) => section.heading.toLowerCase().includes(wanted.toLowerCase())).map((section) => section.heading).slice(0, 5);
-  throw new Error(`No section named "${wanted}".${nearby.length ? ` Did you mean: ${nearby.join(", ")}?` : ""}`);
-}
-function findSection(markdown, selector) {
-  return publicSection(pick2(blocks(rows2(markdown)), selector));
-}
-function assertBody(body) {
-  const lines = body.split("\n");
-  const fenced = fencedLines([...lines, ""]);
-  if (fenced.at(-1)) throw new Error("A section body cannot leave a code block open.");
-  lines.forEach((line, index) => {
-    if (fenced[index]) return;
-    if (/^#{1,3}\s+/.test(line))
-      throw new Error("A section body cannot contain #, ## or ### headings; each section keeps its one heading.");
-    const label2 = parseLabeledLine(line);
-    if (label2 && (label2.key === "rule" || PROTECTED_LABELS.has(label2.key)))
-      throw new Error(
-        `A section body cannot contain a "${label2.label}:" line; pass the rule separately and leave provenance lines as they are.`
-      );
-  });
-}
-function editSection(markdown, selector, change) {
-  const lines = rows2(markdown);
-  const section = pick2(blocks(lines), selector);
-  const block = lines.slice(section.start + 1, section.end);
-  const fenced = fencedLines(block);
-  const keyOf = (line, index) => fenced[index] ? void 0 : parseLabeledLine(line)?.key;
-  const nextRule = (change.rule ?? section.rule).replace(/[\r\n]+/g, " ").trim() || "undetermined";
-  const labels2 = block.flatMap((line, index) => {
-    const key = keyOf(line, index);
-    return key === "rule" ? [`Rule: ${nextRule}`] : key !== void 0 && PROTECTED_LABELS.has(key) ? [line] : [];
-  });
-  if (!block.some((line, index) => keyOf(line, index) === "rule")) labels2.unshift(`Rule: ${nextRule}`);
-  const body = (change.body ?? section.body).trim();
-  assertBody(body);
-  const heading = contextHeading(change.heading ?? section.heading);
-  if (!heading) throw new Error("A section heading cannot be empty.");
-  lines.splice(
-    section.start,
-    section.end - section.start,
-    `### ${heading}`,
-    "",
-    ...body ? [body, ""] : [],
-    ...labels2,
-    ""
-  );
-  const result = `${lines.join("\n").replace(/\s+$/, "")}
-`;
-  return {
-    markdown: result,
-    section: findSection(result, section.sectionId ? { sectionId: section.sectionId } : { heading })
-  };
-}
-function uniqueHeadings(headings) {
-  const used = /* @__PURE__ */ new Set();
-  return headings.map((original) => {
-    const base2 = original.replace(/\s\(\d+\)$/, "");
-    let heading = original;
-    for (let n = 2; used.has(heading.toLowerCase()); n++) heading = `${base2} (${n})`;
-    used.add(heading.toLowerCase());
-    return heading;
-  });
-}
-function dedupeHeadings(markdown) {
-  const lines = rows2(markdown);
-  const sections2 = blocks(lines);
-  const headings = uniqueHeadings(sections2.map((section) => section.heading));
-  const renamed = sections2.flatMap((section, index) => {
-    if (headings[index] === section.heading) return [];
-    lines[section.start] = `### ${headings[index]}`;
-    return [{ sectionId: section.sectionId, from: section.heading, to: headings[index] }];
-  });
-  return { markdown: lines.join("\n"), renamed };
-}
-function documentIdentity(markdown) {
-  const front = /^---\n([\s\S]*?)\n---/.exec(markdown.replace(/\r\n?/g, "\n"))?.[1] ?? "";
-  const model = /^context_model:\s*([^\n]+)$/m.exec(front)?.[1]?.trim();
-  const revision2 = /^context_revision:\s*(\d+)$/m.exec(front)?.[1];
-  let contextModel = null;
-  if (model) {
-    try {
-      contextModel = JSON.parse(model);
-    } catch {
-      contextModel = model;
-    }
-  }
-  return { contextModel, contextRevision: revision2 ? Number(revision2) : null };
-}
 var ContextSummarySchema = external_exports.object({
   id: external_exports.string(),
   label: external_exports.string(),
@@ -22156,43 +21723,43 @@ function modeSelectionGuidance(modes) {
 }
 function buildEditInstructions(config2, format) {
   const modes = normalizeModes(config2);
-  const sections2 = [];
-  sections2.push("EDITING EXISTING SPECS:");
-  sections2.push("");
+  const sections = [];
+  sections.push("EDITING EXISTING SPECS:");
+  sections.push("");
   const guidance = modeSelectionGuidance(modes);
   if (guidance) {
-    sections2.push(guidance);
-    sections2.push("");
+    sections.push(guidance);
+    sections.push("");
   }
   for (const mode of modes) {
     if (format === "json") {
       switch (mode) {
         case "patch":
-          sections2.push(jsonPatchInstructions());
+          sections.push(jsonPatchInstructions());
           break;
         case "merge":
-          sections2.push(jsonMergeInstructions());
+          sections.push(jsonMergeInstructions());
           break;
         case "diff":
-          sections2.push(jsonDiffInstructions());
+          sections.push(jsonDiffInstructions());
           break;
       }
     } else {
       switch (mode) {
         case "patch":
-          sections2.push(yamlPatchInstructions());
+          sections.push(yamlPatchInstructions());
           break;
         case "merge":
-          sections2.push(yamlMergeInstructions());
+          sections.push(yamlMergeInstructions());
           break;
         case "diff":
-          sections2.push(yamlDiffInstructions());
+          sections.push(yamlDiffInstructions());
           break;
       }
     }
-    sections2.push("");
+    sections.push("");
   }
-  return sections2.join("\n");
+  return sections.join("\n");
 }
 function createBuilder() {
   return {
@@ -23771,8 +23338,8 @@ var COLUMN_PROPS = [
 ];
 var LABEL_IS_COLUMN = /* @__PURE__ */ new Set(["Scatter"]);
 function validateViewSpec(input2) {
-  const text3 = JSON.stringify(input2);
-  if (typeof text3 !== "string" || text3.length > VIEW_SPEC_MAX_LENGTH)
+  const text4 = JSON.stringify(input2);
+  if (typeof text4 !== "string" || text4.length > VIEW_SPEC_MAX_LENGTH)
     return { ok: false, issues: [`The spec must be JSON of at most ${VIEW_SPEC_MAX_LENGTH} characters.`] };
   const parsed = viewCatalog.validate(input2);
   const issues = [];
@@ -25273,6 +24840,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
     serviceUrl: config2.serviceUrl,
     get: (path8, query) => request("GET", path8, { query, auth: true }),
     post: (path8, body) => request("POST", path8, { body, auth: true }),
+    put: (path8, body) => request("PUT", path8, { body, auth: true }),
     delete: (path8) => request("DELETE", path8, { auth: true }),
     anonymous: (method, path8, body) => request(method, path8, { body, auth: false })
   };
@@ -25517,16 +25085,14 @@ import os5 from "node:os";
 import path5 from "node:path";
 
 // src/links.ts
-function buildPagePath(page, options = {}) {
-  const params = new URLSearchParams({ stage: page });
-  if (options.contextId) params.set("context", options.contextId);
-  if (options.sectionId) params.set("section", options.sectionId);
-  if (options.nodeId) params.set("node", options.nodeId);
+function buildPagePath(page2, options = {}) {
+  if (page2 === "ontology") return options.path ? `/#ontology:${encodeURIComponent(options.path)}` : "/#ontology";
+  const params = new URLSearchParams({ stage: page2 });
   if (options.viewId) params.set("view", options.viewId);
   return `/?${params}`;
 }
-function pageUrl(serviceUrl, page, options = {}) {
-  return `${serviceUrl.replace(/\/$/, "")}${buildPagePath(page, options)}`;
+function pageUrl(serviceUrl, page2, options = {}) {
+  return `${serviceUrl.replace(/\/$/, "")}${buildPagePath(page2, options)}`;
 }
 
 // src/contract.ts
@@ -25540,13 +25106,6 @@ function parseJson(value) {
 }
 var int2 = (schema) => external_exports.preprocess(parseJson, schema.int());
 var bool = () => external_exports.preprocess(parseJson, external_exports.boolean());
-var proposalId = external_exports.string().min(1).max(200).default("business-context").describe(
-  "Context model id. The discovery model is `business-context`; bridged ontology models are `ontology:<connectionId>`. Use list_context_models to see them."
-);
-var expectedRevision = int2(external_exports.number().positive()).describe(
-  "The revision you read. The write is refused with CONFLICT when a newer revision landed, so re-read first."
-);
-var revision = int2(external_exports.number().positive()).optional().describe("A past revision to read; omit for the current one.");
 var granolaNoteId = external_exports.string().regex(/^not_[a-zA-Z0-9]{14}$/).describe("A note id (not_\u2026) from list_granola_notes or search_granola_notes.");
 var listGranolaNotes = {
   name: "list_granola_notes",
@@ -25622,7 +25181,7 @@ var execBash = {
     playbookVersion: PlumOntologyExecRequestSchema.shape.playbookVersion.describe(
       "A full playbook commit from an earlier result; omit for the current approved playbook."
     ),
-    maxOutput: PlumOntologyExecRequestSchema.shape.maxOutput.unwrap().optional().describe(
+    maxOutput: int2(PlumOntologyExecRequestSchema.shape.maxOutput.unwrap()).optional().describe(
       `Most characters of stdout and of stderr to return; ${PLUM_EXEC_OUTPUT_DEFAULT_CHARS.toLocaleString("en-US")} by default, at most ${PLUM_EXEC_OUTPUT_MAX_CHARS.toLocaleString("en-US")}.`
     )
   }
@@ -25662,91 +25221,67 @@ var reviewOntologyUpdate = {
     path: ontologyPath.optional().describe("Show only this file of the update.")
   }
 };
-var listContextModels = {
-  name: "list_context_models",
-  title: "List context models",
-  description: "Every context model in the workspace with its current revision, published ontology version (if any) and source connections. Call first to pick a proposalId.",
-  inputSchema: {},
-  outputSchema: ContextListSchema
-};
-var getContextModel = {
-  name: "get_context_model",
-  title: "Get context model",
-  description: "Summary of one context model revision: revision, publication, counts of concepts, workflows, findings, sections, open questions, and each section with its id, heading, rule and review state. Read this before any edit to learn the current revision and section ids.",
-  inputSchema: { proposalId, revision }
-};
-var getContextDocument = {
-  name: "get_context_document",
-  title: "Get context document",
-  description: "The business document markdown of a context model revision (what the Document page, step 4, shows), plus open comments. Sections carry protected provenance lines (Context section, Evidence, Answers, Questions, Review) that must be preserved on save.",
-  inputSchema: { proposalId, revision }
-};
-var getContextGraph = {
-  name: "get_context_graph",
-  title: "Get context graph",
-  description: "Nodes and edges of the context graph (what the Context graph page, step 3, draws): concepts, workflows, findings, evidence, sources and objects. depth 0 is the business overview; focusId expands one node.",
+var discoveryLimit = int2(external_exports.number().min(1).max(100)).optional();
+var discoveryCursor = external_exports.string().max(2048).optional().describe("The cursor an earlier answer ended with.");
+var getDiscovery = {
+  name: "get_discovery",
+  title: "Discovery status",
+  description: "Where discovery stands in this workspace: the intake (company, website, point of contact), the latest runs with their status and failure, what a running investigation is working through, the newest events, and how many claims, open questions and answers there are. Read-only. A completed run ends by opening a proposal on the ontology, listed by list_ontology_updates.",
   inputSchema: {
-    proposalId,
-    expectedRevision,
-    focusId: external_exports.string().min(1).max(200).optional().describe("Expand the neighbourhood of this node id."),
-    depth: int2(external_exports.number().min(0).max(4)).optional().describe("0 = business concepts only, 1 = linked findings and objects, 2 = evidence."),
-    limit: int2(external_exports.number().min(1).max(200)).optional()
-  },
-  outputSchema: ContextGraphSchema
-};
-var editContextSection = {
-  name: "edit_context_section",
-  title: "Edit context section",
-  description: "Change one section of the context document (heading, prose, or rule) and commit it as the next revision, exactly like editing it on the graph or document page. Pick the section by sectionId or heading. Rules are `Type where field op value` over an imported object, or `undetermined`. Returns the new revision; the browser page follows within seconds.",
-  inputSchema: {
-    proposalId,
-    expectedRevision,
-    sectionId: external_exports.string().min(1).max(200).optional().describe("Section id from get_context_model."),
-    heading: external_exports.string().min(1).max(2e3).optional().describe("Current heading, when no sectionId is given."),
-    newHeading: external_exports.string().min(1).max(2e3).optional().describe("Synthesized headings can be long sentences; keep the rename on one line."),
-    body: external_exports.string().max(2e4).optional().describe("New prose for the section (markdown)."),
-    rule: external_exports.string().max(2e3).optional().describe('New rule line, e.g. `Account where Type = "Customer"`, or `undetermined`.'),
-    note: external_exports.string().max(200).optional().describe("Short commit note shown in the revision history.")
+    limit: discoveryLimit.describe("Most runs, events, claims and questions to read; 20 by default.")
   }
 };
-var saveContextRevision = {
-  name: "save_context_revision",
-  title: "Save context revision",
-  description: "Commit a whole edited context document as the next revision. Use edit_context_section for single-section changes; use this when several sections change at once. Every section and its protected lines must be preserved, and the frontmatter must name the revision being edited.",
+var saveDiscoveryIntake = {
+  name: "save_discovery_intake",
+  title: "Save discovery intake",
+  description: "Tell discovery whose business this is before it starts: the company name, its public website (discovery reads those pages first) and, optionally, the person to ask first when it has questions. Saving a changed intake queues a run at once, so start_discovery is not needed after it. Admins only.",
   inputSchema: {
-    proposalId,
-    expectedRevision,
-    markdown: external_exports.string().min(1).max(2e5),
-    note: external_exports.string().max(200).optional()
+    companyName: external_exports.string().trim().min(1).max(200).describe("The company discovery is about."),
+    website: external_exports.string().trim().max(2e3).describe("The company website: a public https address on a domain name, such as https://example.com."),
+    contactName: external_exports.string().trim().min(1).max(200).optional().describe("The person to ask first. Optional."),
+    contactEmail: external_exports.string().trim().max(320).optional().describe("Their email address. Optional."),
+    contactRole: external_exports.string().trim().min(1).max(200).optional().describe('Their job title, for example "COO". Optional.')
   }
 };
-var commentContextSection = {
-  name: "comment_context_section",
-  title: "Comment on context section",
-  description: "Leave a comment on a section for the discovery agent and reviewers, optionally approving it or requesting changes. Creates the next revision.",
+var startDiscovery = {
+  name: "start_discovery",
+  title: "Start discovery",
+  description: "Queue a discovery run over this workspace: the agent reads the intake website and the connected sources, records claims with their evidence, asks clarification questions it cannot settle, and ends by opening a proposal on the ontology. Needs a saved intake (save_discovery_intake) and an admin. A run already queued or running is left alone; get_discovery shows them, so read it first.",
+  inputSchema: {}
+};
+var listDiscoveryClaims = {
+  name: "list_discovery_claims",
+  title: "List discovery claims",
+  description: "The claims discovery has made about the business: each with its status (proposed, supported, confirmed by a person, disputed, rejected, superseded), its basis (configured, observed, confirmed, derived), what it states and about what, how many sources support or contradict it, and what stays uncertain.",
+  inputSchema: { limit: discoveryLimit.describe("Most claims to read; 50 by default."), cursor: discoveryCursor }
+};
+var listDiscoveryQuestions = {
+  name: "list_discovery_questions",
+  title: "List discovery questions",
+  description: "The clarification questions discovery asked because the evidence could not settle a meaning: each with its state, why it matters, the choices it offers and how many claims it would settle. Unanswered questions by default. Answer one with answer_discovery_question.",
   inputSchema: {
-    proposalId,
-    expectedRevision,
-    sectionId: external_exports.string().min(1).max(200),
-    body: external_exports.string().min(1).max(1e4),
-    decision: external_exports.enum(["approve", "request_changes"]).optional()
+    limit: discoveryLimit.describe("Most questions to read; 50 by default."),
+    cursor: discoveryCursor,
+    includeAnswered: bool().optional().describe("Also list answered and superseded questions; false by default.")
   }
 };
-var compareContextRevisions = {
-  name: "compare_context_revisions",
-  title: "Compare context revisions",
-  description: "Unified diff of the context document between two revisions.",
+var answerDiscoveryQuestion = {
+  name: "answer_discovery_question",
+  title: "Answer discovery question",
+  description: "Answer one clarification question on behalf of the person: confirm what discovery proposed, correct it with what is true, defer it, or say it is unknown. The answer is recorded under their name, the question closes, and a run is queued to take it into account. Admins only.",
   inputSchema: {
-    proposalId,
-    from: int2(external_exports.number().positive()).describe("Older revision."),
-    to: int2(external_exports.number().positive()).optional().describe("Newer revision; defaults to the current one.")
+    questionId: external_exports.string().trim().min(1).max(200).describe("The question id from list_discovery_questions."),
+    response: external_exports.string().trim().min(1).max(1e4).describe("The answer in the person's words."),
+    action: external_exports.enum(["confirm", "correct", "defer", "unknown"]).describe("confirm what discovery proposed, correct it, defer the question, or say nobody knows.")
   }
 };
-var previewContextPublication = {
-  name: "preview_context_publication",
-  title: "Preview context publication",
-  description: "Semantic changes and unresolved references between this context model revision and the published one, before publishing through the ontology.",
-  inputSchema: { proposalId, expectedRevision }
+var sendDiscoveryMessage = {
+  name: "send_discovery_message",
+  title: "Tell discovery something",
+  description: "Send discovery a message from the person: a fact about the business, a correction, or where to look next. It is recorded as their input and a run is queued to take it into account; what comes back is new claims, questions or a proposal, not a chat reply. Admins only.",
+  inputSchema: {
+    message: external_exports.string().trim().min(1).max(1e4).describe("What the person wants discovery to know.")
+  }
 };
 var getOntology = {
   name: "get_ontology",
@@ -25971,7 +25506,7 @@ var listOrganizations = {
 var switchOrganization = {
   name: "switch_organization",
   title: "Switch organization",
-  description: "Move this plugin install to another organization's workspace and act there from now on. Takes an organization id from list_organizations (or null for the shared workspace); the server checks the membership, issues a new token for that workspace and retires the old one, so no browser sign-in is needed. Everything after the switch (sources, ontology, context model, views) is that organization's. The browser does not follow: the person picks the same organization in the app's own switcher to watch what the plugin is doing.",
+  description: "Move this plugin install to another organization's workspace and act there from now on. Takes an organization id from list_organizations (or null for the shared workspace); the server checks the membership, issues a new token for that workspace and retires the old one, so no browser sign-in is needed. Everything after the switch (sources, ontology, views) is that organization's. The browser does not follow: the person picks the same organization in the app's own switcher to watch what the plugin is doing.",
   inputSchema: {
     organizationId: external_exports.string().min(1).max(200).nullable().describe("Organization id from list_organizations, or null for the shared workspace."),
     label: external_exports.string().min(1).max(120).optional().describe("Label for the new install, shown in the app. Defaults to the current one.")
@@ -25980,14 +25515,14 @@ var switchOrganization = {
 var listWorkspaces = {
   name: "list_workspaces",
   title: "List workspaces",
-  description: "The workspaces of the organization this install is in, each a tenant of its own (sources, ontology, context models, views), with the one the install acts in marked current and its engagement folder named. Call before switch_workspace, and when something the person expects is missing: it may be in another workspace of the same organization.",
+  description: "The workspaces of the organization this install is in, each a tenant of its own (sources, ontology, views), with the one the install acts in marked current and the engagement folder it reads named; a workspace without an engagement reads the repository root, which in the playbook repository is the playbook itself (skills, patterns, templates). Call before switch_workspace, and when something the person expects is missing: it may be in another workspace of the same organization.",
   inputSchema: {},
   outputSchema: WorkspaceListSchema
 };
 var switchWorkspace = {
   name: "switch_workspace",
   title: "Switch workspace",
-  description: "Move this install to another workspace of the same organization and act there from now on. Takes a workspace id from list_workspaces; the server checks the membership, issues a new token bound to that workspace and retires the old one, so no browser sign-in is needed. Everything after the switch (sources, ontology, context model, views) is that workspace's. The browser does not follow: the person picks the same workspace in the sidebar to watch what the plugin is doing.",
+  description: "Move this install to another workspace of the same organization and act there from now on. Takes a workspace id from list_workspaces; the server checks the membership, issues a new token bound to that workspace and retires the old one, so no browser sign-in is needed. Everything after the switch (sources, ontology, views) is that workspace's. The browser does not follow: the person picks the same workspace in the sidebar to watch what the plugin is doing.",
   inputSchema: {
     workspaceId: external_exports.string().min(1).max(200).describe("Workspace id from list_workspaces."),
     label: external_exports.string().min(1).max(120).optional().describe("Label for the new install, shown in the app. Defaults to the current one.")
@@ -26001,15 +25536,26 @@ var getPluginActivity = {
   outputSchema: PluginActivitySchema
 };
 var ALL_TOOL_CONTRACTS = [
-  listContextModels,
-  getContextModel,
-  getContextDocument,
-  getContextGraph,
-  editContextSection,
-  saveContextRevision,
-  commentContextSection,
-  compareContextRevisions,
-  previewContextPublication,
+  listOntologyFiles,
+  getOntologyFile,
+  searchOntology,
+  execBash,
+  previewOntologyUpdate,
+  proposeOntologyUpdate,
+  listOntologyUpdates,
+  reviewOntologyUpdate,
+  getDiscovery,
+  saveDiscoveryIntake,
+  startDiscovery,
+  listDiscoveryClaims,
+  listDiscoveryQuestions,
+  answerDiscoveryQuestion,
+  sendDiscoveryMessage,
+  listGranolaNotes,
+  getGranolaNote,
+  searchGranolaNotes,
+  linkGranolaNote,
+  unlinkGranolaNote,
   getOntology,
   getOntologyVersion,
   saveOntologyVersion,
@@ -26037,20 +25583,7 @@ var ALL_TOOL_CONTRACTS = [
   switchOrganization,
   listWorkspaces,
   switchWorkspace,
-  getPluginActivity,
-  listOntologyFiles,
-  getOntologyFile,
-  searchOntology,
-  execBash,
-  previewOntologyUpdate,
-  proposeOntologyUpdate,
-  listOntologyUpdates,
-  reviewOntologyUpdate,
-  listGranolaNotes,
-  getGranolaNote,
-  searchGranolaNotes,
-  linkGranolaNote,
-  unlinkGranolaNote
+  getPluginActivity
 ];
 
 // src/diff.ts
@@ -26104,6 +25637,235 @@ function unifiedDiff(before, after, labels2, context = 2) {
   return out.join("\n");
 }
 
+// src/discoveryTools.ts
+import { randomUUID } from "node:crypto";
+var page = (item) => external_exports.looseObject({ items: external_exports.array(item), nextCursor: external_exports.string().nullable().optional() });
+var IntakeSchema = external_exports.looseObject({
+  companyName: external_exports.string(),
+  pointOfContact: external_exports.looseObject({ name: external_exports.string(), email: external_exports.string().nullable().optional(), role: external_exports.string().nullable().optional() }).nullable().optional(),
+  startingSource: external_exports.looseObject({ kind: external_exports.string(), url: external_exports.string().optional() }),
+  revision: external_exports.number(),
+  submittedAt: external_exports.string().optional()
+});
+var IntakeResponseSchema = external_exports.looseObject({ intake: IntakeSchema.nullable() });
+var RunSchema = external_exports.looseObject({
+  id: external_exports.string(),
+  status: external_exports.string(),
+  failure: external_exports.string().nullable().optional(),
+  createdAt: external_exports.string(),
+  updatedAt: external_exports.string()
+});
+var EventSchema = external_exports.looseObject({
+  kind: external_exports.string(),
+  actor: external_exports.string(),
+  message: external_exports.string(),
+  runId: external_exports.string().nullable().optional(),
+  createdAt: external_exports.string()
+});
+var ClaimSchema = external_exports.looseObject({
+  id: external_exports.string(),
+  status: external_exports.string(),
+  basis: external_exports.string(),
+  predicate: external_exports.string(),
+  value: external_exports.unknown(),
+  scope: external_exports.looseObject({ subject: external_exports.string(), purpose: external_exports.string(), population: external_exports.string(), timeWindow: external_exports.string() }),
+  supportingEvidence: external_exports.array(external_exports.unknown()).default([]),
+  contradictingEvidence: external_exports.array(external_exports.unknown()).default([]),
+  uncertainty: external_exports.array(external_exports.string()).default([]),
+  runId: external_exports.string().optional()
+});
+var QuestionSchema = external_exports.looseObject({
+  id: external_exports.string(),
+  revision: external_exports.number(),
+  question: external_exports.string(),
+  whyItMatters: external_exports.string().optional(),
+  choices: external_exports.array(external_exports.string()).default([]),
+  claimIds: external_exports.array(external_exports.string()).default([]),
+  state: external_exports.string(),
+  createdAt: external_exports.string().optional()
+});
+var StateSchema = external_exports.looseObject({
+  revision: external_exports.number(),
+  answerRevision: external_exports.number().optional(),
+  events: page(EventSchema),
+  runs: page(RunSchema),
+  investigation: external_exports.array(
+    external_exports.looseObject({
+      runId: external_exports.string(),
+      domains: external_exports.array(external_exports.looseObject({ domain: external_exports.string(), status: external_exports.string(), gapCount: external_exports.number().optional() })),
+      requiresRestart: external_exports.boolean().optional()
+    })
+  ).optional().default([]),
+  claims: page(ClaimSchema),
+  questions: page(QuestionSchema),
+  answers: page(external_exports.looseObject({ id: external_exports.string() }))
+});
+var QueuedSchema = external_exports.looseObject({
+  runId: external_exports.string().nullable().optional(),
+  status: external_exports.string().nullable().optional()
+});
+var IntakeSavedSchema = QueuedSchema.extend({ intake: IntakeSchema });
+var AnswerSavedSchema = QueuedSchema.extend({ answer: external_exports.looseObject({ id: external_exports.string(), questionId: external_exports.string() }) });
+var MessageSavedSchema = QueuedSchema.extend({ eventId: external_exports.string() });
+var text2 = (value) => ({ content: [{ type: "text", text: value }] });
+var failure2 = (message) => ({ content: [{ type: "text", text: message }], isError: true });
+var shorten = (value, max = 160) => value.length > max ? `${value.slice(0, max - 1)}\u2026` : value;
+var when = (iso) => iso.replace("T", " ").replace(/\.\d+Z$/, "Z");
+var UNANSWERED = /* @__PURE__ */ new Set(["proposed", "open", "deferred"]);
+var SCOPE_SEARCH_LIMIT = 100;
+function describeIntake(intake) {
+  const contact = intake.pointOfContact;
+  const who = contact ? `, ask first: ${contact.name}${contact.role ? ` (${contact.role})` : ""}${contact.email ? ` <${contact.email}>` : ""}` : "";
+  return `${intake.companyName} (${intake.startingSource.url ?? intake.startingSource.kind})${who}`;
+}
+function queued(run) {
+  return run.runId ? `Queued run ${run.runId} (${run.status ?? "queued"}); get_discovery follows it, and list_ontology_updates shows the proposal it ends with.` : "No run was queued.";
+}
+function claimLine(claim2) {
+  const value = typeof claim2.value === "string" ? claim2.value : JSON.stringify(claim2.value);
+  const doubt = claim2.uncertainty.length ? ` \xB7 uncertain: ${shorten(claim2.uncertainty[0], 120)}` : "";
+  return `- ${claim2.id} \xB7 ${claim2.status.replace(/_/g, " ")} \xB7 ${claim2.basis} \xB7 ${claim2.scope.subject}: ${shorten(claim2.predicate, 100)} = ${shorten(value ?? "null", 160)} \xB7 ${claim2.supportingEvidence.length} for / ${claim2.contradictingEvidence.length} against${doubt}`;
+}
+function questionLine(question) {
+  const choices = question.choices.length ? ` \xB7 choices: ${question.choices.map((choice) => shorten(choice, 80)).join(" | ")}` : "";
+  const why = question.whyItMatters ? ` \xB7 why: ${shorten(question.whyItMatters, 160)}` : "";
+  return `- ${question.id} \xB7 ${question.state} \xB7 "${shorten(question.question, 240)}"${why}${choices} \xB7 settles ${question.claimIds.length} claim(s)`;
+}
+function createDiscoveryHandlers(client, parse3) {
+  const intake = async () => parse3(IntakeResponseSchema, await client.get("/discovery/intake")).intake;
+  return {
+    async get_discovery(args) {
+      const { limit } = args;
+      const [current, state] = await Promise.all([
+        intake(),
+        parse3(StateSchema, await client.get("/discovery", { limit: limit ?? 20 }))
+      ]);
+      const open2 = state.questions.items.filter((question) => UNANSWERED.has(question.state)).length;
+      const lines = [
+        `Discovery in this workspace \xB7 head revision ${state.revision} \xB7 intake: ${current ? describeIntake(current) : "none yet (save_discovery_intake names the company and its website)"}`
+      ];
+      if (state.runs.items.length) {
+        lines.push("", "Runs (newest first):");
+        for (const run of state.runs.items) {
+          const working = state.investigation.find((item) => item.runId === run.id);
+          const domains = working?.domains.length ? ` \xB7 working through: ${working.domains.map((domain2) => `${domain2.domain} (${domain2.status}${domain2.gapCount ? `, ${domain2.gapCount} gaps` : ""})`).join(", ")}` : "";
+          lines.push(
+            `- ${run.id} \xB7 ${run.status.replace(/_/g, " ")} \xB7 started ${when(run.createdAt)} \xB7 updated ${when(run.updatedAt)}${run.failure ? ` \xB7 failed: ${shorten(run.failure, 200)}` : ""}${domains}${working?.requiresRestart ? " \xB7 needs a fresh start_discovery to continue" : ""}`
+          );
+        }
+      } else lines.push("", "No runs yet: start_discovery queues the first one once the intake is saved.");
+      lines.push(
+        "",
+        `${state.claims.items.length} claim(s) read (list_discovery_claims for all) \xB7 ${open2} open question(s) of ${state.questions.items.length} read (list_discovery_questions) \xB7 ${state.answers.items.length} answer(s)`
+      );
+      if (state.events.items.length) {
+        lines.push("", "Recent events:");
+        for (const event of state.events.items)
+          lines.push(
+            `- ${when(event.createdAt)} \xB7 ${event.actor} \xB7 ${event.kind.replace(/_/g, " ")}${event.runId ? ` \xB7 ${event.runId}` : ""} \xB7 ${shorten(event.message.replace(/\s+/g, " "), 200)}`
+          );
+      }
+      return text2(lines.join("\n"));
+    },
+    async save_discovery_intake(args) {
+      const { companyName, website, contactName, contactEmail, contactRole } = args;
+      if (!contactName && (contactEmail || contactRole))
+        return failure2("Pass contactName with contactEmail or contactRole: the point of contact needs a name.");
+      const current = await intake();
+      const saved = parse3(
+        IntakeSavedSchema,
+        await client.put("/discovery/intake", {
+          companyName,
+          pointOfContact: contactName ? { name: contactName, email: contactEmail ?? null, role: contactRole ?? null } : null,
+          startingSource: { kind: "website", url: website },
+          expectedRevision: current?.revision ?? 0
+        })
+      );
+      return text2(
+        saved.runId ? `Saved intake (revision ${saved.intake.revision}): ${describeIntake(saved.intake)}. ${queued(saved)}` : `Intake unchanged (revision ${saved.intake.revision}): ${describeIntake(saved.intake)}. No run was queued; start_discovery queues one.`
+      );
+    },
+    async start_discovery() {
+      const current = await intake();
+      if (!current)
+        return failure2(
+          "No intake saved yet: discovery needs to know whose business this is. Call save_discovery_intake with the company name and its website; that queues the first run."
+        );
+      const run = parse3(
+        QueuedSchema,
+        await client.post("/discovery/start", { idempotencyKey: `plugin-${randomUUID()}` })
+      );
+      return text2(
+        `${queued(run)} It reads ${describeIntake(current)} and the connected sources, records claims and the questions it cannot settle, and ends by opening a proposal on the ontology.`
+      );
+    },
+    async list_discovery_claims(args) {
+      const { limit, cursor } = args;
+      const result = parse3(page(ClaimSchema), await client.get("/discovery/claims", { limit: limit ?? 50, cursor }));
+      if (!result.items.length)
+        return text2("Discovery has made no claims yet. get_discovery shows whether a run is in progress.");
+      const lines = [`Discovery claims (${result.items.length}):`, ...result.items.map(claimLine)];
+      if (result.nextCursor) lines.push(`More: pass cursor ${result.nextCursor}.`);
+      return text2(lines.join("\n"));
+    },
+    async list_discovery_questions(args) {
+      const { limit, cursor, includeAnswered } = args;
+      const result = parse3(
+        page(QuestionSchema),
+        await client.get("/discovery/questions", { limit: limit ?? 50, cursor })
+      );
+      const shown = includeAnswered ? result.items : result.items.filter((question) => UNANSWERED.has(question.state));
+      if (!shown.length)
+        return text2(
+          includeAnswered ? "Discovery has asked no questions yet." : `No unanswered discovery questions${result.items.length ? ` (${result.items.length} answered or superseded; includeAnswered lists them)` : ""}.`
+        );
+      const lines = [`Discovery questions (${shown.length}):`, ...shown.map(questionLine)];
+      if (result.nextCursor) lines.push(`More: pass cursor ${result.nextCursor}.`);
+      lines.push("answer_discovery_question records an answer under the person\u2019s name and queues a run.");
+      return text2(lines.join("\n"));
+    },
+    async answer_discovery_question(args) {
+      const { questionId, response, action } = args;
+      const [question, state, claims] = await Promise.all([
+        parse3(QuestionSchema, await client.get(`/discovery/questions/${encodeURIComponent(questionId)}`)),
+        parse3(StateSchema, await client.get("/discovery", { limit: 1 })),
+        parse3(page(ClaimSchema), await client.get("/discovery/claims", { limit: SCOPE_SEARCH_LIMIT }))
+      ]);
+      const claim2 = claims.items.find((item) => question.claimIds.includes(item.id));
+      const scope = claim2?.scope ?? {
+        subject: shorten(question.question, 200),
+        purpose: "clarification",
+        population: "this workspace",
+        timeWindow: "as of today"
+      };
+      const saved = parse3(
+        AnswerSavedSchema,
+        await client.post("/discovery/answers", {
+          idempotencyKey: `plugin-${randomUUID()}`,
+          questionId,
+          expectedRevision: state.revision,
+          questionRevision: question.revision,
+          response,
+          action,
+          scope,
+          supersedesAnswerId: null
+        })
+      );
+      return text2(
+        `Recorded ${action} on ${questionId} ("${shorten(question.question, 120)}"): ${shorten(response, 200)}. ${queued(saved)}`
+      );
+    },
+    async send_discovery_message(args) {
+      const { message } = args;
+      const saved = parse3(
+        MessageSavedSchema,
+        await client.post("/discovery/messages", { idempotencyKey: `plugin-${randomUUID()}`, message })
+      );
+      return text2(`Recorded the message for discovery (${saved.eventId}). ${queued(saved)}`);
+    }
+  };
+}
+
 // src/pending.ts
 import fs3 from "node:fs";
 import path3 from "node:path";
@@ -26150,15 +25912,15 @@ import fs4 from "node:fs";
 import os4 from "node:os";
 import path4 from "node:path";
 var OUTPUT_BUDGET = 4e4;
-var CONTEXT_TOOLS = /* @__PURE__ */ new Set([
-  "get_context_model",
-  "get_context_document",
-  "get_context_graph",
-  "edit_context_section",
-  "save_context_revision",
-  "comment_context_section",
-  "compare_context_revisions",
-  "preview_context_publication"
+var REPOSITORY_TOOLS = /* @__PURE__ */ new Set([
+  "list_ontology_files",
+  "get_ontology_file",
+  "search_ontology",
+  "exec_bash",
+  "preview_ontology_update",
+  "propose_ontology_update",
+  "list_ontology_updates",
+  "review_ontology_update"
 ]);
 var ONTOLOGY_TOOLS = /* @__PURE__ */ new Set([
   "get_ontology",
@@ -26175,6 +25937,15 @@ var ONTOLOGY_TOOLS = /* @__PURE__ */ new Set([
   "discard_ontology_changes",
   "compare_ontology_versions"
 ]);
+var DISCOVERY_TOOLS = /* @__PURE__ */ new Set([
+  "get_discovery",
+  "save_discovery_intake",
+  "start_discovery",
+  "list_discovery_claims",
+  "list_discovery_questions",
+  "answer_discovery_question",
+  "send_discovery_message"
+]);
 var RECORD_TOOLS = /* @__PURE__ */ new Set(["get_imported_model", "search_entities", "aggregate_records", "export_records"]);
 var VIEW_TOOLS = /* @__PURE__ */ new Set(["save_view", "list_views", "delete_view"]);
 function unknownKeys(shape, args) {
@@ -26186,14 +25957,16 @@ function ignoredKeysNote(keys) {
   return `Note: ignored ${keys.length === 1 ? "parameter" : "parameters"} ${list}, which this version of the plugin does not take. If a skill asked for ${keys.length === 1 ? "it" : "them"}, ${platform.updateHint} brings the plugin up to date.`;
 }
 function nextStep(error62, tool) {
-  const reread = CONTEXT_TOOLS.has(tool) ? "Re-read get_context_model (get_context_document for a whole-document save), tell the person what changed, and retry with the new revision as expectedRevision." : "Re-read get_ontology and retry with its head revision as expectedRevision.";
-  const listing = CONTEXT_TOOLS.has(tool) ? "list_context_models and get_context_model list the models and section ids" : ONTOLOGY_TOOLS.has(tool) ? "get_ontology lists the versions" : RECORD_TOOLS.has(tool) ? "get_imported_model lists the imported types and fields" : VIEW_TOOLS.has(tool) ? "list_views lists the saved views" : "whoami shows where the plugin is working";
+  const reread = REPOSITORY_TOOLS.has(tool) ? "Re-read the files with get_ontology_file (the approved version moved), tell the person what changed, preview again and propose again." : "Re-read get_ontology and retry with its head revision as expectedRevision.";
+  const listing = REPOSITORY_TOOLS.has(tool) ? "list_ontology_files lists every file and list_ontology_updates every update" : ONTOLOGY_TOOLS.has(tool) ? "get_ontology lists the versions" : DISCOVERY_TOOLS.has(tool) ? "list_discovery_questions lists the questions and get_discovery the runs" : RECORD_TOOLS.has(tool) ? "get_imported_model lists the imported types and fields" : VIEW_TOOLS.has(tool) ? "list_views lists the saved views" : "whoami shows where the plugin is working";
   if (error62.code === "UNAUTHENTICATED" && error62.message.includes(platform.loginHint)) return null;
   if (error62.code === "NOT_FOUND" && RECORD_TOOLS.has(tool) && error62.message.includes("get_imported_model")) return null;
   switch (error62.code) {
     case "UNAUTHENTICATED":
       return `Next: the sign-in is missing or was revoked. Run ${platform.loginHint}; the tools use the new sign-in without a restart.`;
     case "FORBIDDEN":
+      if (DISCOVERY_TOOLS.has(tool))
+        return "Next: starting discovery, saving its intake, answering its questions and messaging it take an admin of the workspace; whoami shows the role. Reading (get_discovery, the lists) is open to everyone.";
       return `Next: this account may not do that here. whoami shows its role and workspace; if the work belongs to another organization, list_organizations and ${platform.setupHint} org move the plugin. Otherwise a workspace admin has to make the change.`;
     case "NOT_FOUND":
       return `Next: check the id: ${listing}. It may also live in another organization (list_organizations).`;
@@ -26202,9 +25975,15 @@ function nextStep(error62, tool) {
         return "Next: a draft is already running or the head moved. Poll get_ontology for the job, then request again if needed.";
       if (tool === "publish_ontology")
         return "Next: the draft or the data changed after the preview. Run preview_ontology_publication again and confirm with the person before publishing.";
+      if (tool === "answer_discovery_question")
+        return "Next: the question changed or was answered meanwhile. list_discovery_questions again, tell the person, and answer again if it is still open.";
+      if (tool === "save_discovery_intake")
+        return "Next: someone saved the intake meanwhile. get_discovery shows it; save again with what should change.";
       return `Next: someone else saved first. ${reread}`;
     case "INVALID_REQUEST":
-      return RECORD_TOOLS.has(tool) || tool === "edit_context_section" || tool.includes("ontology") ? "Next: fix the part the message names and call again; get_imported_model has the real type and field names." : "Next: fix the part the message names and call again.";
+      if (REPOSITORY_TOOLS.has(tool))
+        return "Next: fix the file the message names (its path, size, frontmatter or metric), preview_ontology_update again, and propose again.";
+      return RECORD_TOOLS.has(tool) || tool.includes("ontology") ? "Next: fix the part the message names and call again; get_imported_model has the real type and field names." : "Next: fix the part the message names and call again.";
     case "RATE_LIMITED":
       return "Next: the app is limiting requests. Wait a minute, then retry once.";
     case "UNAVAILABLE":
@@ -26220,13 +25999,18 @@ function nextStep(error62, tool) {
   }
 }
 var TRUNCATION_HINTS = {
-  get_context_document: "get_context_model lists every section; edit_context_section changes one without the whole document.",
-  get_context_graph: "Narrow the call: depth 0, a lower limit, or focusId for one node's neighbourhood.",
+  get_ontology_file: "Read the saved file in parts; exec_bash with sed -n or grep -n reads one section of it.",
+  search_ontology: "Use more specific words, or exec_bash with grep -rn for one phrase.",
+  exec_bash: "Narrow the command (head, grep -l, a folder instead of .), or raise maxOutput.",
+  review_ontology_update: "Pass path to see one file of the update at a time.",
   get_imported_model: "Narrow the call: search for one type, or fields: false for the type list alone.",
   aggregate_records: "Narrow the call: a lower limit or a where clause. Embed the JSON block from the saved file, not from this text.",
   search_entities: "Ask for a lower limit or add a search filter.",
   get_plugin_activity: "Ask for a lower limit.",
-  list_views: "Ask for a lower limit."
+  list_views: "Ask for a lower limit.",
+  get_discovery: "Ask for a lower limit; list_discovery_claims and list_discovery_questions page through the rest.",
+  list_discovery_claims: "Ask for a lower limit and page with cursor.",
+  list_discovery_questions: "Ask for a lower limit and page with cursor."
 };
 function capText(tool, value, budget = OUTPUT_BUDGET, directory = path4.join(os4.tmpdir(), "plum", "outputs")) {
   if (value.length <= budget) return { text: value, truncated: false };
@@ -26262,22 +26046,22 @@ function capText(tool, value, budget = OUTPUT_BUDGET, directory = path4.join(os4
 }
 
 // src/toolHandlers.ts
-var text2 = (value) => ({ content: [{ type: "text", text: value }] });
+var text3 = (value) => ({ content: [{ type: "text", text: value }] });
 var structured = (value, data) => ({
   content: [{ type: "text", text: value }],
   structuredContent: data
 });
-var failure2 = (message) => ({ content: [{ type: "text", text: message }], isError: true });
+var failure3 = (message) => ({ content: [{ type: "text", text: message }], isError: true });
 async function resolveType(client, requested, connectionId) {
   const found = [];
   let cursor;
   for (let pages = 0; pages < 20; pages++) {
-    const page = ModelResponseSchema.parse(await client.get("/graph/model", { limit: 100, cursor, connectionId }));
-    for (const node2 of page.nodes)
+    const page2 = ModelResponseSchema.parse(await client.get("/graph/model", { limit: 100, cursor, connectionId }));
+    for (const node2 of page2.nodes)
       if (node2.type.id === requested || node2.type.nativeName === requested)
         found.push({ id: node2.type.id, nativeName: node2.type.nativeName, connectionId: node2.type.connectionId });
-    if (!page.page.nextCursor) break;
-    cursor = page.page.nextCursor;
+    if (!page2.page.nextCursor) break;
+    cursor = page2.page.nextCursor;
   }
   if (!found.length)
     throw new ApiError(
@@ -26289,39 +26073,13 @@ async function resolveType(client, requested, connectionId) {
     throw new ApiError("INVALID_REQUEST", `Ambiguous entity type ${requested}: pass connectionId or the type id.`, 400);
   return found[0];
 }
-var shorten = (value, max = 160) => value.length > max ? `${value.slice(0, max - 1)}\u2026` : value;
-var when = (iso) => iso.replace("T", " ").replace(/\.\d+Z$/, "Z");
+var shorten2 = (value, max = 160) => value.length > max ? `${value.slice(0, max - 1)}\u2026` : value;
+var when2 = (iso) => iso.replace("T", " ").replace(/\.\d+Z$/, "Z");
 var FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 var REVIEW_DIFF_FILES = 10;
 function versionLine(version2, published) {
   const executable = version2.definitions.filter((definition) => definition.rule.kind === "filter").length;
-  return `- v${version2.version} \xB7 ${version2.version === published ? "PUBLISHED" : version2.state} \xB7 ${when(version2.createdAt)} \xB7 by ${version2.author} \xB7 ${version2.definitions.length} definitions (${executable} executable)`;
-}
-function explainParseFailure(original, edited) {
-  const duplicates = (markdown) => {
-    const counts = /* @__PURE__ */ new Map();
-    for (const section of listSections(markdown)) counts.set(section.heading, (counts.get(section.heading) ?? 0) + 1);
-    return [...counts.entries()].filter(([, count]) => count > 1);
-  };
-  const before = duplicates(original);
-  const after = duplicates(edited);
-  if (after.length) {
-    const groups = after.map(([heading, count]) => `"${shorten(heading, 80)}" (${count} sections)`).join(", ");
-    const how = after.length === 1 ? "Rename one of them with newHeading" : "Rename all but one in each group in a single save_context_revision, since the document is rejected while any duplicate remains";
-    return `Parser: duplicated headings: ${groups}${before.length ? ". The stored document has this already, so no edit of it can be saved until the headings differ" : ""}. ${how}; the section ids from get_context_model tell them apart.`;
-  }
-  const complaint = (markdown) => {
-    try {
-      parseOntologyMarkdown(markdown, []);
-      return null;
-    } catch (error62) {
-      return error62 instanceof Error ? error62.message : String(error62);
-    }
-  };
-  const message = complaint(edited);
-  if (message && !/type/i.test(message))
-    return `Parser: ${message}${complaint(original) ? " (the stored document has this problem already)" : ""}`;
-  return "The document structure parses, so the rejected part is a rule: check the type and field names with get_imported_model, or set the rule to undetermined.";
+  return `- v${version2.version} \xB7 ${version2.version === published ? "PUBLISHED" : version2.state} \xB7 ${when2(version2.createdAt)} \xB7 by ${version2.author} \xB7 ${version2.definitions.length} definitions (${executable} executable)`;
 }
 function createToolHandlers(client, telemetry = telemetryOff) {
   const parse3 = (schema, value) => {
@@ -26336,200 +26094,16 @@ function createToolHandlers(client, telemetry = telemetryOff) {
       );
     }
   };
-  const state = async (proposalId2, revision2) => parse3(ContextStateSchema, await client.get("/context-model", { proposalId: proposalId2, revision: revision2 }));
-  const document = async (proposalId2, revision2) => parse3(ContextDocumentSchema, await client.get("/context-model/document", { proposalId: proposalId2, revision: revision2 }));
   const ontology = async () => parse3(OntologyStateSchema, await client.get("/ontology"));
   const handlers = {
-    async list_context_models() {
-      const list = parse3(ContextListSchema, await client.get("/context-model/list"));
-      if (!list.items.length)
-        return structured(
-          "No context models yet. Run discovery in the app (step 2) so the agent can synthesize the first revision.",
-          list
-        );
-      return structured(
-        [
-          "Context models:",
-          ...list.items.map(
-            (item) => `- ${item.id} \xB7 "${item.label}" \xB7 revision ${item.revision}${item.ontologyVersion ? ` \xB7 published ontology v${item.ontologyVersion}` : ""} \xB7 sources: ${item.sources.join(", ") || "none"}`
-          )
-        ].join("\n"),
-        list
-      );
-    },
-    async get_context_model(args) {
-      const { proposalId: proposalId2, revision: revision2 } = args;
-      const current = await state(proposalId2, revision2);
-      const p = current.proposal;
-      const lines = [
-        `Context model ${p.id} \xB7 revision ${p.revision}${revision2 ? " (historical)" : " (current)"} \xB7 created ${when(p.createdAt)}`,
-        current.publication ? `Published: revision ${current.publication.proposalRevision} as ontology v${current.publication.ontologyVersion} at ${when(current.publication.publishedAt)}${current.publication.proposalRevision === p.revision ? " (this revision)" : ""}` : "Published: nothing yet",
-        `Counts: ${p.concepts.length} concepts, ${p.workflows.length} workflows, ${p.claims.length} findings, ${p.sections.length} sections, ${p.openQuestionIds.length} open questions, ${p.mappings.filter((m) => m.execution === "executable").length} executable mappings`,
-        `Sources: ${p.snapshot.sources.map((source) => source.connectionId).join(", ") || "none"}`,
-        "",
-        "Sections (id \xB7 heading \xB7 rule \xB7 review):"
-      ];
-      for (const section of p.sections) {
-        lines.push(
-          `- ${section.id} \xB7 "${section.heading}" \xB7 ${sectionRule(p, section) ?? "undetermined"} \xB7 ${section.review}`
-        );
-      }
-      return text2(lines.join("\n"));
-    },
-    async get_context_document(args) {
-      const { proposalId: proposalId2, revision: revision2 } = args;
-      const doc = await document(proposalId2, revision2);
-      const open2 = doc.comments.filter((comment) => !comment.resolvedAt);
-      const lines = [
-        `Document for ${doc.proposalId} \xB7 revision ${doc.revision} \xB7 ${doc.sections.length} sections \xB7 ${open2.length} open comments`,
-        "",
-        doc.markdown.trimEnd()
-      ];
-      if (open2.length) {
-        lines.push("", "Open comments:");
-        for (const comment of open2)
-          lines.push(
-            `- [${doc.sections.find((section) => section.id === comment.sectionId)?.heading ?? comment.sectionId}] ${shorten(comment.body, 300)} (${when(comment.createdAt)})`
-          );
-      }
-      return text2(lines.join("\n"));
-    },
-    async get_context_graph(args) {
-      const { proposalId: proposalId2, expectedRevision: expectedRevision2, focusId, depth, limit } = args;
-      const graph = parse3(
-        ContextGraphSchema,
-        await client.get("/context-model/graph", {
-          proposalId: proposalId2,
-          expectedRevision: expectedRevision2,
-          focusId,
-          depth: depth ?? 1,
-          limit: limit ?? 100
-        })
-      );
-      const lines = [
-        `Graph of ${proposalId2} \xB7 revision ${graph.revision} \xB7 ${graph.nodes.length} nodes \xB7 ${graph.edges.length} edges`,
-        "",
-        "Nodes (id \xB7 kind \xB7 label):"
-      ];
-      for (const node2 of graph.nodes)
-        lines.push(
-          `- ${node2.id} \xB7 ${node2.kind} \xB7 "${shorten(node2.label, 80)}"${node2.status ? ` \xB7 ${node2.status}` : ""}${node2.sectionId ? ` \xB7 section ${node2.sectionId}` : ""}${node2.hiddenNeighborCount ? ` \xB7 +${node2.hiddenNeighborCount} hidden` : ""}`
-        );
-      lines.push("", "Edges (source -kind-> target):");
-      for (const edge of graph.edges) lines.push(`- ${edge.source} -${edge.kind}-> ${edge.target} (${edge.layer})`);
-      return structured(lines.join("\n"), graph);
-    },
-    async edit_context_section(args) {
-      const { proposalId: proposalId2, expectedRevision: expectedRevision2, sectionId, heading, newHeading, body, rule, note } = args;
-      if (!sectionId && !heading) return failure2("Pass sectionId or heading to pick the section.");
-      if (newHeading === void 0 && body === void 0 && rule === void 0)
-        return failure2("Pass newHeading, body, and/or rule.");
-      const doc = await document(proposalId2);
-      if (doc.revision !== expectedRevision2)
-        return failure2(
-          `CONFLICT: the document is at revision ${doc.revision}, not ${expectedRevision2}. Re-read it and retry.`
-        );
-      let edited;
-      try {
-        edited = editSection(doc.markdown, { sectionId, heading }, { heading: newHeading, body, rule });
-      } catch (error62) {
-        return failure2(error62 instanceof Error ? error62.message : "The edit could not be applied.");
-      }
-      const repaired = dedupeHeadings(edited.markdown);
-      let saved;
-      try {
-        saved = parse3(
-          ContextSaveResultSchema,
-          await client.post("/context-model/save", { proposalId: proposalId2, expectedRevision: expectedRevision2, markdown: repaired.markdown })
-        );
-      } catch (error62) {
-        if (error62 instanceof ApiError && error62.code === "INVALID_REQUEST")
-          return failure2(
-            `${error62.code}: ${error62.message} ${explainParseFailure(doc.markdown, edited.markdown)}`.trim()
-          );
-        throw error62;
-      }
-      const repairs = repaired.renamed.length ? ` Also renamed ${repaired.renamed.length} duplicated heading${repaired.renamed.length === 1 ? "" : "s"} so the document parses: ${repaired.renamed.map((item) => `"${shorten(item.from, 60)}" \u2192 "${shorten(item.to, 64)}"`).join("; ")}.` : "";
-      return text2(
-        `Committed revision ${saved.proposal.revision} of ${proposalId2}: updated "${edited.section.heading}"${note ? ` (${note})` : ""}.${repairs} The graph and document pages pick it up on their next poll. Read get_context_model for the new section states.`
-      );
-    },
-    async save_context_revision(args) {
-      const { proposalId: proposalId2, expectedRevision: expectedRevision2, markdown, note } = args;
-      const identity = documentIdentity(markdown);
-      if (identity.contextModel !== proposalId2 || identity.contextRevision !== expectedRevision2)
-        return failure2(
-          `The frontmatter must read context_model: "${proposalId2}" and context_revision: ${expectedRevision2}. Start from get_context_document and keep every section and its protected lines.`
-        );
-      const saved = parse3(
-        ContextSaveResultSchema,
-        await client.post("/context-model/save", { proposalId: proposalId2, expectedRevision: expectedRevision2, markdown })
-      );
-      return text2(
-        `Committed revision ${saved.proposal.revision} of ${proposalId2}${note ? ` (${note})` : ""} with ${listSections(markdown).length} sections.`
-      );
-    },
-    async comment_context_section(args) {
-      const { proposalId: proposalId2, expectedRevision: expectedRevision2, sectionId, body, decision } = args;
-      const result = parse3(
-        ContextCommentResultSchema,
-        await client.post("/context-model/comment", {
-          proposalId: proposalId2,
-          expectedRevision: expectedRevision2,
-          sectionId,
-          body,
-          ...decision ? { decision } : {}
-        })
-      );
-      const section = result.proposal.sections.find((item) => item.id === sectionId);
-      return text2(
-        `Comment ${result.comment.id} added to "${section?.heading ?? sectionId}"${decision ? ` with decision ${decision}` : ""}; the model is now at revision ${result.proposal.revision}. Use "Ask agent to revise" in the app, or the discovery thread, to have the agent act on open comments.`
-      );
-    },
-    async compare_context_revisions(args) {
-      const { proposalId: proposalId2, from, to } = args;
-      const [older, newer] = await Promise.all([document(proposalId2, from), document(proposalId2, to)]);
-      return text2(
-        unifiedDiff(older.markdown, newer.markdown, {
-          before: `${proposalId2} r${older.revision}`,
-          after: `${proposalId2} r${newer.revision}`
-        })
-      );
-    },
-    async preview_context_publication(args) {
-      const { proposalId: proposalId2, expectedRevision: expectedRevision2 } = args;
-      const preview = parse3(
-        ContextPreviewSchema,
-        await client.post("/context-model/preview", { proposalId: proposalId2, expectedRevision: expectedRevision2 })
-      );
-      const lines = [
-        `Publication preview for ${proposalId2} r${expectedRevision2}:`,
-        `Semantic changes (${preview.changes.length}):`,
-        ...preview.changes.map((change) => {
-          const concept = change.after ?? change.before;
-          return `- ${change.kind}: ${concept ? `${concept.name}: ${shorten(concept.description)}` : change.conceptId}`;
-        })
-      ];
-      if (preview.unresolvedRequirements.length)
-        lines.push(
-          `Unresolved (${preview.unresolvedRequirements.length}):`,
-          ...preview.unresolvedRequirements.map((item) => `- ${item}`)
-        );
-      if (preview.staleAnswers)
-        lines.push("Warning: business-owner answers changed since this revision was synthesized.");
-      lines.push(
-        "",
-        "To publish: save this document as an ontology draft (save_ontology_version), then preview_ontology_publication and publish_ontology."
-      );
-      return text2(lines.join("\n"));
-    },
+    ...createDiscoveryHandlers(client, parse3),
     async get_ontology() {
       const current = await ontology();
       const selection = current.selection;
       const lines = [
         `Ontology \xB7 head revision ${current.revision} \xB7 published version ${current.publishedVersion ?? "none"} \xB7 ${current.versions.length} versions`,
         selection ? `Selection: ${(selection.sources ?? [{ connectionId: selection.connectionId, objects: selection.objects }]).map((source) => `${source.connectionId} [${source.objects.join(", ")}]`).join("; ")}
-Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none (configure_ontology first)",
+Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none (configure_ontology first)",
         `Settings: autoDraft=${current.settings.autoDraft}${current.settings.pendingSourceChange ? " \xB7 sources changed since a person edited (redraft deferred to you)" : ""}`,
         "",
         "Versions (newest first):",
@@ -26540,20 +26114,20 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
           "",
           "Draft jobs:",
           ...current.jobs.slice(0, 5).map(
-            (job) => `- ${job.id} \xB7 ${job.status}${job.version ? ` \xB7 produced v${job.version}` : ""}${job.error ? ` \xB7 ${shorten(job.error, 200)}` : ""} \xB7 ${job.attempts.length} attempts`
+            (job) => `- ${job.id} \xB7 ${job.status}${job.version ? ` \xB7 produced v${job.version}` : ""}${job.error ? ` \xB7 ${shorten2(job.error, 200)}` : ""} \xB7 ${job.attempts.length} attempts`
           )
         );
-      return text2(lines.join("\n"));
+      return text3(lines.join("\n"));
     },
     async get_ontology_version(args) {
       const { version: version2 } = args;
       const current = await ontology();
       const found = version2 ? current.versions.find((item) => item.version === version2) : current.versions[0];
       if (!found)
-        return failure2(
+        return failure3(
           version2 ? `No ontology version ${version2}. Versions: ${current.versions.map((item) => item.version).join(", ") || "none"}.` : "No ontology versions yet."
         );
-      return text2(
+      return text3(
         [
           versionLine(found, current.publishedVersion).replace(/^- /, ""),
           `Head revision: ${current.revision} (use as expectedRevision for writes)`,
@@ -26563,38 +26137,38 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
       );
     },
     async save_ontology_version(args) {
-      const { expectedRevision: expectedRevision2, markdown } = args;
-      const next = parse3(OntologyStateSchema, await client.post("/ontology/save", { expectedRevision: expectedRevision2, markdown }));
+      const { expectedRevision, markdown } = args;
+      const next = parse3(OntologyStateSchema, await client.post("/ontology/save", { expectedRevision, markdown }));
       const version2 = next.versions[0];
-      return text2(
+      return text3(
         `Saved ontology draft v${version2.version} (head revision ${next.revision}, ${version2.definitions.length} definitions, ${version2.definitions.filter((definition) => definition.rule.kind === "filter").length} executable). Preview with preview_ontology_publication before publishing.`
       );
     },
     async configure_ontology(args) {
-      const { expectedRevision: expectedRevision2, sources, questions } = args;
+      const { expectedRevision, sources, questions } = args;
       const first = sources[0];
       const next = parse3(
         OntologyStateSchema,
         await client.post("/ontology/configure", {
-          expectedRevision: expectedRevision2,
+          expectedRevision,
           selection: { connectionId: first.connectionId, objects: first.objects, questions, sources }
         })
       );
-      return text2(
+      return text3(
         `Ontology scope saved (head revision ${next.revision}): ${sources.map((source) => `${source.connectionId} [${source.objects.join(", ")}]`).join("; ")}.`
       );
     },
     async request_ontology_draft(args) {
-      const { expectedRevision: expectedRevision2 } = args;
-      const next = parse3(OntologyStateSchema, await client.post("/ontology/draft", { expectedRevision: expectedRevision2 }));
+      const { expectedRevision } = args;
+      const next = parse3(OntologyStateSchema, await client.post("/ontology/draft", { expectedRevision }));
       const job = next.jobs[0];
-      return text2(
+      return text3(
         `Draft job ${job?.id ?? "queued"} is ${job?.status ?? "pending"}. Poll get_ontology; a new draft version appears when it succeeds (usually within a few minutes).`
       );
     },
     async preview_ontology_publication(args) {
-      const { expectedRevision: expectedRevision2 } = args;
-      const preview = parse3(OntologyPreviewSchema, await client.post("/ontology/preview", { expectedRevision: expectedRevision2 }));
+      const { expectedRevision } = args;
+      const preview = parse3(OntologyPreviewSchema, await client.post("/ontology/preview", { expectedRevision }));
       const lines = [
         `Publication preview (revision ${preview.revision}) \xB7 previewToken ${preview.previewToken}`,
         "",
@@ -26617,21 +26191,21 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
         "",
         "Confirm with the person, then call publish_ontology with this previewToken and expectedRevision."
       );
-      return text2(lines.join("\n"));
+      return text3(lines.join("\n"));
     },
     async publish_ontology(args) {
-      const { expectedRevision: expectedRevision2, previewToken } = args;
+      const { expectedRevision, previewToken } = args;
       const next = parse3(
         OntologyStateSchema,
-        await client.post("/ontology/publish", { expectedRevision: expectedRevision2, previewToken })
+        await client.post("/ontology/publish", { expectedRevision, previewToken })
       );
-      return text2(
-        `Published ontology v${next.publishedVersion} (head revision ${next.revision}). The versions menu on the graph and document pages now shows it as live.`
+      return text3(
+        `Published ontology v${next.publishedVersion} (head revision ${next.revision}). The app now treats it as the live version.`
       );
     },
     async update_ontology_settings(args) {
       const { autoDraft, questions } = args;
-      if (autoDraft === void 0 && questions === void 0) return failure2("Pass autoDraft and/or questions.");
+      if (autoDraft === void 0 && questions === void 0) return failure3("Pass autoDraft and/or questions.");
       const next = parse3(
         OntologyStateSchema,
         await client.post("/ontology/settings", {
@@ -26639,22 +26213,22 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
           ...questions === void 0 ? {} : { questions }
         })
       );
-      return text2(
-        `Settings saved: autoDraft=${next.settings.autoDraft}, questions=${shorten(next.settings.questions || "(none)", 200)}.`
+      return text3(
+        `Settings saved: autoDraft=${next.settings.autoDraft}, questions=${shorten2(next.settings.questions || "(none)", 200)}.`
       );
     },
     async edit_ontology_entry(args) {
       const { section, name, action, newName, prose, properties } = args;
       if (action === "update" && newName === void 0 && prose === void 0 && properties === void 0)
-        return failure2("Nothing to change: pass newName, prose, and/or properties.");
+        return failure3("Nothing to change: pass newName, prose, and/or properties.");
       const current = await ontology();
       const newest = current.versions[0];
-      if (!newest) return failure2("No ontology versions yet: save one with save_ontology_version or request a draft.");
+      if (!newest) return failure3("No ontology versions yet: save one with save_ontology_version or request a draft.");
       const pending = readPending(client.serviceUrl);
       const base2 = pending ? current.versions.find((item) => item.version === pending.baseVersion) : newest;
       if (!base2) {
         clearPending(client.serviceUrl);
-        return failure2(
+        return failure3(
           `The staged edits were made on version ${pending?.baseVersion}, which no longer exists; they were discarded. Stage the edit again.`
         );
       }
@@ -26664,10 +26238,10 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
       try {
         markdown = applyOps(base2.markdown, ops);
       } catch (error62) {
-        return failure2(error62 instanceof Error ? error62.message : "The edit could not be applied.");
+        return failure3(error62 instanceof Error ? error62.message : "The edit could not be applied.");
       }
       if (markdown === applyOps(base2.markdown, pending?.ops ?? []))
-        return failure2("Nothing changed: the entry already reads that way.");
+        return failure3("Nothing changed: the entry already reads that way.");
       writePending(client.serviceUrl, {
         host: new URL(client.serviceUrl).host,
         baseVersion: base2.version,
@@ -26675,7 +26249,7 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
         updatedAt: op.at
       });
       const stale = base2.version !== newest.version ? ` Note: version ${newest.version} was saved since these edits started on v${base2.version}; save_ontology_changes will need rebase.` : "";
-      return text2(
+      return text3(
         [
           `Staged (not saved): ${describeOp(op)}. ${ops.length} change${ops.length === 1 ? "" : "s"} staged on v${base2.version}.${stale}`,
           "",
@@ -26690,26 +26264,26 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
     },
     async show_ontology_changes() {
       const pending = readPending(client.serviceUrl);
-      if (!pending || !pending.ops.length) return text2("No staged ontology changes.");
+      if (!pending || !pending.ops.length) return text3("No staged ontology changes.");
       const current = await ontology();
       const base2 = current.versions.find((item) => item.version === pending.baseVersion);
       if (!base2)
-        return failure2(
+        return failure3(
           `The staged edits were made on version ${pending.baseVersion}, which no longer exists. discard_ontology_changes clears them.`
         );
       let markdown;
       try {
         markdown = applyOps(base2.markdown, pending.ops);
       } catch (error62) {
-        return failure2(
+        return failure3(
           `The staged edits no longer apply: ${error62 instanceof Error ? error62.message : String(error62)}. discard_ontology_changes clears them.`
         );
       }
       const newest = current.versions[0];
-      return text2(
+      return text3(
         [
           `${pending.ops.length} staged change${pending.ops.length === 1 ? "" : "s"} on v${base2.version}${newest.version !== base2.version ? ` (newest is now v${newest.version}; saving needs rebase)` : ""}:`,
-          ...pending.ops.map((op, index) => `${index + 1}. ${describeOp(op)} \xB7 ${when(op.at)}`),
+          ...pending.ops.map((op, index) => `${index + 1}. ${describeOp(op)} \xB7 ${when2(op.at)}`),
           "",
           unifiedDiff(base2.markdown, markdown, {
             before: `ontology v${base2.version} (original)`,
@@ -26719,23 +26293,23 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
       );
     },
     async save_ontology_changes(args) {
-      const { expectedRevision: expectedRevision2, rebase } = args;
+      const { expectedRevision, rebase } = args;
       const pending = readPending(client.serviceUrl);
-      if (!pending || !pending.ops.length) return failure2("No staged ontology changes to save.");
+      if (!pending || !pending.ops.length) return failure3("No staged ontology changes to save.");
       const current = await ontology();
-      if (current.revision !== expectedRevision2)
-        return failure2(
-          `CONFLICT: the ontology head is at revision ${current.revision}, not ${expectedRevision2}. Re-read get_ontology and retry.`
+      if (current.revision !== expectedRevision)
+        return failure3(
+          `CONFLICT: the ontology head is at revision ${current.revision}, not ${expectedRevision}. Re-read get_ontology and retry.`
         );
       const newest = current.versions[0];
       let base2 = current.versions.find((item) => item.version === pending.baseVersion);
       if (!base2)
-        return failure2(
+        return failure3(
           `The staged edits were made on version ${pending.baseVersion}, which no longer exists. Use rebase: true to replay them onto v${newest.version}, or discard them.`
         );
       if (base2.version !== newest.version) {
         if (!rebase)
-          return failure2(
+          return failure3(
             `Version ${newest.version} was saved after these edits were staged on v${base2.version}. Show the person compare_ontology_versions ${base2.version} \u2192 ${newest.version}, then call again with rebase: true to replay the edits onto v${newest.version}, or discard them.`
           );
         base2 = newest;
@@ -26744,21 +26318,21 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
       try {
         markdown = applyOps(base2.markdown, pending.ops);
       } catch (error62) {
-        return failure2(
+        return failure3(
           `The staged edits do not apply to v${base2.version}: ${error62 instanceof Error ? error62.message : String(error62)}.`
         );
       }
-      const next = parse3(OntologyStateSchema, await client.post("/ontology/save", { expectedRevision: expectedRevision2, markdown }));
+      const next = parse3(OntologyStateSchema, await client.post("/ontology/save", { expectedRevision, markdown }));
       clearPending(client.serviceUrl);
       const saved = next.versions[0];
-      return text2(
-        `Saved ontology draft v${saved.version} from v${base2.version} (head revision ${next.revision}) with ${pending.ops.length} change${pending.ops.length === 1 ? "" : "s"}: ${pending.ops.map(describeOp).join("; ")}. ${saved.definitions.length} definitions (${saved.definitions.filter((definition) => definition.rule.kind === "filter").length} executable). The versions menu on the graph and document pages lists it; preview_ontology_publication then publish_ontology make it live.`
+      return text3(
+        `Saved ontology draft v${saved.version} from v${base2.version} (head revision ${next.revision}) with ${pending.ops.length} change${pending.ops.length === 1 ? "" : "s"}: ${pending.ops.map(describeOp).join("; ")}. ${saved.definitions.length} definitions (${saved.definitions.filter((definition) => definition.rule.kind === "filter").length} executable). preview_ontology_publication then publish_ontology make it live.`
       );
     },
     async discard_ontology_changes() {
       const pending = readPending(client.serviceUrl);
       clearPending(client.serviceUrl);
-      return text2(
+      return text3(
         pending?.ops.length ? `Discarded ${pending.ops.length} staged change${pending.ops.length === 1 ? "" : "s"} (${pending.ops.map(describeOp).join("; ")}). Nothing was saved.` : "No staged ontology changes."
       );
     },
@@ -26768,10 +26342,10 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
       const older = current.versions.find((item) => item.version === from);
       const newer = to ? current.versions.find((item) => item.version === to) : current.versions[0];
       if (!older || !newer)
-        return failure2(
+        return failure3(
           `Unknown version. Versions: ${current.versions.map((item) => item.version).join(", ") || "none"}.`
         );
-      return text2(
+      return text3(
         unifiedDiff(older.markdown, newer.markdown, {
           before: `ontology v${older.version}`,
           after: `ontology v${newer.version}`
@@ -26785,7 +26359,7 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
         [
           "Sources:",
           ...sources.items.map(
-            (source) => `- ${source.id} \xB7 ${source.displayName} \xB7 ${source.provider} \xB7 ${source.status} \xB7 coverage ${source.coverage.status} \xB7 last sync ${source.freshness.lastSuccessfulSyncAt ? when(source.freshness.lastSuccessfulSyncAt) : "never"}`
+            (source) => `- ${source.id} \xB7 ${source.displayName} \xB7 ${source.provider} \xB7 ${source.status} \xB7 coverage ${source.coverage.status} \xB7 last sync ${source.freshness.lastSuccessfulSyncAt ? when2(source.freshness.lastSuccessfulSyncAt) : "never"}`
           )
         ].join("\n"),
         sources
@@ -26797,11 +26371,11 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
       const edges = [];
       let cursor;
       for (let pages = 0; pages < 20; pages++) {
-        const page = parse3(ModelResponseSchema, await client.get("/graph/model", { limit: 100, cursor, connectionId }));
-        nodes.push(...page.nodes);
-        edges.push(...page.edges);
-        if (!page.page.nextCursor) break;
-        cursor = page.page.nextCursor;
+        const page2 = parse3(ModelResponseSchema, await client.get("/graph/model", { limit: 100, cursor, connectionId }));
+        nodes.push(...page2.nodes);
+        edges.push(...page2.edges);
+        if (!page2.page.nextCursor) break;
+        cursor = page2.page.nextCursor;
       }
       const needle = search?.toLowerCase();
       const kept = nodes.filter(
@@ -26828,31 +26402,31 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
           "Relationships:",
           ...related.map((edge) => `- ${edge.label}: ${edge.sourceTypeId} \u2192 ${edge.targetTypeIds.join(", ")}`)
         );
-      return text2(lines.join("\n"));
+      return text3(lines.join("\n"));
     },
     async search_entities(args) {
       const { typeId, search, limit, cursor } = args;
-      const page = parse3(
+      const page2 = parse3(
         EntityListResponseSchema,
         await client.get("/entities", { typeId, search, limit: limit ?? 20, cursor })
       );
-      if (!page.items.length)
+      if (!page2.items.length)
         return structured(
           `No records of ${typeId}${search ? ` matching "${search}"` : ""}${cursor ? " after that cursor" : ""}.`,
-          page
+          page2
         );
       const lines = [
-        `Records of ${typeId}${search ? ` matching "${search}"` : ""} (${page.items.length}${page.page.hasMore ? ", more available" : ""}):`,
-        ...page.items.map(
-          (entity) => `- ${entity.id} \xB7 "${entity.label}" \xB7 ${shorten(JSON.stringify(entity.attributes), 240)}`
+        `Records of ${typeId}${search ? ` matching "${search}"` : ""} (${page2.items.length}${page2.page.hasMore ? ", more available" : ""}):`,
+        ...page2.items.map(
+          (entity) => `- ${entity.id} \xB7 "${entity.label}" \xB7 ${shorten2(JSON.stringify(entity.attributes), 240)}`
         )
       ];
-      if (page.page.hasMore && page.page.nextCursor)
+      if (page2.page.hasMore && page2.page.nextCursor)
         lines.push(
           "",
-          `Next page: call search_entities again with the same typeId${search ? " and search" : ""} and cursor: ${JSON.stringify(page.page.nextCursor)}. For totals use aggregate_records, not pages of rows.`
+          `Next page: call search_entities again with the same typeId${search ? " and search" : ""} and cursor: ${JSON.stringify(page2.page.nextCursor)}. For totals use aggregate_records, not pages of rows.`
         );
-      return structured(lines.join("\n"), page);
+      return structured(lines.join("\n"), page2);
     },
     async aggregate_records(args) {
       const { typeId, connectionId, where, groupBy, metrics, orderBy, limit } = args;
@@ -26881,7 +26455,7 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
       const lines = [
         caption,
         `Matching records: ${result.totals.count} \xB7 groups: ${result.groups.returned} of ${result.groups.total}${result.groups.truncated ? " (more groups exist; raise limit or narrow with where)" : ""} \xB7 order ${result.query.orderBy}`,
-        `Snapshot: ${result.snapshot.syncRunId ?? "none"} \xB7 coverage ${result.metadata.coverage.status} \xB7 last sync ${result.metadata.freshness.lastSuccessfulSyncAt ? when(result.metadata.freshness.lastSuccessfulSyncAt) : "never"} \xB7 ${result.snapshot.exact ? "exact counts" : `NOT exact: ${result.snapshot.reason}`}`,
+        `Snapshot: ${result.snapshot.syncRunId ?? "none"} \xB7 coverage ${result.metadata.coverage.status} \xB7 last sync ${result.metadata.freshness.lastSuccessfulSyncAt ? when2(result.metadata.freshness.lastSuccessfulSyncAt) : "never"} \xB7 ${result.snapshot.exact ? "exact counts" : `NOT exact: ${result.snapshot.reason}`}`,
         "Caption every view with the snapshot, coverage and where clause above.",
         "```json",
         JSON.stringify({
@@ -26905,47 +26479,47 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
       const type = await resolveType(client, requested, connectionId);
       const typeId = type.id;
       const max = limit ?? 5e3;
-      const rows3 = [];
+      const rows2 = [];
       let cursor;
       let hasMore = false;
       let metadata;
-      while (rows3.length < max) {
-        const page = parse3(
+      while (rows2.length < max) {
+        const page2 = parse3(
           EntityListResponseSchema,
           await client.get("/entities", {
             typeId,
             connectionId: type.connectionId,
             search,
-            limit: Math.min(100, max - rows3.length),
+            limit: Math.min(100, max - rows2.length),
             cursor
           })
         );
-        metadata = page.metadata;
-        for (const entity of page.items) {
+        metadata = page2.metadata;
+        for (const entity of page2.items) {
           const attributes = fields ? Object.fromEntries(fields.map((field) => [field, entity.attributes[field] ?? null])) : entity.attributes;
-          rows3.push({ id: entity.id, label: entity.label, ...attributes });
+          rows2.push({ id: entity.id, label: entity.label, ...attributes });
         }
-        hasMore = page.page.hasMore;
-        if (!page.page.nextCursor || !hasMore) break;
-        cursor = page.page.nextCursor;
+        hasMore = page2.page.hasMore;
+        if (!page2.page.nextCursor || !hasMore) break;
+        cursor = page2.page.nextCursor;
       }
       const directory = path5.join(os5.tmpdir(), "plum", "exports");
       fs5.mkdirSync(directory, { recursive: true });
       const file2 = path5.join(directory, `${type.nativeName.replace(/[^A-Za-z0-9_-]/g, "_")}-${Date.now()}.json`);
       const snapshot = metadata ? { coverage: metadata.coverage.status, lastSuccessfulSyncAt: metadata.freshness.lastSuccessfulSyncAt } : null;
-      fs5.writeFileSync(file2, JSON.stringify({ type: type.nativeName, typeId, fields: fields ?? null, snapshot, rows: rows3 }));
-      const columns = [...new Set(rows3.flatMap((row) => Object.keys(row)))];
-      return text2(
+      fs5.writeFileSync(file2, JSON.stringify({ type: type.nativeName, typeId, fields: fields ?? null, snapshot, rows: rows2 }));
+      const columns = [...new Set(rows2.flatMap((row) => Object.keys(row)))];
+      return text3(
         [
-          `Wrote ${rows3.length} ${type.nativeName} record(s) to ${file2}${hasMore ? " (more records exist beyond the limit; the file is a partial export)" : ""}.`,
+          `Wrote ${rows2.length} ${type.nativeName} record(s) to ${file2}${hasMore ? " (more records exist beyond the limit; the file is a partial export)" : ""}.`,
           `Columns: ${columns.slice(0, 60).join(", ")}${columns.length > 60 ? ", \u2026" : ""}`,
-          snapshot ? `Snapshot: coverage ${snapshot.coverage} \xB7 last sync ${snapshot.lastSuccessfulSyncAt ? when(snapshot.lastSuccessfulSyncAt) : "never"}` : "Snapshot: unknown",
+          snapshot ? `Snapshot: coverage ${snapshot.coverage} \xB7 last sync ${snapshot.lastSuccessfulSyncAt ? when2(snapshot.lastSuccessfulSyncAt) : "never"}` : "Snapshot: unknown",
           "Embed the rows into the page (read the file, or splice it in with a short node script); a browser cannot fetch a local file."
         ].join("\n")
       );
     },
     async get_view_catalog() {
-      return text2(
+      return text3(
         [
           viewCatalogPrompt(),
           "",
@@ -26958,7 +26532,7 @@ Questions: ${shorten(selection.questions || "(none)", 300)}` : "Selection: none 
       const { id, title: title2, question, form, caption, facts, spec } = args;
       const checked = validateViewSpec(spec);
       if (!checked.ok)
-        return failure2(
+        return failure3(
           `The spec does not match the view catalog. Fix these and save again:
 ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
         );
@@ -26974,7 +26548,7 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
           spec
         })
       );
-      return text2(
+      return text3(
         `${id ? "Replaced" : "Saved"} view "${view.title}" (${view.id}, revision ${view.revision}, ${form}, ${view.elementCount} elements). It is on the Views page: ${pageUrl(client.serviceUrl, "views", { viewId: view.id })}`
       );
     },
@@ -26990,7 +26564,7 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
         [
           `Views (${views.items.length}, newest first) in this workspace:`,
           ...views.items.map(
-            (view) => `- ${view.id} \xB7 "${view.title}" \xB7 ${view.form} \xB7 revision ${view.revision} \xB7 ${when(view.updatedAt)} \xB7 by ${view.createdBy.subjectId}${view.question ? ` \xB7 asks "${shorten(view.question, 120)}"` : ""} \xB7 ${pageUrl(client.serviceUrl, "views", { viewId: view.id })}`
+            (view) => `- ${view.id} \xB7 "${view.title}" \xB7 ${view.form} \xB7 revision ${view.revision} \xB7 ${when2(view.updatedAt)} \xB7 by ${view.createdBy.subjectId}${view.question ? ` \xB7 asks "${shorten2(view.question, 120)}"` : ""} \xB7 ${pageUrl(client.serviceUrl, "views", { viewId: view.id })}`
           ),
           "Views belong to one organization: list_organizations shows the other workspaces this person can reach."
         ].join("\n"),
@@ -27000,7 +26574,7 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
     async delete_view(args) {
       const { id } = args;
       await client.delete(`/views/${encodeURIComponent(id)}`);
-      return text2(`Deleted view ${id}. The Views page drops it within seconds: ${pageUrl(client.serviceUrl, "views")}`);
+      return text3(`Deleted view ${id}. The Views page drops it within seconds: ${pageUrl(client.serviceUrl, "views")}`);
     },
     async list_ontology_files() {
       const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files"));
@@ -27013,7 +26587,8 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
         [
           `Company ontology at ${list.ontologyVersion.slice(0, 12)} (${list.files.length} files):`,
           ...list.files.map((file2) => `- ${file2.path} \xB7 ${file2.kind} \xB7 ${file2.title}`),
-          "get_ontology_file reads one; start with AGENT.md when it exists."
+          "get_ontology_file reads one; start with AGENT.md when it exists.",
+          `Ontology page: ${pageUrl(client.serviceUrl, "ontology")}`
         ].join("\n"),
         list
       );
@@ -27021,13 +26596,14 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
     async get_ontology_file(args) {
       const { path: filePath } = args;
       const file2 = parse3(PlumOntologyDocumentSchema, await client.get("/plum/document", { path: filePath }));
-      const history = file2.history.slice(0, 5).map((entry) => `- ${when(entry.date)} \xB7 ${shorten(entry.message.split("\n")[0] ?? "", 100)}`);
+      const history = file2.history.slice(0, 5).map((entry) => `- ${when2(entry.date)} \xB7 ${shorten2(entry.message.split("\n")[0] ?? "", 100)}`);
       return structured(
         [
           `${file2.path} at ${file2.ontologyVersion.slice(0, 12)}:`,
           "",
           file2.text,
-          ...history.length ? ["", "Recent changes:", ...history] : []
+          ...history.length ? ["", "Recent changes:", ...history] : [],
+          `Open in the app: ${pageUrl(client.serviceUrl, "ontology", { path: file2.path })}`
         ].join("\n"),
         file2
       );
@@ -27056,7 +26632,7 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
         ...args
       };
       const result = parse3(PlumOntologyExecResultSchema, await client.post("/plum/exec", body));
-      return text2(
+      return text3(
         [
           `$ ${result.command}   (ontology ${result.ontologyVersion}${result.playbookVersion ? `, playbook ${result.playbookVersion}` : ""}, exit ${result.exitCode})`,
           result.stdout || "(no output)",
@@ -27070,7 +26646,7 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files"));
       const existing = new Set(list.files.map((file2) => file2.path));
       const problems = [];
-      const sections2 = [];
+      const sections = [];
       const counts = { added: 0, changed: 0, unchanged: 0 };
       for (const file2 of files) {
         if (!isPlumOntologyPath(file2.path))
@@ -27081,25 +26657,25 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
           problems.push(`${file2.path}: no frontmatter block. Every file starts with --- type: \u2026 --- lines.`);
         if (!existing.has(file2.path)) {
           counts.added += 1;
-          sections2.push(`+++ ${file2.path} (new file, ${file2.content.split("\n").length} lines)`);
+          sections.push(`+++ ${file2.path} (new file, ${file2.content.split("\n").length} lines)`);
           continue;
         }
         const current = parse3(PlumOntologyDocumentSchema, await client.get("/plum/document", { path: file2.path }));
         if (current.text === file2.content) {
           counts.unchanged += 1;
-          sections2.push(`=== ${file2.path} is unchanged; drop it from the update.`);
+          sections.push(`=== ${file2.path} is unchanged; drop it from the update.`);
           continue;
         }
         counts.changed += 1;
-        sections2.push(unifiedDiff(current.text, file2.content, { before: `a/${file2.path}`, after: `b/${file2.path}` }));
+        sections.push(unifiedDiff(current.text, file2.content, { before: `a/${file2.path}`, after: `b/${file2.path}` }));
       }
       const summary = `${counts.added} new, ${counts.changed} changed, ${counts.unchanged} unchanged against ontology ${list.ontologyVersion.slice(0, 12)}.`;
-      return text2(
+      return text3(
         [
           `Preview of ${files.length} file${files.length === 1 ? "" : "s"}: ${summary}`,
           ...problems.length ? ["", "The repository would refuse this update:", ...problems.map((p) => `- ${p}`)] : [],
           "",
-          ...sections2,
+          ...sections,
           "",
           problems.length ? "Fix the problems above before propose_ontology_update." : "Nothing is written yet. Show this to the person; on their go-ahead, propose_ontology_update opens the pull request."
         ].join("\n")
@@ -27108,7 +26684,7 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
     async propose_ontology_update(args) {
       const body = args;
       const proposal = parse3(PlumProposalSchema, await client.post("/plum/proposals", body));
-      return text2(
+      return text3(
         [
           `Proposed "${proposal.title}" (${body.files.length} file${body.files.length === 1 ? "" : "s"}) as ${proposal.id}. It is waiting for an editor or admin to approve it in the app; until then the ontology is unchanged.`,
           ...proposal.url ? [`Review: ${proposal.url}`] : [],
@@ -27125,11 +26701,11 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       const { proposal } = review;
       const changes = only ? review.changes.filter((change) => change.path === only) : review.changes;
       if (only && !changes.length)
-        return text2(
+        return text3(
           `${proposal.id} does not touch ${only}. Its files: ${review.changes.map((c) => c.path).join(", ") || "none"}.`
         );
       const head = [
-        `${proposal.id} \xB7 ${proposal.status} \xB7 "${proposal.title}" \xB7 opened ${when(proposal.createdAt)} by ${review.proposedBy}${proposal.url ? ` \xB7 ${proposal.url}` : ""}`,
+        `${proposal.id} \xB7 ${proposal.status} \xB7 "${proposal.title}" \xB7 opened ${when2(proposal.createdAt)} by ${review.proposedBy}${proposal.url ? ` \xB7 ${proposal.url}` : ""}`,
         ...review.rationale ? [`Why: ${review.rationale}`] : [],
         review.head ? `${review.changes.length} file${review.changes.length === 1 ? "" : "s"} against ontology ${review.base.slice(0, 12)}:` : proposal.status === "merged" ? `Merged${proposal.mergeCommit ? ` as ${proposal.mergeCommit.slice(0, 12)}` : ""}; its branch is gone, so there is no diff left to show.` : "Its branch no longer exists, so there is no diff to show.",
         ...review.changes.map((change) => `- ${change.status} ${change.path} (${change.title})`)
@@ -27146,7 +26722,7 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
 ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : unifiedDiff(file2.before, file2.after, { before: `a/${change.path}`, after: `b/${change.path}` })
           );
         }
-      return text2(
+      return text3(
         [
           ...head,
           ...diffs.length ? ["", ...diffs] : [],
@@ -27161,12 +26737,12 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         external_exports.object({ proposals: external_exports.array(PlumProposalSchema) }),
         await client.get("/plum/proposals")
       );
-      if (!proposals.length) return text2("No ontology updates yet in this workspace.");
-      return text2(
+      if (!proposals.length) return text3("No ontology updates yet in this workspace.");
+      return text3(
         [
           `Ontology updates (${proposals.length}, newest first):`,
           ...proposals.map(
-            (item) => `- ${item.id} \xB7 ${item.status} \xB7 ${item.kind} \xB7 "${shorten(item.title, 100)}" \xB7 ${when(item.createdAt)}${item.url ? ` \xB7 ${item.url}` : ""}`
+            (item) => `- ${item.id} \xB7 ${item.status} \xB7 ${item.kind} \xB7 "${shorten2(item.title, 100)}" \xB7 ${when2(item.createdAt)}${item.url ? ` \xB7 ${item.url}` : ""}`
           ),
           "An editor or admin approves open updates in the app."
         ].join("\n")
@@ -27184,7 +26760,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         [
           `Granola notes in this workspace (${list.notes.length}: ${imported} imported, ${list.notes.length - imported} linked by hand; newest meeting first):`,
           ...list.notes.map(
-            (note) => `- ${note.noteId} \xB7 ${when(note.meetingAt)} \xB7 ${note.title ?? "(untitled)"}${note.origin === "linked" ? " \xB7 linked" : ""}`
+            (note) => `- ${note.noteId} \xB7 ${when2(note.meetingAt)} \xB7 ${note.title ?? "(untitled)"}${note.origin === "linked" ? " \xB7 linked" : ""}`
           ),
           "get_granola_note reads one; search_granola_notes finds them by topic."
         ].join("\n"),
@@ -27202,7 +26778,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
       const people = note.attendees.map((person) => person.name ?? person.email ?? "unknown").join(", ");
       return structured(
         [
-          `${note.title ?? "(untitled)"} \xB7 ${when(note.meetingAt)} \xB7 ${note.noteId}`,
+          `${note.title ?? "(untitled)"} \xB7 ${when2(note.meetingAt)} \xB7 ${note.noteId}`,
           `Attendees: ${people || "none listed"}`,
           ...note.webUrl ? [`In Granola: ${note.webUrl}`] : [],
           "",
@@ -27224,7 +26800,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         [
           `${result.hits.length} of ${result.searched} notes mention "${query}":`,
           ...result.hits.map(
-            (hit) => `- ${hit.noteId} \xB7 ${when(hit.meetingAt)} \xB7 ${hit.title ?? "(untitled)"}
+            (hit) => `- ${hit.noteId} \xB7 ${when2(hit.meetingAt)} \xB7 ${hit.title ?? "(untitled)"}
   ${hit.excerpt.replace(/\n/g, "\n  ")}`
           ),
           "get_granola_note reads one, with the transcript when you need it."
@@ -27235,8 +26811,8 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
     async link_granola_note(args) {
       const { note } = args;
       const linked = parse3(GranolaLinkedNoteSchema, await client.post("/granola/notes", { note }));
-      return text2(
-        `Linked "${linked.title ?? "(untitled)"}" (${when(linked.meetingAt)}, ${linked.noteId}) to this project. get_granola_note reads it.`
+      return text3(
+        `Linked "${linked.title ?? "(untitled)"}" (${when2(linked.meetingAt)}, ${linked.noteId}) to this project. get_granola_note reads it.`
       );
     },
     async unlink_granola_note(args) {
@@ -27245,7 +26821,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         external_exports.object({ noteId: external_exports.string(), unlinked: external_exports.boolean() }),
         await client.delete(`/granola/notes/${encodeURIComponent(noteId)}`)
       );
-      return text2(
+      return text3(
         result.unlinked ? `Unlinked ${noteId} from this project. It stays in Granola.` : `${noteId} was not linked to this project, so nothing changed.`
       );
     },
@@ -27253,8 +26829,8 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
       const who = parse3(PluginWhoAmISchema, await client.get("/plugin/whoami"));
       return structured(
         [
-          `Signed in to ${client.serviceUrl} as ${who.principal.subjectId} (${who.principal.role}) in workspace ${who.principal.workspaceId}. Token "${who.token.label}" created ${when(who.token.createdAt)}.`,
-          "Sources, ontology, context models and views all belong to this one workspace; list_organizations shows the others this person can reach."
+          `Signed in to ${client.serviceUrl} as ${who.principal.subjectId} (${who.principal.role}) in workspace ${who.principal.workspaceId}. Token "${who.token.label}" created ${when2(who.token.createdAt)}.`,
+          "Sources, ontology and views all belong to this one workspace; list_organizations shows the others this person can reach."
         ].join("\n"),
         who
       );
@@ -27272,7 +26848,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         lines.push("The directory could not be reached, so only the organization this install is in is listed.");
       else if (list.items.length > 1)
         lines.push(
-          `Sources, ontology, context models and views are per organization: what is missing from ${current?.name ?? "this one"} may be saved in another. switch_organization moves this install; the browser follows when the person picks the same organization in the app.`
+          `Sources, ontology and views are per organization: what is missing from ${current?.name ?? "this one"} may be saved in another. switch_organization moves this install; the browser follows when the person picks the same organization in the app.`
         );
       return structured(lines.join("\n"), list);
     },
@@ -27283,15 +26859,15 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         await client.post("/plugin/organizations/switch", { organizationId, ...label2 ? { label: label2 } : {} })
       );
       if (result.status === "already-current")
-        return text2(
+        return text3(
           `Already working in ${result.organization.name} (workspace ${result.organization.workspaceId}). Nothing changed.`
         );
       if (result.token) saveToken(result.token);
-      return text2(
+      return text3(
         [
           `Switched to ${result.organization.name} (workspace ${result.organization.workspaceId}, ${result.organization.role}). Every tool now reads and writes that organization.`,
           "The browser does not follow on its own: pick the same organization in the app's switcher to watch the plugin work.",
-          "Sources, ontology, context models and views here are this organization's own; re-read them rather than reusing what was in hand."
+          "Sources, ontology and views here are this organization's own; re-read them rather than reusing what was in hand."
         ].join("\n")
       );
     },
@@ -27302,13 +26878,16 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
       ];
       for (const item of list.items)
         lines.push(
-          `- ${item.current ? "* " : "  "}${item.name} \xB7 id ${item.id} \xB7 ${item.engagement ? `reads engagements/${item.engagement}` : "a repository of its own"}${item.current ? " \xB7 current" : ""}`
+          `- ${item.current ? "* " : "  "}${item.name} \xB7 id ${item.id} \xB7 ${item.engagement ? `reads engagements/${item.engagement}` : "reads the repository root (the playbook, when this is the playbook repository)"}${item.current ? " \xB7 current" : ""}`
         );
       if (list.items.length > 1)
         lines.push(
-          "Sources, ontology, context models and views are per workspace: what is missing here may be in another. switch_workspace moves this install; the browser follows when the person picks the same workspace in the sidebar."
+          "Sources, ontology and views are per workspace: what is missing here may be in another. switch_workspace moves this install; the browser follows when the person picks the same workspace in the sidebar."
         );
-      if (list.canCreate) lines.push("An admin creates another with POST /workspaces from the app sidebar.");
+      if (list.canCreate)
+        lines.push(
+          'An admin creates another from the app sidebar ("New workspace"), choosing an engagement folder or the repository root.'
+        );
       return structured(lines.join("\n"), list);
     },
     async switch_workspace(args) {
@@ -27318,13 +26897,13 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         await client.post("/plugin/workspaces/switch", { workspaceId, ...label2 ? { label: label2 } : {} })
       );
       if (result.status === "already-current")
-        return text2(`Already working in ${result.workspace.name} (workspace ${result.workspace.id}). Nothing changed.`);
+        return text3(`Already working in ${result.workspace.name} (workspace ${result.workspace.id}). Nothing changed.`);
       if (result.token) saveToken(result.token);
-      return text2(
+      return text3(
         [
           `Switched to ${result.workspace.name} (workspace ${result.workspace.id}${result.workspace.engagement ? `, reads engagements/${result.workspace.engagement}` : ""}). Every tool now reads and writes that workspace.`,
           "The browser does not follow on its own: pick the same workspace in the sidebar to watch the plugin work.",
-          "Sources, ontology, context models and views here are this workspace's own; re-read them rather than reusing what was in hand."
+          "Sources, ontology and views here are this workspace's own; re-read them rather than reusing what was in hand."
         ].join("\n")
       );
     },
@@ -27335,7 +26914,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         `Plugin activity \xB7 ${activity.tokens.length} active token(s) \xB7 agent ${activity.active ? "active now" : "idle"}`
       ];
       for (const event of activity.events)
-        lines.push(`- ${when(event.at)} \xB7 ${event.action} \xB7 HTTP ${event.status} \xB7 ${JSON.stringify(event.detail)}`);
+        lines.push(`- ${when2(event.at)} \xB7 ${event.action} \xB7 HTTP ${event.status} \xB7 ${JSON.stringify(event.detail)}`);
       if (!activity.events.length) lines.push("- No plugin changes recorded yet.");
       return structured(lines.join("\n"), activity);
     }
@@ -27362,7 +26941,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         } catch (error62) {
           if (error62 instanceof external_exports.ZodError)
             return done(
-              failure2(
+              failure3(
                 `Invalid arguments for ${contract.name}: ${error62.issues.map((issue2) => `${issue2.path.join(".") || "(root)"}: ${issue2.message}`).join("; ")}`
               ),
               "invalid-arguments"
@@ -27370,14 +26949,14 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
           if (error62 instanceof ApiError) {
             const next = nextStep(error62, contract.name);
             return done(
-              failure2(
+              failure3(
                 `${error62.code}: ${error62.message}${error62.requestId ? ` (request ${error62.requestId})` : ""}${next ? `
 ${next}` : ""}`
               ),
               error62.code
             );
           }
-          return done(failure2(error62 instanceof Error ? error62.message : String(error62)), "unexpected");
+          return done(failure3(error62 instanceof Error ? error62.message : String(error62)), "unexpected");
         }
       }
     };
@@ -27430,7 +27009,7 @@ async function runTool(name, rawArgs, handlers) {
     try {
       input2 = JSON.parse(rawArgs);
     } catch {
-      throw new UsageError(`Arguments must be one JSON object, e.g. '{"proposalId":"business-context"}'.`);
+      throw new UsageError(`Arguments must be one JSON object, e.g. '{"path":"AGENT.md"}'.`);
     }
   }
   const parsed = external_exports.object(handler.contract.inputSchema).safeParse(input2);
@@ -27446,7 +27025,11 @@ if (process.env.VITEST === void 0) {
     {
       description: "Run one of the plugin's MCP tools from the shell and print its result. Use when the mcp__plugin_plum_Plum__* tools cannot be called directly.",
       positional: [
-        { name: "tool", required: false, description: "Tool name, e.g. list_context_models or edit_context_section." },
+        {
+          name: "tool",
+          required: false,
+          description: "Tool name, e.g. list_ontology_files or propose_ontology_update."
+        },
         { name: "args", required: false, description: "The tool's arguments as one JSON object (default: {})." }
       ],
       flags: [{ name: "list", boolean: true, description: "Print every tool with a one-line description and exit." }]
@@ -27460,13 +27043,13 @@ if (process.env.VITEST === void 0) {
         return;
       }
       if (!positional[0]) throw new UsageError("Pass a tool name, or --list.");
-      const { text: text3, isError } = await runTool(positional[0], positional[1], handlers);
+      const { text: text4, isError } = await runTool(positional[0], positional[1], handlers);
       await telemetry.flush();
       if (isError) {
-        console.error(text3);
+        console.error(text4);
         process.exit(1);
       }
-      console.log(text3);
+      console.log(text4);
     }
   );
 }

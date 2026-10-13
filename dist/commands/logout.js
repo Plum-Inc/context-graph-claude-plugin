@@ -24295,6 +24295,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
     serviceUrl: config2.serviceUrl,
     get: (path5, query) => request("GET", path5, { query, auth: true }),
     post: (path5, body) => request("POST", path5, { body, auth: true }),
+    put: (path5, body) => request("PUT", path5, { body, auth: true }),
     delete: (path5) => request("DELETE", path5, { auth: true }),
     anonymous: (method, path5, body) => request(method, path5, { body, auth: false })
   };
