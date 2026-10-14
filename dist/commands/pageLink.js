@@ -13,13 +13,21 @@ var LEGACY_CONFIG_DIR = path.join(os.homedir(), ".config", "context-graph");
 var LEGACY_PROJECT_CONFIG = path.join(".context-graph", "config.local.json");
 function migrateLegacyConfig(from = LEGACY_CONFIG_DIR, to = CONFIG_DIR) {
   try {
-    if (fs.existsSync(to) || !fs.existsSync(from)) return false;
-    fs.cpSync(from, to, { recursive: true });
-    return true;
+    if (fs.existsSync(path.join(to, "config.json")) || !fs.existsSync(from)) return false;
+    let copied = false;
+    for (const name of fs.readdirSync(from)) {
+      const target = path.join(to, name);
+      if (fs.existsSync(target)) continue;
+      fs.cpSync(path.join(from, name), target, { recursive: true });
+      copied = true;
+    }
+    if (!fs.existsSync(path.join(to, "config.json"))) writeJson(path.join(to, "config.json"), {});
+    return copied;
   } catch {
     return false;
   }
 }
+var PENDING_LOGIN_FILE = path.join(CONFIG_DIR, "pending-login.json");
 function readJson(file) {
   try {
     const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
@@ -27,6 +35,11 @@ function readJson(file) {
   } catch {
     return null;
   }
+}
+function writeJson(file, value) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}
+`, { mode: 384 });
 }
 function findProjectConfig(start = process.cwd()) {
   let dir = path.resolve(start);

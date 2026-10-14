@@ -19,7 +19,7 @@ Then, inside Claude Code:
 /plum:setup
 ```
 
-This opens a sign-in page in your browser. Approve it and the plugin is connected. Point it at another deployment (a local dev server, a preview) with `/plum:setup url http://localhost:5173`.
+This opens a sign-in page in your browser. Approve it and the plugin is connected. The first session already shows the same link in its banner: open it, approve, and the next thing you ask is answered signed in, with no command and no restart. Point the plugin at another deployment (a local dev server, a preview) with `/plum:setup url http://localhost:5173`.
 
 The plugin was named `context-graph` before version 0.5. An install under that name keeps running but no longer updates: remove it with `claude plugin uninstall context-graph@context-graph` and install `plum@plum`. The first run copies the saved sign-in from `~/.config/context-graph` to `~/.config/plum`, so nobody signs in again, and a project's `.context-graph/config.local.json` is still read until it is renamed to `.plum/config.local.json`.
 
@@ -61,7 +61,7 @@ MCP resources: every file of the ontology repository as `plum://ontology/<path>`
 
 ## Organizations and workspaces
 
-An organization holds one or more workspaces, each with its own sources, ontology and views. A workspace reads one engagement folder of the shared ontology repository, or the repository root, which in Plum Consulting's repository is the playbook itself. The plugin signs in to one workspace, the one your browser was in at the time, so a file or a view you cannot find is often one workspace or one organization away. `/plum:setup workspace` lists the organization's workspaces and moves the plugin to one; `/plum:setup org` does the same across organizations. Neither needs a browser sign-in, and the app's own switchers move the browser.
+An organization holds one or more workspaces, each with its own sources, ontology and views. A workspace reads one engagement folder of the shared ontology repository, or the repository root, which in Plum Consulting's repository is the playbook itself. The plugin signs in to one workspace, the one your browser was in at the time, so a file or a view you cannot find is often one workspace or one organization away. `/plum:setup workspace` lists the organization's workspaces and moves the plugin to one; `/plum:setup org` does the same across organizations. Neither needs a browser sign-in, and the app's own switchers move the browser. Naming an engagement in a prompt is enough ("go look at the Dundas folder", "work in Stratis"): the session banner names the organization's workspaces, so the plugin moves there, says so in one line, and stays for the rest of the session.
 
 A project can name the workspace its sessions start in: `/plum:setup workspace default <name>` writes `workspaceId` to `.plum/config.local.json` (found upward from the working directory, so it can sit at a repository root and be committed), and every new session in that project moves the plugin there when it is elsewhere in the same organization. `/plum:setup workspace default clear` forgets it.
 

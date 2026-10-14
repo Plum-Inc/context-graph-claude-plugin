@@ -1,7 +1,7 @@
 ---
 description: Read and learn from the workspace's ontology repository (the Markdown the team approves in git: AGENT.md, glossary, strategy, market, go-to-market, connectors, definitions, sources, open questions) and from the playbook it follows. Stage 1 of the plum pipeline; nothing here changes a file. TRIGGER when the user wants to see what the ontology holds, read or search a file, understand how the business works, what a term means, what evidence backs a statement, which questions are still open and who could answer them, how the firm's playbook says to do something, what an update changes or whether it merged, or says 'what does the ontology say about', 'show me the ontology', 'read AGENT.md', 'search the ontology for', 'what is still open', 'explain the ICP', 'how do we run discovery', 'what changed in that update'. SKIP when the user wants to change a file or open a pull request (use /plum:improve), to add a skill, pattern, workflow or rule to the playbook (use /plum:harness), to chart imported records (use /plum:views), or is not signed in yet (use /plum:setup).
 argument-hint: "[tree|read <path>|search <words>|explain <topic>|questions|playbook|updates [id]]"
-allowed-tools: ["Bash", "AskUserQuestion", "Read", "mcp__plugin_plum_Plum__list_ontology_files", "mcp__plugin_plum_Plum__get_ontology_file", "mcp__plugin_plum_Plum__search_ontology", "mcp__plugin_plum_Plum__exec_bash", "mcp__plugin_plum_Plum__list_ontology_updates", "mcp__plugin_plum_Plum__review_ontology_update", "mcp__plugin_plum_Plum__list_granola_notes", "mcp__plugin_plum_Plum__get_granola_note", "mcp__plugin_plum_Plum__search_granola_notes", "mcp__plugin_plum_Plum__whoami", "mcp__plugin_plum_Plum__list_workspaces"]
+allowed-tools: ["Bash", "AskUserQuestion", "Read", "mcp__plugin_plum_Plum__list_ontology_files", "mcp__plugin_plum_Plum__get_ontology_file", "mcp__plugin_plum_Plum__search_ontology", "mcp__plugin_plum_Plum__exec_bash", "mcp__plugin_plum_Plum__list_ontology_updates", "mcp__plugin_plum_Plum__review_ontology_update", "mcp__plugin_plum_Plum__list_granola_notes", "mcp__plugin_plum_Plum__get_granola_note", "mcp__plugin_plum_Plum__search_granola_notes", "mcp__plugin_plum_Plum__whoami", "mcp__plugin_plum_Plum__list_workspaces", "mcp__plugin_plum_Plum__switch_workspace"]
 ---
 
 # plum: Learn from the ontology
@@ -25,6 +25,10 @@ Every statement about the business in an answer names its label and its source, 
 - When a meeting note disagrees with a file, show the file line and the note's line side by side; the file is the approved record and the note is informal and dated, so the disagreement is a `/plum:improve` proposal, not a correction made in the answer.
 
 The session-start hook states the short form of this rule to the model once per session, so a question asked outside this skill answers the same way.
+
+## Workspace
+
+The tools answer from one workspace: the engagement folder (or the repository root) the session banner names. When the request names another engagement or workspace of the organization ("the Dundas folder", "what does Stratis say about…"), move there first with `mcp__plugin_plum_Plum__switch_workspace` and that workspace's id (from the banner, or `mcp__plugin_plum_Plum__list_workspaces`), say so in one line, and answer from there; later requests stay there until another is named. When no workspace reads the named folder, say so and stop: never answer about one client from another's files.
 
 ## Tool access
 

@@ -1,5 +1,5 @@
 ---
-description: Connect Claude Code to a plum workspace, and move it between organizations and between the workspaces of one organization. TRIGGER when the user wants to sign in to plum, connect the plugin, check whether it is signed in, switch organization or workspace, see which organizations or workspaces they have, work in a named engagement's workspace, set or clear the workspace this project's sessions start in, point the plugin at another deployment, or sign out, or says 'plum login', 'connect plum', 'plum status', 'switch org', 'change organization', 'switch workspace', 'work in the Dundas workspace', 'default workspace for this project', 'I am in the wrong workspace', 'where are my other views'. SKIP when the user wants to read or change the ontology (use /plum:learn, /plum:improve or /plum:harness) or update the plugin (use /plum:update).
+description: Connect Claude Code to a plum workspace, and move it between organizations and between the workspaces of one organization. TRIGGER when the user wants to sign in to plum, connect the plugin, check whether it is signed in, switch organization or workspace, see which organizations or workspaces they have, work in a named engagement's workspace, set or clear the workspace this project's sessions start in, point the plugin at another deployment, or sign out, or says 'plum login', 'connect plum', 'plum status', 'switch org', 'change organization', 'switch workspace', 'work in the Dundas workspace', 'go look at the Dundas folder', 'work in Stratis', 'use the Stratis engagement', 'default workspace for this project', 'I am in the wrong workspace', 'where are my other views'. SKIP when the user wants to read or change the ontology (use /plum:learn, /plum:improve or /plum:harness) or update the plugin (use /plum:update).
 argument-hint: "[login|status|logout|org [<name>]|workspace [<name>|default [<name>|clear]]|url <app-url>]"
 allowed-tools: ["Bash", "AskUserQuestion", "mcp__plugin_plum_Plum__whoami", "mcp__plugin_plum_Plum__list_ontology_files", "mcp__plugin_plum_Plum__list_organizations", "mcp__plugin_plum_Plum__switch_organization", "mcp__plugin_plum_Plum__list_workspaces", "mcp__plugin_plum_Plum__switch_workspace", "mcp__plugin_plum_Plum__list_views"]
 ---
@@ -41,7 +41,7 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 | `logout` | `logout` | Revoke the token and sign out |
 | `url` | `url <app-url>` | Point the plugin at another deployment (local dev server, preview) and sign in there |
 
-**Natural-language aliases:** "switch org", "change organization", "I'm in the wrong organization" → `org`; "switch workspace", "work in the Dundas workspace", "which workspace am I in", "where are my other views" → `workspace`; "always start in", "default workspace for this project", "pin this workspace" → `workspace default`.
+**Natural-language aliases:** "switch org", "change organization", "I'm in the wrong organization" → `org`; "switch workspace", "work in the Dundas workspace", "go look at the Dundas folder", "work in Stratis", "which workspace am I in", "where are my other views" → `workspace`; "always start in", "default workspace for this project", "pin this workspace" → `workspace default`.
 
 ## Login
 
@@ -54,14 +54,14 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
    - **`Status: signed in as …`**: already connected. Tell the user who they are signed in as and which workspace, then go to step 3.
    - **`Status: not signed in`** or **`saved token rejected`**: continue with step 2.
    - If the output mentions an update, tell the user in one line that `/plum:update` applies it; do not block on it.
-2. Run the login command. It prints the sign-in link, opens it in the OS-default browser, and polls until the browser approves the ticket (up to ten minutes):
+2. Run the login command. It prints the sign-in link, opens it in the OS-default browser, and polls until the browser approves the ticket (up to ten minutes). When the session banner already showed a link, this is the same link, not a second one; a person who has already approved it is signed in on this command's first poll:
 
    ```bash
    node "${CLAUDE_PLUGIN_ROOT}/dist/commands/login.js"
    ```
 
    Relay the link as a clickable URL in case the browser did not open. The browser asks the person to sign in to the app and then shows "Connected". When the command prints `Signed in as …`, continue. If it prints `expired` or `timed out`, ask whether to try again and re-run with `--force`.
-3. Call `mcp__plugin_plum_Plum__whoami` once to confirm the MCP server sees the token (the server reads the saved token per call, so no restart is needed). If it reports `UNAUTHENTICATED`, the token file was not written: re-run step 2.
+3. Call `mcp__plugin_plum_Plum__whoami` once to confirm the MCP server sees the token (the server reads the saved token per call, so no restart is needed; never tell the person to restart after a sign-in). If it reports `UNAUTHENTICATED`, the token file was not written: re-run step 2.
 4. Call `mcp__plugin_plum_Plum__list_workspaces` and say which workspace the plugin is in and what it reads (an engagement folder, or the repository root). Call `mcp__plugin_plum_Plum__list_ontology_files`. If the ontology is empty, say that discovery in the app, or `/plum:improve`, writes the first files. Otherwise print the link to the Ontology page:
 
    ```bash
@@ -98,13 +98,15 @@ An organization holds one or more workspaces, each one engagement with its own s
 
 1. Call `mcp__plugin_plum_Plum__list_workspaces`. It marks the workspace the plugin is in now and names the others with the engagement folder each is; a workspace without one reads the repository root.
 
-   - **Only one workspace**: say which one the plugin is in and that an admin makes another from the app's sidebar ("New engagement": a folder of its own, or the playbook workspace that reads the repository root). Stop.
+   - **Only one workspace**: say which one the plugin is in and that an admin makes another from the app's sidebar ("New engagement": a folder of its own, or the playbook workspace that reads the repository root). When the person named another engagement folder, say that no workspace reads it yet and that nothing here can answer from it until one exists. Stop.
    - **The person named one** (in their request): match it case-insensitively against the names and the engagement folders. On exactly one match, use its id. On none or several, ask.
    - **Otherwise**: use `AskUserQuestion` to choose, listing each workspace by name and engagement and marking the current one.
 2. Switch with `mcp__plugin_plum_Plum__switch_workspace`, passing the chosen `workspaceId`. The server checks the membership, issues a token bound to that workspace and retires the old one; the plugin saves the new token itself. Equivalent from Bash: `node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" switch_workspace '{"workspaceId":"<id>"}'`.
 
    Never print, read or ask for a token, and never read files under `~/.config/plum`.
 3. Report the switch in two lines: which workspace the plugin now reads and writes (its engagement folder, or the repository root), and that the browser does not follow on its own: the person picks the same workspace in the app's sidebar to watch the plugin work. Then call `mcp__plugin_plum_Plum__list_ontology_files` and say how many files the ontology holds, with the Ontology page link from `pageLink.js --page ontology`. Stop.
+
+A prompt that names an engagement does the same without this skill: the session banner names the organization's workspaces, so the model calls `mcp__plugin_plum_Plum__switch_workspace` with that workspace's id, says so in one line, and stays there for the rest of the session unless another is named.
 
 ## Workspace default
 

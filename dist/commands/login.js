@@ -6,8 +6,6 @@ var __export = (target, all) => {
 };
 
 // src/commands/login.ts
-import { createHash, randomBytes } from "node:crypto";
-import os5 from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 
 // ../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/classic/external.js
@@ -24167,7 +24165,7 @@ function openBrowser(url2) {
 }
 
 // src/client.ts
-import os3 from "node:os";
+import os5 from "node:os";
 
 // src/config.ts
 import fs from "node:fs";
@@ -24182,12 +24180,47 @@ var LEGACY_CONFIG_DIR = path.join(os2.homedir(), ".config", "context-graph");
 var LEGACY_PROJECT_CONFIG = path.join(".context-graph", "config.local.json");
 function migrateLegacyConfig(from = LEGACY_CONFIG_DIR, to = CONFIG_DIR) {
   try {
-    if (fs.existsSync(to) || !fs.existsSync(from)) return false;
-    fs.cpSync(from, to, { recursive: true });
-    return true;
+    if (fs.existsSync(path.join(to, "config.json")) || !fs.existsSync(from)) return false;
+    let copied = false;
+    for (const name of fs.readdirSync(from)) {
+      const target = path.join(to, name);
+      if (fs.existsSync(target)) continue;
+      fs.cpSync(path.join(from, name), target, { recursive: true });
+      copied = true;
+    }
+    if (!fs.existsSync(path.join(to, "config.json"))) writeJson(path.join(to, "config.json"), {});
+    return copied;
   } catch {
     return false;
   }
+}
+var PENDING_LOGIN_FILE = path.join(CONFIG_DIR, "pending-login.json");
+function savePendingLogin(pending) {
+  writeJson(PENDING_LOGIN_FILE, { ...pending });
+}
+function clearPendingLogin() {
+  try {
+    fs.unlinkSync(PENDING_LOGIN_FILE);
+  } catch {
+  }
+}
+function readPendingLogin(serviceUrl, now = Date.now()) {
+  const saved = readJson(PENDING_LOGIN_FILE);
+  if (!saved || typeof saved.ticketId !== "string" || typeof saved.verifier !== "string" || typeof saved.serviceUrl !== "string" || typeof saved.loginWindow !== "string" || typeof saved.expiresAt !== "string" || typeof saved.pollIntervalMs !== "number")
+    return null;
+  if (saved.serviceUrl !== serviceUrl) return null;
+  if (new Date(saved.expiresAt).getTime() <= now) {
+    clearPendingLogin();
+    return null;
+  }
+  return {
+    ticketId: saved.ticketId,
+    verifier: saved.verifier,
+    serviceUrl: saved.serviceUrl,
+    loginWindow: saved.loginWindow,
+    expiresAt: saved.expiresAt,
+    pollIntervalMs: saved.pollIntervalMs
+  };
 }
 function readJson(file2) {
   try {
@@ -24262,6 +24295,134 @@ function formatEndpointSuffix(serviceUrl) {
   return serviceUrl === DEFAULT_SERVICE_URL ? "" : ` @ ${new URL(serviceUrl).host}`;
 }
 
+// src/signIn.ts
+import { createHash, randomBytes } from "node:crypto";
+import os4 from "node:os";
+
+// src/installScope.ts
+import fs2 from "node:fs";
+import os3 from "node:os";
+import path2 from "node:path";
+var INSTALL_SCOPES = ["user", "project", "local", "managed"];
+function pluginUpdateScopes(scopes) {
+  return scopes.length > 0 ? [...scopes] : ["user"];
+}
+function canonical(target) {
+  try {
+    return fs2.realpathSync(path2.resolve(target));
+  } catch {
+    return path2.resolve(target);
+  }
+}
+function installScopeAppliesToProject(projectPath, projectDir) {
+  if (typeof projectPath !== "string" || projectPath.trim() === "") return true;
+  const project = canonical(projectPath);
+  const current = canonical(projectDir);
+  return current === project || current.startsWith(`${project}${path2.sep}`);
+}
+function detectClaudeInstallScopes(pluginKey, homeDir = os3.homedir(), projectDir = process.cwd()) {
+  try {
+    const parsed = JSON.parse(
+      fs2.readFileSync(path2.join(homeDir, ".claude", "plugins", "installed_plugins.json"), "utf8")
+    );
+    const scopes = /* @__PURE__ */ new Set();
+    for (const entry of parsed.plugins?.[pluginKey] ?? []) {
+      if (entry.scope && INSTALL_SCOPES.includes(entry.scope) && installScopeAppliesToProject(entry.projectPath, projectDir))
+        scopes.add(entry.scope);
+    }
+    return [...scopes];
+  } catch {
+    return [];
+  }
+}
+
+// src/platform.ts
+var PLUGIN_KEY = "plum@plum";
+var platform = {
+  authPath: "claude",
+  displayName: "Claude Code",
+  cliBinary: "claude",
+  loginHint: "/plum:setup login",
+  setupHint: "/plum:setup",
+  updateHint: "/plum:update",
+  repo: "anikal2001/context-graph-claude-plugin",
+  marketplaceName: "plum",
+  pluginName: "plum",
+  detectInstallScopes: () => detectClaudeInstallScopes(PLUGIN_KEY),
+  buildPluginUpdateCommands: (scopes) => [
+    "claude plugin marketplace update plum",
+    ...pluginUpdateScopes(scopes).map((scope) => `claude plugin update ${PLUGIN_KEY} --scope ${scope}`)
+  ]
+};
+
+// src/signIn.ts
+var base64url3 = (bytes) => bytes.toString("base64url");
+async function startSignIn(call, serviceUrl, label2) {
+  const verifier = base64url3(randomBytes(32));
+  const challenge = base64url3(createHash("sha256").update(verifier).digest());
+  const ticket = HandoffTicketCreatedSchema.parse(
+    await call("POST", "/plugin/handoff-tickets", {
+      kind: "auth.login",
+      host: platform.authPath,
+      pkceChallenge: challenge,
+      pkceMethod: "S256",
+      label: label2 ?? `Claude Code on ${os4.hostname()}`
+    })
+  );
+  const pending = {
+    ticketId: ticket.id,
+    verifier,
+    serviceUrl,
+    loginWindow: randomBytes(16).toString("hex"),
+    expiresAt: ticket.expiresAt,
+    pollIntervalMs: ticket.pollIntervalMs
+  };
+  savePendingLogin(pending);
+  return pending;
+}
+async function currentOrNewSignIn(call, serviceUrl, label2) {
+  return readPendingLogin(serviceUrl) ?? await startSignIn(call, serviceUrl, label2);
+}
+function signInUrl(pending) {
+  return `${pending.serviceUrl}/plugin/auth/${platform.authPath}?ticket=${encodeURIComponent(pending.ticketId)}&loginWindow=${pending.loginWindow}`;
+}
+async function pollSignIn(call, pending, now = Date.now()) {
+  if (new Date(pending.expiresAt).getTime() <= now) {
+    clearPendingLogin();
+    return settled();
+  }
+  let poll;
+  try {
+    poll = HandoffTicketPollSchema.parse(
+      await call(
+        "GET",
+        `/plugin/handoff-tickets/${encodeURIComponent(pending.ticketId)}?verifier=${encodeURIComponent(pending.verifier)}`
+      )
+    );
+  } catch (error62) {
+    const status = error62.status;
+    if (typeof status === "number" && status >= 400 && status < 500 && status !== 429) {
+      clearPendingLogin();
+      throw error62;
+    }
+    return { status: "pending" };
+  }
+  if (poll.status === "completed") {
+    saveToken(poll.data.token);
+    clearPendingLogin();
+    return { status: "completed", token: poll.data.token };
+  }
+  if (poll.status === "expired") {
+    clearPendingLogin();
+    return settled();
+  }
+  return { status: "pending" };
+}
+function settled() {
+  const token = getConfig().token;
+  return token ? { status: "completed", token } : { status: "expired" };
+}
+
 // src/client.ts
 var ApiError = class extends Error {
   constructor(code, message, status, requestId) {
@@ -24278,7 +24439,7 @@ function clientHeaders(pluginVersion, platform2) {
   return {
     "x-context-graph-client": platform2.cliBinary,
     "x-context-graph-client-version": pluginVersion,
-    "x-context-graph-client-os": os3.platform(),
+    "x-context-graph-client-os": os5.platform(),
     "x-context-graph-install-id": getOrCreateInstallId()
   };
 }
@@ -24286,9 +24447,24 @@ function createApiClient(platform2, pluginVersion, options = {}) {
   const config2 = options.config ?? getConfig();
   const fetcher = options.fetcher ?? fetch;
   const root = `${config2.serviceUrl}/api/v1`;
+  let token = config2.token;
+  async function tokenOrSignIn() {
+    if (token) return token;
+    const pending = readPendingLogin(config2.serviceUrl);
+    if (!pending) throw new ApiError("UNAUTHENTICATED", `Not signed in. Run ${platform2.loginHint} first.`, 401);
+    const result = await pollSignIn((method, path5, body) => request(method, path5, { body, auth: false }), pending);
+    if (result.status === "completed") {
+      token = result.token;
+      return token;
+    }
+    throw new ApiError(
+      "UNAUTHENTICATED",
+      result.status === "pending" ? `Not signed in yet: the sign-in link ${signInUrl(pending)} is waiting for approval in the browser. Once approved, call again; no restart is needed.` : `The sign-in link expired. Run ${platform2.loginHint} for a new one.`,
+      401
+    );
+  }
   async function request(method, path5, input2) {
-    if (input2.auth && !config2.token)
-      throw new ApiError("UNAUTHENTICATED", `Not signed in. Run ${platform2.loginHint} first.`, 401);
+    const bearer = input2.auth ? await tokenOrSignIn() : null;
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(input2.query ?? {})) {
       if (value === void 0) continue;
@@ -24296,7 +24472,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
       else params.set(key, String(value));
     }
     const headers = { Accept: "application/json", ...clientHeaders(pluginVersion, platform2) };
-    if (input2.auth && config2.token) headers.Authorization = `Bearer ${config2.token}`;
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
     if (input2.body !== void 0) headers["Content-Type"] = "application/json";
     let response;
     try {
@@ -24434,62 +24610,6 @@ async function runCommand(spec, work) {
   }
 }
 
-// src/installScope.ts
-import fs2 from "node:fs";
-import os4 from "node:os";
-import path2 from "node:path";
-var INSTALL_SCOPES = ["user", "project", "local", "managed"];
-function pluginUpdateScopes(scopes) {
-  return scopes.length > 0 ? [...scopes] : ["user"];
-}
-function canonical(target) {
-  try {
-    return fs2.realpathSync(path2.resolve(target));
-  } catch {
-    return path2.resolve(target);
-  }
-}
-function installScopeAppliesToProject(projectPath, projectDir) {
-  if (typeof projectPath !== "string" || projectPath.trim() === "") return true;
-  const project = canonical(projectPath);
-  const current = canonical(projectDir);
-  return current === project || current.startsWith(`${project}${path2.sep}`);
-}
-function detectClaudeInstallScopes(pluginKey, homeDir = os4.homedir(), projectDir = process.cwd()) {
-  try {
-    const parsed = JSON.parse(
-      fs2.readFileSync(path2.join(homeDir, ".claude", "plugins", "installed_plugins.json"), "utf8")
-    );
-    const scopes = /* @__PURE__ */ new Set();
-    for (const entry of parsed.plugins?.[pluginKey] ?? []) {
-      if (entry.scope && INSTALL_SCOPES.includes(entry.scope) && installScopeAppliesToProject(entry.projectPath, projectDir))
-        scopes.add(entry.scope);
-    }
-    return [...scopes];
-  } catch {
-    return [];
-  }
-}
-
-// src/platform.ts
-var PLUGIN_KEY = "plum@plum";
-var platform = {
-  authPath: "claude",
-  displayName: "Claude Code",
-  cliBinary: "claude",
-  loginHint: "/plum:setup login",
-  setupHint: "/plum:setup",
-  updateHint: "/plum:update",
-  repo: "anikal2001/context-graph-claude-plugin",
-  marketplaceName: "plum",
-  pluginName: "plum",
-  detectInstallScopes: () => detectClaudeInstallScopes(PLUGIN_KEY),
-  buildPluginUpdateCommands: (scopes) => [
-    "claude plugin marketplace update plum",
-    ...pluginUpdateScopes(scopes).map((scope) => `claude plugin update ${PLUGIN_KEY} --scope ${scope}`)
-  ]
-};
-
 // src/version.ts
 import fs4 from "node:fs";
 import path4 from "node:path";
@@ -24515,7 +24635,6 @@ function getVersion() {
 }
 
 // src/commands/login.ts
-var base64url3 = (bytes) => bytes.toString("base64url");
 async function runLogin(options) {
   if (options.url) saveServiceUrl(options.url);
   const config2 = getConfig();
@@ -24534,43 +24653,26 @@ async function runLogin(options) {
     }
   }
   const anonymous = createApiClient(platform, getVersion(), { config: { ...config2, token: null } });
-  const verifier = base64url3(randomBytes(32));
-  const challenge = base64url3(createHash("sha256").update(verifier).digest());
-  const label2 = options.label ?? `Claude Code on ${os5.hostname()}`;
-  const ticket = HandoffTicketCreatedSchema.parse(
-    await anonymous.anonymous("POST", "/plugin/handoff-tickets", {
-      kind: "auth.login",
-      host: platform.authPath,
-      pkceChallenge: challenge,
-      pkceMethod: "S256",
-      label: label2
-    })
-  );
-  const loginWindow = randomBytes(16).toString("hex");
-  const signInUrl = `${config2.serviceUrl}/plugin/auth/${platform.authPath}?ticket=${encodeURIComponent(ticket.id)}&loginWindow=${loginWindow}`;
-  console.log(`Sign in to plum: ${signInUrl}`);
-  if (!(options.open ?? openBrowser)(signInUrl))
+  const call = anonymous.anonymous.bind(anonymous);
+  const pending = options.force ? await startSignIn(call, config2.serviceUrl, options.label) : await currentOrNewSignIn(call, config2.serviceUrl, options.label);
+  const url2 = signInUrl(pending);
+  console.log(`Sign in to plum: ${url2}`);
+  if (!(options.open ?? openBrowser)(url2))
     console.log("Could not open a browser. Open the sign-in link above to continue.");
-  const deadline = new Date(ticket.expiresAt).getTime();
+  const deadline = new Date(pending.expiresAt).getTime();
   while (Date.now() < deadline) {
-    let poll = null;
+    let poll;
     try {
-      poll = HandoffTicketPollSchema.parse(
-        await anonymous.anonymous(
-          "GET",
-          `/plugin/handoff-tickets/${encodeURIComponent(ticket.id)}?verifier=${encodeURIComponent(verifier)}`
-        )
-      );
+      poll = await pollSignIn(call, pending);
     } catch (error62) {
-      if (error62 instanceof ApiError && error62.status >= 400 && error62.status < 500 && error62.status !== 429)
-        throw new Error(`Could not complete sign-in (${error62.code}). Run ${platform.loginHint} again.`, {
-          cause: error62
-        });
+      throw new Error(
+        `Could not complete sign-in (${error62 instanceof ApiError ? error62.code : "error"}). Run ${platform.loginHint} again.`,
+        { cause: error62 }
+      );
     }
-    if (poll?.status === "completed") {
-      saveToken(poll.data.token);
+    if (poll.status === "completed") {
       const who = PluginWhoAmISchema.parse(
-        await createApiClient(platform, getVersion(), { config: { ...config2, token: poll.data.token } }).get(
+        await createApiClient(platform, getVersion(), { config: { ...config2, token: poll.token } }).get(
           "/plugin/whoami"
         )
       );
@@ -24579,8 +24681,8 @@ async function runLogin(options) {
       );
       return;
     }
-    if (poll?.status === "expired") throw new Error(`Sign-in expired. Run ${platform.loginHint} again.`);
-    await delay(Math.max(250, Math.min(ticket.pollIntervalMs, deadline - Date.now())));
+    if (poll.status === "expired") throw new Error(`Sign-in expired. Run ${platform.loginHint} again.`);
+    await delay(Math.max(250, Math.min(pending.pollIntervalMs, deadline - Date.now())));
   }
   throw new Error(`Sign-in timed out. Run ${platform.loginHint} again.`);
 }

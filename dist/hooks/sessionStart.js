@@ -1292,8 +1292,8 @@ function uint8ArrayToBase64(bytes) {
   }
   return btoa(binaryString);
 }
-function base64urlToUint8Array(base64url3) {
-  const base643 = base64url3.replace(/-/g, "+").replace(/_/g, "/");
+function base64urlToUint8Array(base64url4) {
+  const base643 = base64url4.replace(/-/g, "+").replace(/_/g, "/");
   const padding = "=".repeat((4 - base643.length % 4) % 4);
   return base64ToUint8Array(base643 + padding);
 }
@@ -24164,7 +24164,7 @@ function readBuildInfo(pluginRoot) {
 }
 
 // src/client.ts
-import os2 from "node:os";
+import os4 from "node:os";
 
 // src/config.ts
 import fs2 from "node:fs";
@@ -24179,12 +24179,47 @@ var LEGACY_CONFIG_DIR = path2.join(os.homedir(), ".config", "context-graph");
 var LEGACY_PROJECT_CONFIG = path2.join(".context-graph", "config.local.json");
 function migrateLegacyConfig(from = LEGACY_CONFIG_DIR, to = CONFIG_DIR) {
   try {
-    if (fs2.existsSync(to) || !fs2.existsSync(from)) return false;
-    fs2.cpSync(from, to, { recursive: true });
-    return true;
+    if (fs2.existsSync(path2.join(to, "config.json")) || !fs2.existsSync(from)) return false;
+    let copied = false;
+    for (const name of fs2.readdirSync(from)) {
+      const target = path2.join(to, name);
+      if (fs2.existsSync(target)) continue;
+      fs2.cpSync(path2.join(from, name), target, { recursive: true });
+      copied = true;
+    }
+    if (!fs2.existsSync(path2.join(to, "config.json"))) writeJson(path2.join(to, "config.json"), {});
+    return copied;
   } catch {
     return false;
   }
+}
+var PENDING_LOGIN_FILE = path2.join(CONFIG_DIR, "pending-login.json");
+function savePendingLogin(pending) {
+  writeJson(PENDING_LOGIN_FILE, { ...pending });
+}
+function clearPendingLogin() {
+  try {
+    fs2.unlinkSync(PENDING_LOGIN_FILE);
+  } catch {
+  }
+}
+function readPendingLogin(serviceUrl, now = Date.now()) {
+  const saved = readJson(PENDING_LOGIN_FILE);
+  if (!saved || typeof saved.ticketId !== "string" || typeof saved.verifier !== "string" || typeof saved.serviceUrl !== "string" || typeof saved.loginWindow !== "string" || typeof saved.expiresAt !== "string" || typeof saved.pollIntervalMs !== "number")
+    return null;
+  if (saved.serviceUrl !== serviceUrl) return null;
+  if (new Date(saved.expiresAt).getTime() <= now) {
+    clearPendingLogin();
+    return null;
+  }
+  return {
+    ticketId: saved.ticketId,
+    verifier: saved.verifier,
+    serviceUrl: saved.serviceUrl,
+    loginWindow: saved.loginWindow,
+    expiresAt: saved.expiresAt,
+    pollIntervalMs: saved.pollIntervalMs
+  };
 }
 function readJson(file2) {
   try {
@@ -24270,6 +24305,134 @@ function formatEndpointSuffix(serviceUrl) {
   return serviceUrl === DEFAULT_SERVICE_URL ? "" : ` @ ${new URL(serviceUrl).host}`;
 }
 
+// src/signIn.ts
+import { createHash, randomBytes } from "node:crypto";
+import os3 from "node:os";
+
+// src/installScope.ts
+import fs3 from "node:fs";
+import os2 from "node:os";
+import path3 from "node:path";
+var INSTALL_SCOPES = ["user", "project", "local", "managed"];
+function pluginUpdateScopes(scopes) {
+  return scopes.length > 0 ? [...scopes] : ["user"];
+}
+function canonical(target) {
+  try {
+    return fs3.realpathSync(path3.resolve(target));
+  } catch {
+    return path3.resolve(target);
+  }
+}
+function installScopeAppliesToProject(projectPath, projectDir) {
+  if (typeof projectPath !== "string" || projectPath.trim() === "") return true;
+  const project = canonical(projectPath);
+  const current = canonical(projectDir);
+  return current === project || current.startsWith(`${project}${path3.sep}`);
+}
+function detectClaudeInstallScopes(pluginKey, homeDir = os2.homedir(), projectDir = process.cwd()) {
+  try {
+    const parsed = JSON.parse(
+      fs3.readFileSync(path3.join(homeDir, ".claude", "plugins", "installed_plugins.json"), "utf8")
+    );
+    const scopes = /* @__PURE__ */ new Set();
+    for (const entry of parsed.plugins?.[pluginKey] ?? []) {
+      if (entry.scope && INSTALL_SCOPES.includes(entry.scope) && installScopeAppliesToProject(entry.projectPath, projectDir))
+        scopes.add(entry.scope);
+    }
+    return [...scopes];
+  } catch {
+    return [];
+  }
+}
+
+// src/platform.ts
+var PLUGIN_KEY = "plum@plum";
+var platform = {
+  authPath: "claude",
+  displayName: "Claude Code",
+  cliBinary: "claude",
+  loginHint: "/plum:setup login",
+  setupHint: "/plum:setup",
+  updateHint: "/plum:update",
+  repo: "anikal2001/context-graph-claude-plugin",
+  marketplaceName: "plum",
+  pluginName: "plum",
+  detectInstallScopes: () => detectClaudeInstallScopes(PLUGIN_KEY),
+  buildPluginUpdateCommands: (scopes) => [
+    "claude plugin marketplace update plum",
+    ...pluginUpdateScopes(scopes).map((scope) => `claude plugin update ${PLUGIN_KEY} --scope ${scope}`)
+  ]
+};
+
+// src/signIn.ts
+var base64url3 = (bytes) => bytes.toString("base64url");
+async function startSignIn(call, serviceUrl, label) {
+  const verifier = base64url3(randomBytes(32));
+  const challenge = base64url3(createHash("sha256").update(verifier).digest());
+  const ticket = HandoffTicketCreatedSchema.parse(
+    await call("POST", "/plugin/handoff-tickets", {
+      kind: "auth.login",
+      host: platform.authPath,
+      pkceChallenge: challenge,
+      pkceMethod: "S256",
+      label: label ?? `Claude Code on ${os3.hostname()}`
+    })
+  );
+  const pending = {
+    ticketId: ticket.id,
+    verifier,
+    serviceUrl,
+    loginWindow: randomBytes(16).toString("hex"),
+    expiresAt: ticket.expiresAt,
+    pollIntervalMs: ticket.pollIntervalMs
+  };
+  savePendingLogin(pending);
+  return pending;
+}
+async function currentOrNewSignIn(call, serviceUrl, label) {
+  return readPendingLogin(serviceUrl) ?? await startSignIn(call, serviceUrl, label);
+}
+function signInUrl(pending) {
+  return `${pending.serviceUrl}/plugin/auth/${platform.authPath}?ticket=${encodeURIComponent(pending.ticketId)}&loginWindow=${pending.loginWindow}`;
+}
+async function pollSignIn(call, pending, now = Date.now()) {
+  if (new Date(pending.expiresAt).getTime() <= now) {
+    clearPendingLogin();
+    return settled();
+  }
+  let poll;
+  try {
+    poll = HandoffTicketPollSchema.parse(
+      await call(
+        "GET",
+        `/plugin/handoff-tickets/${encodeURIComponent(pending.ticketId)}?verifier=${encodeURIComponent(pending.verifier)}`
+      )
+    );
+  } catch (error62) {
+    const status = error62.status;
+    if (typeof status === "number" && status >= 400 && status < 500 && status !== 429) {
+      clearPendingLogin();
+      throw error62;
+    }
+    return { status: "pending" };
+  }
+  if (poll.status === "completed") {
+    saveToken(poll.data.token);
+    clearPendingLogin();
+    return { status: "completed", token: poll.data.token };
+  }
+  if (poll.status === "expired") {
+    clearPendingLogin();
+    return settled();
+  }
+  return { status: "pending" };
+}
+function settled() {
+  const token = getConfig().token;
+  return token ? { status: "completed", token } : { status: "expired" };
+}
+
 // src/client.ts
 var ApiError = class extends Error {
   constructor(code, message, status, requestId) {
@@ -24286,7 +24449,7 @@ function clientHeaders(pluginVersion, platform2) {
   return {
     "x-context-graph-client": platform2.cliBinary,
     "x-context-graph-client-version": pluginVersion,
-    "x-context-graph-client-os": os2.platform(),
+    "x-context-graph-client-os": os4.platform(),
     "x-context-graph-install-id": getOrCreateInstallId()
   };
 }
@@ -24294,9 +24457,24 @@ function createApiClient(platform2, pluginVersion, options = {}) {
   const config2 = options.config ?? getConfig();
   const fetcher = options.fetcher ?? fetch;
   const root = `${config2.serviceUrl}/api/v1`;
+  let token = config2.token;
+  async function tokenOrSignIn() {
+    if (token) return token;
+    const pending = readPendingLogin(config2.serviceUrl);
+    if (!pending) throw new ApiError("UNAUTHENTICATED", `Not signed in. Run ${platform2.loginHint} first.`, 401);
+    const result = await pollSignIn((method, path8, body) => request(method, path8, { body, auth: false }), pending);
+    if (result.status === "completed") {
+      token = result.token;
+      return token;
+    }
+    throw new ApiError(
+      "UNAUTHENTICATED",
+      result.status === "pending" ? `Not signed in yet: the sign-in link ${signInUrl(pending)} is waiting for approval in the browser. Once approved, call again; no restart is needed.` : `The sign-in link expired. Run ${platform2.loginHint} for a new one.`,
+      401
+    );
+  }
   async function request(method, path8, input2) {
-    if (input2.auth && !config2.token)
-      throw new ApiError("UNAUTHENTICATED", `Not signed in. Run ${platform2.loginHint} first.`, 401);
+    const bearer = input2.auth ? await tokenOrSignIn() : null;
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(input2.query ?? {})) {
       if (value === void 0) continue;
@@ -24304,7 +24482,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
       else params.set(key, String(value));
     }
     const headers = { Accept: "application/json", ...clientHeaders(pluginVersion, platform2) };
-    if (input2.auth && config2.token) headers.Authorization = `Bearer ${config2.token}`;
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
     if (input2.body !== void 0) headers["Content-Type"] = "application/json";
     let response;
     try {
@@ -24366,62 +24544,6 @@ var LINEAGE_RULE = [
   "- A statement with none of these is said to be unsourced, in that word, or left out.",
   "The approved ontology is the record; a meeting note is informal and dated. When a note disagrees with a file, quote the file line and the note side by side and offer /plum:improve to propose the change, rather than overruling the file in the answer."
 ].join("\n");
-
-// src/installScope.ts
-import fs3 from "node:fs";
-import os3 from "node:os";
-import path3 from "node:path";
-var INSTALL_SCOPES = ["user", "project", "local", "managed"];
-function pluginUpdateScopes(scopes) {
-  return scopes.length > 0 ? [...scopes] : ["user"];
-}
-function canonical(target) {
-  try {
-    return fs3.realpathSync(path3.resolve(target));
-  } catch {
-    return path3.resolve(target);
-  }
-}
-function installScopeAppliesToProject(projectPath, projectDir) {
-  if (typeof projectPath !== "string" || projectPath.trim() === "") return true;
-  const project = canonical(projectPath);
-  const current = canonical(projectDir);
-  return current === project || current.startsWith(`${project}${path3.sep}`);
-}
-function detectClaudeInstallScopes(pluginKey, homeDir = os3.homedir(), projectDir = process.cwd()) {
-  try {
-    const parsed = JSON.parse(
-      fs3.readFileSync(path3.join(homeDir, ".claude", "plugins", "installed_plugins.json"), "utf8")
-    );
-    const scopes = /* @__PURE__ */ new Set();
-    for (const entry of parsed.plugins?.[pluginKey] ?? []) {
-      if (entry.scope && INSTALL_SCOPES.includes(entry.scope) && installScopeAppliesToProject(entry.projectPath, projectDir))
-        scopes.add(entry.scope);
-    }
-    return [...scopes];
-  } catch {
-    return [];
-  }
-}
-
-// src/platform.ts
-var PLUGIN_KEY = "plum@plum";
-var platform = {
-  authPath: "claude",
-  displayName: "Claude Code",
-  cliBinary: "claude",
-  loginHint: "/plum:setup login",
-  setupHint: "/plum:setup",
-  updateHint: "/plum:update",
-  repo: "anikal2001/context-graph-claude-plugin",
-  marketplaceName: "plum",
-  pluginName: "plum",
-  detectInstallScopes: () => detectClaudeInstallScopes(PLUGIN_KEY),
-  buildPluginUpdateCommands: (scopes) => [
-    "claude plugin marketplace update plum",
-    ...pluginUpdateScopes(scopes).map((scope) => `claude plugin update ${PLUGIN_KEY} --scope ${scope}`)
-  ]
-};
 
 // src/pluginRoot.ts
 import fs4 from "node:fs";
@@ -24530,7 +24652,7 @@ function createApiSender(post) {
 
 // src/updates.ts
 import fs5 from "node:fs";
-import os4 from "node:os";
+import os5 from "node:os";
 import path5 from "node:path";
 async function readRaw(platform2, file2, fetcher) {
   try {
@@ -24550,7 +24672,7 @@ function isNewer(latest, current) {
   }
   return false;
 }
-function isAutoUpdateEnabled(platform2, homeDir = os4.homedir()) {
+function isAutoUpdateEnabled(platform2, homeDir = os5.homedir()) {
   try {
     const data = JSON.parse(
       fs5.readFileSync(path5.join(homeDir, ".claude", "plugins", "known_marketplaces.json"), "utf8")
@@ -24562,7 +24684,7 @@ function isAutoUpdateEnabled(platform2, homeDir = os4.homedir()) {
     return false;
   }
 }
-async function checkForUpdate(currentVersion, platform2, localBuildSha, fetcher = fetch, homeDir = os4.homedir()) {
+async function checkForUpdate(currentVersion, platform2, localBuildSha, fetcher = fetch, homeDir = os5.homedir()) {
   const pkg = await readRaw(platform2, "package.json", fetcher);
   const latest = typeof pkg?.version === "string" ? pkg.version : null;
   const versionNewer = latest !== null && isNewer(latest, currentVersion);
@@ -24581,7 +24703,7 @@ async function checkForUpdate(currentVersion, platform2, localBuildSha, fetcher 
 }
 var AUTO_UPDATE_RETRY_MS = 30 * 60 * 1e3;
 var autoUpdateFile = (homeDir) => path5.join(homeDir, ".config", "plum", "auto-update.json");
-function readAutoUpdate(homeDir = os4.homedir()) {
+function readAutoUpdate(homeDir = os5.homedir()) {
   try {
     const parsed = JSON.parse(fs5.readFileSync(autoUpdateFile(homeDir), "utf8"));
     if (typeof parsed.target !== "string" || typeof parsed.attemptedAt !== "number") return null;
@@ -24614,7 +24736,7 @@ function getVersion() {
 // src/hooks/sessionStart.ts
 async function checkConnection(timeoutMs = 4e3) {
   const config2 = getConfig();
-  if (!config2.token) return { state: "signed-out" };
+  if (!config2.token && !readPendingLogin(config2.serviceUrl)) return { state: "signed-out" };
   try {
     const who = PluginWhoAmISchema.parse(
       await createApiClient(platform, getVersion(), { config: config2, timeoutMs }).get("/plugin/whoami")
@@ -24627,6 +24749,7 @@ async function checkConnection(timeoutMs = 4e3) {
       label: who.token.label
     };
   } catch (error62) {
+    if (!config2.token) return { state: "signed-out" };
     if (error62 instanceof ApiError && (error62.code === "UNAUTHENTICATED" || error62.code === "FORBIDDEN"))
       return { state: "rejected", serviceUrl: config2.serviceUrl };
     return { state: "unreachable", serviceUrl: config2.serviceUrl };
@@ -24639,6 +24762,27 @@ async function checkOrganizations(timeoutMs = 4e3) {
     return PluginOrganizationListSchema.parse(
       await createApiClient(platform, getVersion(), { config: config2, timeoutMs }).get("/plugin/organizations")
     ).items;
+  } catch {
+    return null;
+  }
+}
+async function checkWorkspaces(timeoutMs = 4e3) {
+  const config2 = getConfig();
+  if (!config2.token) return null;
+  try {
+    return WorkspaceListSchema.parse(
+      await createApiClient(platform, getVersion(), { config: config2, timeoutMs }).get("/workspaces")
+    );
+  } catch {
+    return null;
+  }
+}
+async function offerSignIn(connection, timeoutMs = 4e3) {
+  if (connection.state !== "signed-out") return null;
+  const config2 = getConfig();
+  try {
+    const anonymous = createApiClient(platform, getVersion(), { config: { ...config2, token: null }, timeoutMs });
+    return signInUrl(await currentOrNewSignIn(anonymous.anonymous.bind(anonymous), config2.serviceUrl));
   } catch {
     return null;
   }
@@ -24661,13 +24805,19 @@ async function applyDefaultWorkspace(connection, timeoutMs = 4e3) {
           Run ${platform.setupHint} workspace to choose one, or ${platform.setupHint} workspace default clear to forget it.`;
   }
 }
-function describeConnection(connection, organizations = null) {
+function reads(workspace) {
+  return workspace.engagement ? `reads engagements/${workspace.engagement}` : "reads the repository root";
+}
+function describeConnection(connection, organizations = null, workspaces = null, signIn = null) {
   switch (connection.state) {
     case "signed-out":
-      return `[plum] Not connected. Run ${platform.loginHint} to connect the plugin to your workspace.`;
+      return signIn ? `[plum] Not connected. Open this link to connect Claude Code to your plum workspace: ${signIn}
+          Approve it in the browser and the next request is connected; no restart. Or run ${platform.loginHint}.` : `[plum] Not connected. Run ${platform.loginHint} to connect the plugin to your workspace.`;
     case "connected": {
-      const current = organizations?.find((item) => item.workspaceId === connection.workspaceId);
-      const where = current ? `${current.name} (workspace ${connection.workspaceId})` : `workspace ${connection.workspaceId}`;
+      const organization = organizations?.find((item) => item.workspaceId === connection.workspaceId);
+      const workspace = workspaces?.items.find((item) => item.current);
+      const org = organization?.name;
+      const where = workspace ? `${org ? `${org} \u203A ` : ""}${workspace.name} (${reads(workspace)}, workspace ${connection.workspaceId})` : org ? `${org} (workspace ${connection.workspaceId})` : `workspace ${connection.workspaceId}`;
       return `[plum] Connected to ${where}${formatEndpointSuffix(connection.serviceUrl)} as "${connection.label}" (${connection.role}). Pipeline: /plum:learn \u2192 /plum:improve \u2192 /plum:harness; /plum:discovery starts the agent.`;
     }
     case "rejected":
@@ -24684,6 +24834,34 @@ function describeOrganizations(organizations) {
   return `[plum] ${others.length} other organization${others.length === 1 ? "" : "s"} to work in: ${named}${others.length > 3 ? `, and ${others.length - 3} more` : ""}.
           Each has its own sources, ontology and views. Run ${platform.setupHint} org to switch.`;
 }
+function describeWorkspaces(workspaces) {
+  const others = workspaces?.items.filter((item) => !item.current) ?? [];
+  if (!others.length) return null;
+  const named = others.map((item) => `${item.name} (${reads(item)})`).join("; ");
+  return `[plum] Other workspace${others.length === 1 ? "" : "s"} of this organization: ${named}.
+          Name one in a prompt to work there, or run ${platform.setupHint} workspace.`;
+}
+function workspaceContext(workspaces) {
+  const fallback = `node "${path7.join(PLUGIN_ROOT, "dist", "commands", "tool.js")}" switch_workspace '{"workspaceId":"<id>"}'`;
+  const rule = `Workspace rule: when a request names another engagement or workspace of this organization ("the Dundas folder", "work in Stratis", "switch to Acme"), move there first with switch_workspace and that workspace's id (from Bash when the tool is not callable: ${fallback}), say so in one line, and stay there for later requests until another is named. Never guess at a folder the current workspace does not read.`;
+  if (!workspaces) return `Workspaces: list_workspaces names the organization's workspaces and their ids.
+${rule}`;
+  const current = workspaces.items.find((item) => item.current);
+  const others = workspaces.items.filter((item) => !item.current);
+  const lines = [
+    current ? `Workspace: ${current.name} (id ${current.id}, ${reads(current)}).` : "Workspace: list_workspaces names the current one."
+  ];
+  if (others.length)
+    lines.push(
+      `Other workspaces of this organization: ${others.map((item) => `${item.name} (id ${item.id}, ${reads(item)})`).join("; ")}.`
+    );
+  else
+    lines.push(
+      `This organization has no other workspace: a request naming another engagement folder cannot be served until an admin adds a workspace for it from the app's sidebar ("New engagement"); say so rather than answering from the wrong folder.`
+    );
+  lines.push(rule);
+  return lines.join("\n");
+}
 function startBackgroundUpdate(spawnUpdate = defaultSpawnUpdate) {
   try {
     spawnUpdate();
@@ -24694,21 +24872,28 @@ function defaultSpawnUpdate() {
   const entry = path7.join(PLUGIN_ROOT, "dist", "commands", "update.js");
   spawn(process.execPath, [entry, "--auto"], { detached: true, stdio: "ignore" }).unref();
 }
-function sessionContext(messages) {
+function sessionContext(messages, workspaces = null) {
   const banner = messages[0] ?? "";
-  return banner.includes("Connected to") ? `${banner}
-${LINEAGE_RULE}` : banner;
+  if (banner.includes("Connected to")) return [banner, workspaceContext(workspaces), LINEAGE_RULE].join("\n");
+  if (banner.includes("Open this link"))
+    return `${banner}
+The link is valid for ten minutes. Once the person approves it in the browser, the plugin's tools connect on their next call: no restart and no command. If it expired, ${platform.loginHint} makes a new one. Never invent a different link.`;
+  return banner;
 }
-async function sessionStartMessages(update = () => checkForUpdate(getVersion(), platform, readBuildInfo(PLUGIN_ROOT)?.gitSha), connection = () => checkConnection(), organizations = () => checkOrganizations(), startUpdate = () => startBackgroundUpdate(), defaultWorkspace = applyDefaultWorkspace) {
+async function sessionStartMessages(update = () => checkForUpdate(getVersion(), platform, readBuildInfo(PLUGIN_ROOT)?.gitSha), connection = () => checkConnection(), organizations = () => checkOrganizations(), startUpdate = () => startBackgroundUpdate(), defaultWorkspace = applyDefaultWorkspace, workspaces = () => checkWorkspaces(), signIn = offerSignIn) {
   const messages = [];
   const [connected, available, orgs] = await Promise.all([
     connection().catch(() => ({ state: "signed-out" })),
     update().catch(() => null),
     organizations().catch(() => null)
   ]);
-  messages.push(describeConnection(connected, orgs));
   const moved = await defaultWorkspace(connected).catch(() => null);
+  const list = connected.state === "connected" ? await workspaces().catch(() => null) : null;
+  const link = await signIn(connected).catch(() => null);
+  messages.push(describeConnection(connected, orgs, list, link));
   if (moved) messages.push(moved);
+  const otherWorkspaces = describeWorkspaces(list);
+  if (otherWorkspaces) messages.push(otherWorkspaces);
   const others = describeOrganizations(orgs);
   if (others) messages.push(others);
   if (available?.updateAvailable) {
@@ -24731,20 +24916,20 @@ async function sessionStartMessages(update = () => checkForUpdate(getVersion(), 
       );
     }
   }
-  return messages;
+  return { messages, context: sessionContext(messages, list) };
 }
 if (process.env.VITEST === void 0) {
   const telemetry = createTelemetry(
     createApiSender((path8, body) => createApiClient(platform, getVersion()).post(path8, body)),
     { sessionId: startTelemetrySession() }
   );
-  sessionStartMessages().then(async (messages) => {
+  sessionStartMessages().then(async ({ messages, context }) => {
     if (messages.length)
       process.stdout.write(
         JSON.stringify({
           systemMessage: `
 ${messages.join("\n")}`,
-          hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: sessionContext(messages) }
+          hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: context }
         })
       );
     telemetry.record({
@@ -24763,9 +24948,13 @@ export {
   applyDefaultWorkspace,
   checkConnection,
   checkOrganizations,
+  checkWorkspaces,
   describeConnection,
   describeOrganizations,
+  describeWorkspaces,
+  offerSignIn,
   sessionContext,
   sessionStartMessages,
-  startBackgroundUpdate
+  startBackgroundUpdate,
+  workspaceContext
 };

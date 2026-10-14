@@ -23,7 +23,7 @@ function readBuildInfo(pluginRoot) {
 }
 
 // src/client.ts
-import os2 from "node:os";
+import os3 from "node:os";
 
 // ../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/classic/external.js
 var external_exports = {};
@@ -24178,12 +24178,44 @@ var LEGACY_CONFIG_DIR = path2.join(os.homedir(), ".config", "context-graph");
 var LEGACY_PROJECT_CONFIG = path2.join(".context-graph", "config.local.json");
 function migrateLegacyConfig(from = LEGACY_CONFIG_DIR, to = CONFIG_DIR) {
   try {
-    if (fs2.existsSync(to) || !fs2.existsSync(from)) return false;
-    fs2.cpSync(from, to, { recursive: true });
-    return true;
+    if (fs2.existsSync(path2.join(to, "config.json")) || !fs2.existsSync(from)) return false;
+    let copied = false;
+    for (const name of fs2.readdirSync(from)) {
+      const target = path2.join(to, name);
+      if (fs2.existsSync(target)) continue;
+      fs2.cpSync(path2.join(from, name), target, { recursive: true });
+      copied = true;
+    }
+    if (!fs2.existsSync(path2.join(to, "config.json"))) writeJson(path2.join(to, "config.json"), {});
+    return copied;
   } catch {
     return false;
   }
+}
+var PENDING_LOGIN_FILE = path2.join(CONFIG_DIR, "pending-login.json");
+function clearPendingLogin() {
+  try {
+    fs2.unlinkSync(PENDING_LOGIN_FILE);
+  } catch {
+  }
+}
+function readPendingLogin(serviceUrl, now = Date.now()) {
+  const saved = readJson(PENDING_LOGIN_FILE);
+  if (!saved || typeof saved.ticketId !== "string" || typeof saved.verifier !== "string" || typeof saved.serviceUrl !== "string" || typeof saved.loginWindow !== "string" || typeof saved.expiresAt !== "string" || typeof saved.pollIntervalMs !== "number")
+    return null;
+  if (saved.serviceUrl !== serviceUrl) return null;
+  if (new Date(saved.expiresAt).getTime() <= now) {
+    clearPendingLogin();
+    return null;
+  }
+  return {
+    ticketId: saved.ticketId,
+    verifier: saved.verifier,
+    serviceUrl: saved.serviceUrl,
+    loginWindow: saved.loginWindow,
+    expiresAt: saved.expiresAt,
+    pollIntervalMs: saved.pollIntervalMs
+  };
 }
 function readJson(file2) {
   try {
@@ -24236,6 +24268,9 @@ function getConfig(env = process.env) {
     projectConfigFile: found?.file ?? null
   };
 }
+function saveToken(token) {
+  writeJson(CREDENTIALS_FILE, { token });
+}
 function getOrCreateInstallId() {
   const existing = readJson(CONFIG_FILE) ?? {};
   if (typeof existing.installId === "string" && existing.installId) return existing.installId;
@@ -24255,6 +24290,103 @@ function getTelemetrySessionId(now = Date.now()) {
   return void 0;
 }
 
+// src/installScope.ts
+import fs3 from "node:fs";
+import os2 from "node:os";
+import path3 from "node:path";
+var INSTALL_SCOPES = ["user", "project", "local", "managed"];
+function pluginUpdateScopes(scopes) {
+  return scopes.length > 0 ? [...scopes] : ["user"];
+}
+function canonical(target) {
+  try {
+    return fs3.realpathSync(path3.resolve(target));
+  } catch {
+    return path3.resolve(target);
+  }
+}
+function installScopeAppliesToProject(projectPath, projectDir) {
+  if (typeof projectPath !== "string" || projectPath.trim() === "") return true;
+  const project = canonical(projectPath);
+  const current = canonical(projectDir);
+  return current === project || current.startsWith(`${project}${path3.sep}`);
+}
+function detectClaudeInstallScopes(pluginKey, homeDir = os2.homedir(), projectDir = process.cwd()) {
+  try {
+    const parsed = JSON.parse(
+      fs3.readFileSync(path3.join(homeDir, ".claude", "plugins", "installed_plugins.json"), "utf8")
+    );
+    const scopes = /* @__PURE__ */ new Set();
+    for (const entry of parsed.plugins?.[pluginKey] ?? []) {
+      if (entry.scope && INSTALL_SCOPES.includes(entry.scope) && installScopeAppliesToProject(entry.projectPath, projectDir))
+        scopes.add(entry.scope);
+    }
+    return [...scopes];
+  } catch {
+    return [];
+  }
+}
+
+// src/platform.ts
+var PLUGIN_KEY = "plum@plum";
+var platform = {
+  authPath: "claude",
+  displayName: "Claude Code",
+  cliBinary: "claude",
+  loginHint: "/plum:setup login",
+  setupHint: "/plum:setup",
+  updateHint: "/plum:update",
+  repo: "anikal2001/context-graph-claude-plugin",
+  marketplaceName: "plum",
+  pluginName: "plum",
+  detectInstallScopes: () => detectClaudeInstallScopes(PLUGIN_KEY),
+  buildPluginUpdateCommands: (scopes) => [
+    "claude plugin marketplace update plum",
+    ...pluginUpdateScopes(scopes).map((scope) => `claude plugin update ${PLUGIN_KEY} --scope ${scope}`)
+  ]
+};
+
+// src/signIn.ts
+function signInUrl(pending) {
+  return `${pending.serviceUrl}/plugin/auth/${platform.authPath}?ticket=${encodeURIComponent(pending.ticketId)}&loginWindow=${pending.loginWindow}`;
+}
+async function pollSignIn(call, pending, now = Date.now()) {
+  if (new Date(pending.expiresAt).getTime() <= now) {
+    clearPendingLogin();
+    return settled();
+  }
+  let poll;
+  try {
+    poll = HandoffTicketPollSchema.parse(
+      await call(
+        "GET",
+        `/plugin/handoff-tickets/${encodeURIComponent(pending.ticketId)}?verifier=${encodeURIComponent(pending.verifier)}`
+      )
+    );
+  } catch (error62) {
+    const status = error62.status;
+    if (typeof status === "number" && status >= 400 && status < 500 && status !== 429) {
+      clearPendingLogin();
+      throw error62;
+    }
+    return { status: "pending" };
+  }
+  if (poll.status === "completed") {
+    saveToken(poll.data.token);
+    clearPendingLogin();
+    return { status: "completed", token: poll.data.token };
+  }
+  if (poll.status === "expired") {
+    clearPendingLogin();
+    return settled();
+  }
+  return { status: "pending" };
+}
+function settled() {
+  const token = getConfig().token;
+  return token ? { status: "completed", token } : { status: "expired" };
+}
+
 // src/client.ts
 var ApiError = class extends Error {
   constructor(code, message, status, requestId) {
@@ -24271,7 +24403,7 @@ function clientHeaders(pluginVersion, platform2) {
   return {
     "x-context-graph-client": platform2.cliBinary,
     "x-context-graph-client-version": pluginVersion,
-    "x-context-graph-client-os": os2.platform(),
+    "x-context-graph-client-os": os3.platform(),
     "x-context-graph-install-id": getOrCreateInstallId()
   };
 }
@@ -24279,9 +24411,24 @@ function createApiClient(platform2, pluginVersion, options = {}) {
   const config2 = options.config ?? getConfig();
   const fetcher = options.fetcher ?? fetch;
   const root = `${config2.serviceUrl}/api/v1`;
+  let token = config2.token;
+  async function tokenOrSignIn() {
+    if (token) return token;
+    const pending = readPendingLogin(config2.serviceUrl);
+    if (!pending) throw new ApiError("UNAUTHENTICATED", `Not signed in. Run ${platform2.loginHint} first.`, 401);
+    const result = await pollSignIn((method, path7, body) => request(method, path7, { body, auth: false }), pending);
+    if (result.status === "completed") {
+      token = result.token;
+      return token;
+    }
+    throw new ApiError(
+      "UNAUTHENTICATED",
+      result.status === "pending" ? `Not signed in yet: the sign-in link ${signInUrl(pending)} is waiting for approval in the browser. Once approved, call again; no restart is needed.` : `The sign-in link expired. Run ${platform2.loginHint} for a new one.`,
+      401
+    );
+  }
   async function request(method, path7, input2) {
-    if (input2.auth && !config2.token)
-      throw new ApiError("UNAUTHENTICATED", `Not signed in. Run ${platform2.loginHint} first.`, 401);
+    const bearer = input2.auth ? await tokenOrSignIn() : null;
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(input2.query ?? {})) {
       if (value === void 0) continue;
@@ -24289,7 +24436,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
       else params.set(key, String(value));
     }
     const headers = { Accept: "application/json", ...clientHeaders(pluginVersion, platform2) };
-    if (input2.auth && config2.token) headers.Authorization = `Bearer ${config2.token}`;
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
     if (input2.body !== void 0) headers["Content-Type"] = "application/json";
     let response;
     try {
@@ -24426,62 +24573,6 @@ async function runCommand(spec, work) {
     process.exit(1);
   }
 }
-
-// src/installScope.ts
-import fs3 from "node:fs";
-import os3 from "node:os";
-import path3 from "node:path";
-var INSTALL_SCOPES = ["user", "project", "local", "managed"];
-function pluginUpdateScopes(scopes) {
-  return scopes.length > 0 ? [...scopes] : ["user"];
-}
-function canonical(target) {
-  try {
-    return fs3.realpathSync(path3.resolve(target));
-  } catch {
-    return path3.resolve(target);
-  }
-}
-function installScopeAppliesToProject(projectPath, projectDir) {
-  if (typeof projectPath !== "string" || projectPath.trim() === "") return true;
-  const project = canonical(projectPath);
-  const current = canonical(projectDir);
-  return current === project || current.startsWith(`${project}${path3.sep}`);
-}
-function detectClaudeInstallScopes(pluginKey, homeDir = os3.homedir(), projectDir = process.cwd()) {
-  try {
-    const parsed = JSON.parse(
-      fs3.readFileSync(path3.join(homeDir, ".claude", "plugins", "installed_plugins.json"), "utf8")
-    );
-    const scopes = /* @__PURE__ */ new Set();
-    for (const entry of parsed.plugins?.[pluginKey] ?? []) {
-      if (entry.scope && INSTALL_SCOPES.includes(entry.scope) && installScopeAppliesToProject(entry.projectPath, projectDir))
-        scopes.add(entry.scope);
-    }
-    return [...scopes];
-  } catch {
-    return [];
-  }
-}
-
-// src/platform.ts
-var PLUGIN_KEY = "plum@plum";
-var platform = {
-  authPath: "claude",
-  displayName: "Claude Code",
-  cliBinary: "claude",
-  loginHint: "/plum:setup login",
-  setupHint: "/plum:setup",
-  updateHint: "/plum:update",
-  repo: "anikal2001/context-graph-claude-plugin",
-  marketplaceName: "plum",
-  pluginName: "plum",
-  detectInstallScopes: () => detectClaudeInstallScopes(PLUGIN_KEY),
-  buildPluginUpdateCommands: (scopes) => [
-    "claude plugin marketplace update plum",
-    ...pluginUpdateScopes(scopes).map((scope) => `claude plugin update ${PLUGIN_KEY} --scope ${scope}`)
-  ]
-};
 
 // src/pluginRoot.ts
 import fs4 from "node:fs";
