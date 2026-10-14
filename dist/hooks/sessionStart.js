@@ -19678,7 +19678,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.31.0";
+var CONTRACT_VERSION = "1.32.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -22943,6 +22943,12 @@ var WorkspaceListSchema = external_exports.strictObject({
 var CreateWorkspaceRequestSchema = external_exports.strictObject({
   name: external_exports.string().trim().min(1).max(WORKSPACE_NAME_MAX),
   playbook: external_exports.boolean().default(false)
+});
+var UpdateWorkspaceRequestSchema = external_exports.strictObject({
+  name: external_exports.string().trim().min(1).max(WORKSPACE_NAME_MAX).optional(),
+  engagement: external_exports.string().trim().min(1).max(WORKSPACE_NAME_MAX).nullable().optional()
+}).refine((value) => value.name !== void 0 || value.engagement !== void 0, {
+  message: "Give a name, a folder, or both."
 });
 
 // ../../packages/shared/src/plugin.ts

@@ -28508,7 +28508,7 @@ var StdioServerTransport = class {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.31.0";
+var CONTRACT_VERSION = "1.32.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -32313,6 +32313,12 @@ var WorkspaceListSchema = external_exports.strictObject({
 var CreateWorkspaceRequestSchema = external_exports.strictObject({
   name: external_exports.string().trim().min(1).max(WORKSPACE_NAME_MAX),
   playbook: external_exports.boolean().default(false)
+});
+var UpdateWorkspaceRequestSchema = external_exports.strictObject({
+  name: external_exports.string().trim().min(1).max(WORKSPACE_NAME_MAX).optional(),
+  engagement: external_exports.string().trim().min(1).max(WORKSPACE_NAME_MAX).nullable().optional()
+}).refine((value) => value.name !== void 0 || value.engagement !== void 0, {
+  message: "Give a name, a folder, or both."
 });
 
 // ../../packages/shared/src/plugin.ts
@@ -44115,7 +44121,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         );
       if (list.canCreate)
         lines.push(
-          'An admin makes another from the app sidebar ("New engagement"): a workspace with a folder of its own, or the playbook workspace that reads the repository root. A folder is fixed when the workspace is made.'
+          `An admin makes another from the app sidebar ("New engagement"): a workspace with a folder of its own, or the playbook workspace that reads the repository root. From an engagement's settings in the sidebar an admin renames it or moves it to another folder the repository holds; everyone in it reads the new folder at once.`
         );
       return structured(lines.join("\n"), list);
     },
