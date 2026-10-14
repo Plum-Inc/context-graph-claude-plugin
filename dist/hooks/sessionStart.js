@@ -24818,7 +24818,7 @@ function describeConnection(connection, organizations = null, workspaces = null,
       const workspace = workspaces?.items.find((item) => item.current);
       const org = organization?.name;
       const where = workspace ? `${org ? `${org} \u203A ` : ""}${workspace.name} (${reads(workspace)}, workspace ${connection.workspaceId})` : org ? `${org} (workspace ${connection.workspaceId})` : `workspace ${connection.workspaceId}`;
-      return `[plum] Connected to ${where}${formatEndpointSuffix(connection.serviceUrl)} as "${connection.label}" (${connection.role}). Pipeline: /plum:learn \u2192 /plum:improve \u2192 /plum:harness; /plum:discovery starts the agent.`;
+      return `[plum] Connected to ${where}${formatEndpointSuffix(connection.serviceUrl)} as "${connection.label}" (${connection.role}). Pipeline: /plum:learn \u2192 /plum:improve \u2192 /plum:harness; /plum:discovery starts the agent, /plum:brief preps a call.`;
     }
     case "rejected":
       return `[plum] The saved sign-in for ${connection.serviceUrl} was rejected. Run ${platform.loginHint} to connect again.`;
