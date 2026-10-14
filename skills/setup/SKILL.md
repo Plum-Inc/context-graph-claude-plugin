@@ -94,11 +94,11 @@ Every organization is its own workspace: its own sources, discovery, ontology an
 
 ## Workspace
 
-An organization holds one or more workspaces, each with its own sources, ontology (one engagement folder of the playbook repository, or the repository root, which is the playbook itself) and views. The plugin's token is bound to exactly one of them. "The plugin cannot see the Dundas AI files", "my view is gone" and "I cannot change the playbook from here" are usually one workspace away from being true.
+An organization holds one or more workspaces, each one engagement with its own sources, ontology (one engagement folder of the playbook repository, fixed when the workspace was made, or the repository root, which is the playbook itself) and views. The plugin's token is bound to exactly one of them. "The plugin cannot see the Dundas AI files", "my view is gone" and "I cannot change the playbook from here" are usually one workspace away from being true.
 
-1. Call `mcp__plugin_plum_Plum__list_workspaces`. It marks the workspace the plugin is in now and names the others with the engagement folder each reads; a workspace without one reads the repository root.
+1. Call `mcp__plugin_plum_Plum__list_workspaces`. It marks the workspace the plugin is in now and names the others with the engagement folder each is; a workspace without one reads the repository root.
 
-   - **Only one workspace**: say which one the plugin is in and that an admin creates another from the app's sidebar ("New workspace", choosing an engagement folder or the repository root). Stop.
+   - **Only one workspace**: say which one the plugin is in and that an admin makes another from the app's sidebar ("New engagement": a folder of its own, or the playbook workspace that reads the repository root). Stop.
    - **The person named one** (in their request): match it case-insensitively against the names and the engagement folders. On exactly one match, use its id. On none or several, ask.
    - **Otherwise**: use `AskUserQuestion` to choose, listing each workspace by name and engagement and marking the current one.
 2. Switch with `mcp__plugin_plum_Plum__switch_workspace`, passing the chosen `workspaceId`. The server checks the membership, issues a token bound to that workspace and retires the old one; the plugin saves the new token itself. Equivalent from Bash: `node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" switch_workspace '{"workspaceId":"<id>"}'`.

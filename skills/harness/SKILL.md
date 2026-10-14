@@ -40,8 +40,8 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 The playbook is edited from a workspace that reads the repository root, where `AGENT.md` carries `playbook: true`. Do this first in every mode:
 
 1. Call `mcp__plugin_plum_Plum__get_ontology_file` on `AGENT.md`. When its frontmatter has `playbook: true`, continue with the mode.
-2. Otherwise this workspace reads one client's engagement folder. Call `mcp__plugin_plum_Plum__list_workspaces`. When one workspace reads the repository root (it is listed without an engagement folder), ask with `AskUserQuestion`: "Move the plugin to <name> to change the playbook?" with options "Move" and "Not now". On "Move", call `mcp__plugin_plum_Plum__switch_workspace` with its id, read `AGENT.md` again to confirm the marker, remember the workspace you came from, and continue. On "Not now", stop.
-3. When no workspace reads the root, say that an admin creates one from the app's sidebar ("New workspace", then choose "This workspace's repository" rather than an engagement folder), or that the playbook may be in another organization (`/plum:setup org`), and stop.
+2. Otherwise this workspace is one client's engagement folder. Call `mcp__plugin_plum_Plum__list_workspaces`. When one workspace reads the repository root (it is listed without an engagement folder), ask with `AskUserQuestion`: "Move the plugin to <name> to change the playbook?" with options "Move" and "Not now". On "Move", call `mcp__plugin_plum_Plum__switch_workspace` with its id, read `AGENT.md` again to confirm the marker, remember the workspace you came from, and continue. On "Not now", stop.
+3. When no workspace reads the root, say that an admin makes one from the app's sidebar ("New engagement" with "Playbook workspace" ticked; a workspace is its folder for life, so an existing one cannot be pointed at the root), or that the playbook may be in another organization (`/plum:setup org`), and stop.
 
 When you moved the plugin, end the session's answer with one line saying which workspace it is in now and that `/plum:setup workspace <previous name>` moves it back, and offer to do that.
 

@@ -19677,7 +19677,7 @@ function date4(params) {
 import os2 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.30.0";
+var CONTRACT_VERSION = "1.31.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -23460,9 +23460,13 @@ var WorkspaceClearedSchema = external_exports.strictObject({
 var WORKSPACE_NAME_MAX = 80;
 var WorkspaceSummarySchema = external_exports.strictObject({
   id: IdSchema,
-  /** What people call it. A workspace made before workspaces had names is shown as "Main". */
+  /** What people call it: the engagement's name. A workspace made before workspaces had names is shown as "Main". */
   name: external_exports.string().min(1).max(200),
-  /** The engagement folder it reads, or null for a repository of its own (ADR 0011). */
+  /**
+   * The folder `engagements/<name>/` this workspace is in the shared repository, fixed when it was made (ADR 0013).
+   * Null for the playbook workspace, which reads the repository root, and on a deployment where every workspace has
+   * a repository of its own.
+   */
   engagement: external_exports.string().nullable(),
   /** True for the workspace the caller's session or token acts in. */
   current: external_exports.boolean(),
@@ -23476,7 +23480,8 @@ var WorkspaceListSchema = external_exports.strictObject({
   canCreate: external_exports.boolean()
 });
 var CreateWorkspaceRequestSchema = external_exports.strictObject({
-  name: external_exports.string().trim().min(1).max(WORKSPACE_NAME_MAX)
+  name: external_exports.string().trim().min(1).max(WORKSPACE_NAME_MAX),
+  playbook: external_exports.boolean().default(false)
 });
 
 // ../../packages/shared/src/plugin.ts
@@ -24259,21 +24264,15 @@ var PlumEngagementSchema = external_exports.object({
   path: external_exports.string()
 });
 var PlumEngagementsResponseSchema = external_exports.object({
-  /** False when this deployment has no engagements repository; nothing can be chosen. */
+  /** False when this deployment has no engagements repository: every workspace has a repository of its own. */
   available: external_exports.boolean(),
   /** The engagements repository on GitHub, or null. */
   repositoryUrl: external_exports.string().nullable(),
   engagements: external_exports.array(PlumEngagementSchema),
-  /** The engagement this workspace reads, or null when it reads a repository of its own. */
+  /** The folder this workspace is, or null when it reads the repository root. */
   selected: external_exports.string().nullable(),
-  /** Whether the caller may change the choice: workspace admins. */
+  /** True for admins, who may make a workspace and with it a folder (it once said who could choose one). */
   canSelect: external_exports.boolean()
-});
-var PlumEngagementSelectRequestSchema = external_exports.strictObject({
-  engagement: external_exports.string().trim().min(1).max(80).nullable().describe("A folder name under engagements/, or null to read the workspace's own repository.")
-});
-var PlumEngagementCreateRequestSchema = external_exports.strictObject({
-  name: external_exports.string().trim().min(1).max(80).describe("The client name, which becomes the folder name under engagements/.")
 });
 var PlumOntologyDocumentSchema = PlumOntologyEntrySchema.extend({
   ontologyVersion: external_exports.string(),
@@ -25553,7 +25552,7 @@ var switchOrganization = {
 var listWorkspaces = {
   name: "list_workspaces",
   title: "List workspaces",
-  description: "The workspaces of the organization this install is in, each a tenant of its own (sources, ontology, views), with the one the install acts in marked current and the engagement folder it reads named; a workspace without an engagement reads the repository root, which in the playbook repository is the playbook itself (skills, patterns, templates). Call before switch_workspace, and when something the person expects is missing: it may be in another workspace of the same organization.",
+  description: "The workspaces of the organization this install is in, each one engagement and a tenant of its own (sources, ontology, views), with the one the install acts in marked current and the engagement folder it is named; a workspace without an engagement reads the repository root, which in the playbook repository is the playbook itself (skills, patterns, templates). A workspace is made with its folder and never points elsewhere. Call before switch_workspace, and when something the person expects is missing: it may be in another workspace of the same organization.",
   inputSchema: {},
   outputSchema: WorkspaceListSchema
 };
@@ -27004,11 +27003,11 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
     async list_workspaces() {
       const list = parse3(WorkspaceListSchema, await client.get("/workspaces"));
       const lines = [
-        list.organizationId ? `Workspaces of this organization (${list.items.length}), each its own tenant:` : "This install is outside any organization; its one workspace:"
+        list.organizationId ? `Workspaces of this organization (${list.items.length}), each one engagement and its own tenant:` : "This install is outside any organization; its one workspace:"
       ];
       for (const item of list.items)
         lines.push(
-          `- ${item.current ? "* " : "  "}${item.name} \xB7 id ${item.id} \xB7 ${item.engagement ? `reads engagements/${item.engagement}` : "reads the repository root (the playbook, when this is the playbook repository)"}${item.current ? " \xB7 current" : ""}`
+          `- ${item.current ? "* " : "  "}${item.name} \xB7 id ${item.id} \xB7 ${item.engagement ? `is engagements/${item.engagement}` : "reads the repository root (the playbook, when this is the playbook repository)"}${item.current ? " \xB7 current" : ""}`
         );
       if (list.items.length > 1)
         lines.push(
@@ -27016,7 +27015,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         );
       if (list.canCreate)
         lines.push(
-          'An admin creates another from the app sidebar ("New workspace"), choosing an engagement folder or the repository root.'
+          'An admin makes another from the app sidebar ("New engagement"): a workspace with a folder of its own, or the playbook workspace that reads the repository root. A folder is fixed when the workspace is made.'
         );
       return structured(lines.join("\n"), list);
     },
