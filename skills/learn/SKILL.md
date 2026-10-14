@@ -14,6 +14,18 @@ This skill reads. It never proposes a change: that is `/plum:improve` (the ontol
 
 The user wants the result, not the work. Do not narrate what you are about to do, which tool you are calling, or what you are checking; never write "Let me", "I'll", "First I'll" or a summary of your reasoning. Run the steps silently and answer with the outcome only: a short answer whose every statement carries its label and its file (for example "Agencies are the main channel (confirmed, gtm/inbound.md:14)."), a fenced file or diff when a step calls for one, or a single question through `AskUserQuestion`. Never state as fact what the files label inferred or unknown, and never add what the files do not say: when they are silent, say so and name the file that should hold it. When something fails, say what failed and the one command that fixes it, nothing else.
 
+## Lineage
+
+Every statement about the business in an answer names its label and its source, so a wrong answer can be traced and corrected where it was written:
+
+- An ontology file is cited as `path:line`. `get_ontology_file` numbers its lines (the numbers are not part of the file); `exec_bash` with `grep -n` gives the number for one phrase.
+- What backs a file line is its cited ids: `sources/<id>.md` says what kind of source it was, who provided it and its authority; a `clm_` id is a claim discovery took from a source; a meeting note is read with `get_granola_note` and cited by its title, date and note id, naming who said it.
+- The label is the file's: confirmed, inferred or `OPEN`. Never upgrade one in an answer, and never state as fact what a file labels inferred.
+- A statement none of these back is said to be unsourced, in that word, or left out.
+- When a meeting note disagrees with a file, show the file line and the note's line side by side; the file is the approved record and the note is informal and dated, so the disagreement is a `/plum:improve` proposal, not a correction made in the answer.
+
+The session-start hook states the short form of this rule to the model once per session, so a question asked outside this skill answers the same way.
+
 ## Tool access
 
 The `mcp__plugin_plum_Plum__*` tools come from this plugin's MCP server. When one is not directly callable (Claude Code defers MCP tools when many servers are configured), load it with ToolSearch, for example `select:mcp__plugin_plum_Plum__list_ontology_files`, then call it. If the tools still cannot be called, run the same tool from Bash; it prints the same result:

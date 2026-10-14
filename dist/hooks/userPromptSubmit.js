@@ -19680,7 +19680,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.28.0";
+var CONTRACT_VERSION = "1.30.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -23638,9 +23638,12 @@ var PlumProposalSchema = external_exports.object({
   path: external_exports.string().nullable(),
   branch: external_exports.string().nullable(),
   url: external_exports.string().nullable(),
-  status: external_exports.enum(["open", "recorded", "merged"]),
+  /** rejected (1.30.0): a person declined it; its branch and pull request are closed and it leaves the open list. */
+  status: external_exports.enum(["open", "recorded", "merged", "rejected"]),
   runId: external_exports.string().nullable(),
   mergeCommit: external_exports.string().nullable().default(null),
+  /** The slug of the engagement folder the proposal lands in, read from its branch (1.29.0); null when the branch does not say. */
+  engagement: external_exports.string().nullable().default(null),
   createdAt: external_exports.string()
 });
 var PlumAskRequestSchema = external_exports.strictObject({
@@ -23709,7 +23712,9 @@ var PlumOntologyEntrySchema = external_exports.object({
 var PlumOntologyFilesResponseSchema = external_exports.object({
   ontologyVersion: external_exports.string(),
   files: external_exports.array(PlumOntologyEntrySchema),
-  repositoryUrl: external_exports.string().nullable()
+  repositoryUrl: external_exports.string().nullable(),
+  /** The engagement folder this workspace reads and proposes to (1.29.0), or null for a repository of its own. */
+  engagement: external_exports.string().nullable().default(null)
 });
 var PlumEngagementSchema = external_exports.object({
   /** The folder name under engagements/, shown as the engagement's name. */
@@ -23741,15 +23746,27 @@ var PlumOntologyDocumentSchema = PlumOntologyEntrySchema.extend({
   viewUrl: external_exports.string().nullable(),
   editUrl: external_exports.string().nullable()
 });
+var PLUM_UPDATE_MAX_FILES = 50;
+var PLUM_UPDATE_FILE_MAX_CHARS = 6e4;
+var PLUM_UPDATE_MAX_CHARS = 5e5;
+var PLUM_UPDATE_LIMITS_TEXT = `At most ${PLUM_UPDATE_MAX_FILES} files, ${PLUM_UPDATE_FILE_MAX_CHARS.toLocaleString("en-US")} characters per file and ${PLUM_UPDATE_MAX_CHARS.toLocaleString("en-US")} characters in all.`;
 var PlumOntologyUpdateRequestSchema = external_exports.strictObject({
   title: external_exports.string().trim().min(1).max(200).describe("What the change does, in a few words."),
   rationale: external_exports.string().trim().min(1).max(4e3).describe("Why, and which sources it comes from. The reviewer reads this before approving."),
   files: external_exports.array(
     external_exports.strictObject({
       path: external_exports.string().min(1).max(300).describe("Repository path, e.g. gtm/definitions/icp.md or AGENT.md."),
-      content: external_exports.string().max(6e4).describe("The whole new file, frontmatter included.")
+      content: external_exports.string().max(PLUM_UPDATE_FILE_MAX_CHARS).nullable().describe("The whole new file, frontmatter included; null removes the file (1.29.0).")
     })
-  ).min(1).max(50)
+  ).min(1).max(PLUM_UPDATE_MAX_FILES),
+  /**
+   * What the update was previewed against (1.29.0). The server refuses the update when the workspace reads another
+   * folder now, or when the approved version moved, so a change of folder under a batch never lands elsewhere.
+   */
+  expected: external_exports.strictObject({
+    engagement: external_exports.string().nullable(),
+    ontologyVersion: external_exports.string().min(1).max(200).nullable().default(null)
+  }).optional()
 });
 var PlumProposalChangeSchema = PlumOntologyEntrySchema.extend({
   status: external_exports.enum(["added", "modified", "deleted"])
@@ -23764,7 +23781,14 @@ var PlumProposalReviewSchema = external_exports.object({
   base: external_exports.string(),
   /** The proposal's branch commit; null when the branch no longer exists or the proposal was only recorded. */
   head: external_exports.string().nullable(),
-  changes: external_exports.array(PlumProposalChangeSchema)
+  changes: external_exports.array(PlumProposalChangeSchema),
+  /** Full repository paths the branch changes outside the folder this workspace reads (1.29.0): the update belongs to another engagement. */
+  elsewhere: external_exports.array(external_exports.string()).default([]),
+  /** Who rejected the proposal and why, in their words (1.30.0); null unless rejected. */
+  rejection: external_exports.object({ by: external_exports.string(), reason: external_exports.string() }).nullable().default(null)
+});
+var PlumProposalRejectRequestSchema = external_exports.strictObject({
+  reason: external_exports.string().trim().min(1).max(2e3).describe("Why, for the proposer and the record.")
 });
 var PlumProposalFileSchema = PlumProposalChangeSchema.extend({
   /** The file on main, or null when the proposal adds it. */

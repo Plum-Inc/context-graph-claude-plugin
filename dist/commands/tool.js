@@ -821,10 +821,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path8) {
-  if (!path8)
+function getElementAtPath(obj, path9) {
+  if (!path9)
     return obj;
-  return path8.reduce((acc, key) => acc?.[key], obj);
+  return path9.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -1164,11 +1164,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path8, issues) {
+function prefixIssues(path9, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path8);
+    iss.path.unshift(path9);
     return iss;
   });
 }
@@ -1618,16 +1618,16 @@ function flattenError(error62, mapper = (issue2) => issue2.message) {
 }
 function formatError(error62, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error63, path8 = []) => {
+  const processError = (error63, path9 = []) => {
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path8, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path9, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path8, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path8, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else {
-        const fullpath = [...path8, ...issue2.path];
+        const fullpath = [...path9, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -1666,17 +1666,17 @@ function formatError(error62, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error62, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error63, path8 = []) => {
+  const processError = (error63, path9 = []) => {
     var _a3;
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path8, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path9, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path8, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path8, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else {
-        const fullpath = [...path8, ...issue2.path];
+        const fullpath = [...path9, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -1715,8 +1715,8 @@ function treeifyError(error62, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path8 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path8) {
+  const path9 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path9) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -18818,13 +18818,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path8 = ref.slice(1).split("/").filter(Boolean);
-  if (path8.length === 0) {
+  const path9 = ref.slice(1).split("/").filter(Boolean);
+  if (path9.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path8[0] === defsKey) {
-    const key = path8[1] === void 0 ? void 0 : decodeJSONPointerSegment(path8[1]);
+  if (path9[0] === defsKey) {
+    const key = path9[1] === void 0 ? void 0 : decodeJSONPointerSegment(path9[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -19677,7 +19677,7 @@ function date4(params) {
 import os2 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.28.0";
+var CONTRACT_VERSION = "1.30.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -21243,15 +21243,15 @@ var DynamicBooleanSchema = external_exports.union([
 function unescapeJsonPointer(token) {
   return token.replace(/~1/g, "/").replace(/~0/g, "~");
 }
-function parseJsonPointer(path8) {
-  const raw = path8.startsWith("/") ? path8.slice(1).split("/") : path8.split("/");
+function parseJsonPointer(path9) {
+  const raw = path9.startsWith("/") ? path9.slice(1).split("/") : path9.split("/");
   return raw.map(unescapeJsonPointer);
 }
-function getByPath(obj, path8) {
-  if (!path8 || path8 === "/") {
+function getByPath(obj, path9) {
+  if (!path9 || path9 === "/") {
     return obj;
   }
-  const segments = parseJsonPointer(path8);
+  const segments = parseJsonPointer(path9);
   let current = obj;
   for (const segment of segments) {
     if (current === null || current === void 0) {
@@ -21771,8 +21771,8 @@ function createBuilder() {
     record: (value) => ({ kind: "record", inner: value }),
     any: () => ({ kind: "any" }),
     zod: () => ({ kind: "zod" }),
-    ref: (path8) => ({ kind: "ref", inner: path8 }),
-    propsOf: (path8) => ({ kind: "propsOf", inner: path8 }),
+    ref: (path9) => ({ kind: "ref", inner: path9 }),
+    propsOf: (path9) => ({ kind: "propsOf", inner: path9 }),
     map: (entryShape) => ({ kind: "map", inner: entryShape }),
     optional: () => ({ optional: true })
   };
@@ -21862,8 +21862,8 @@ function buildZodType(schemaType, catalogData) {
       return external_exports.record(external_exports.string(), inner);
     }
     case "ref": {
-      const path8 = schemaType.inner;
-      const keys = getKeysFromPath(path8, catalogData);
+      const path9 = schemaType.inner;
+      const keys = getKeysFromPath(path9, catalogData);
       if (keys.length === 0) {
         return external_exports.string();
       }
@@ -21873,8 +21873,8 @@ function buildZodType(schemaType, catalogData) {
       return external_exports.enum(keys);
     }
     case "propsOf": {
-      const path8 = schemaType.inner;
-      const propsSchemas = getPropsFromPath(path8, catalogData);
+      const path9 = schemaType.inner;
+      const propsSchemas = getPropsFromPath(path9, catalogData);
       if (propsSchemas.length === 0) {
         return external_exports.record(external_exports.string(), external_exports.unknown());
       }
@@ -21887,8 +21887,8 @@ function buildZodType(schemaType, catalogData) {
       return external_exports.unknown();
   }
 }
-function getKeysFromPath(path8, catalogData) {
-  const parts = path8.split(".");
+function getKeysFromPath(path9, catalogData) {
+  const parts = path9.split(".");
   let current = { catalog: catalogData };
   for (const part of parts) {
     if (current && typeof current === "object") {
@@ -21902,8 +21902,8 @@ function getKeysFromPath(path8, catalogData) {
   }
   return [];
 }
-function getPropsFromPath(path8, catalogData) {
-  const parts = path8.split(".");
+function getPropsFromPath(path9, catalogData) {
+  const parts = path9.split(".");
   let current = { catalog: catalogData };
   for (const part of parts) {
     if (current && typeof current === "object") {
@@ -23347,9 +23347,9 @@ function validateViewSpec(input2) {
   const usable = typeof shape === "object" && shape !== null && typeof shape.root === "string" && typeof shape.elements === "object" && shape.elements !== null && !Array.isArray(shape.elements);
   if (!parsed.success || !parsed.data) {
     for (const issue2 of parsed.error?.issues ?? []) {
-      const path8 = issue2.path.map(String);
-      if (usable && path8[0] === "elements" && (path8[2] === "props" || path8[2] === "type")) continue;
-      issues.push(`${path8.join(".") || "spec"}: ${issue2.message}`);
+      const path9 = issue2.path.map(String);
+      if (usable && path9[0] === "elements" && (path9[2] === "props" || path9[2] === "type")) continue;
+      issues.push(`${path9.join(".") || "spec"}: ${issue2.message}`);
     }
     if (!usable) return { ok: false, issues: issues.slice(0, 20) };
   }
@@ -24175,9 +24175,12 @@ var PlumProposalSchema = external_exports.object({
   path: external_exports.string().nullable(),
   branch: external_exports.string().nullable(),
   url: external_exports.string().nullable(),
-  status: external_exports.enum(["open", "recorded", "merged"]),
+  /** rejected (1.30.0): a person declined it; its branch and pull request are closed and it leaves the open list. */
+  status: external_exports.enum(["open", "recorded", "merged", "rejected"]),
   runId: external_exports.string().nullable(),
   mergeCommit: external_exports.string().nullable().default(null),
+  /** The slug of the engagement folder the proposal lands in, read from its branch (1.29.0); null when the branch does not say. */
+  engagement: external_exports.string().nullable().default(null),
   createdAt: external_exports.string()
 });
 var PlumAskRequestSchema = external_exports.strictObject({
@@ -24246,7 +24249,9 @@ var PlumOntologyEntrySchema = external_exports.object({
 var PlumOntologyFilesResponseSchema = external_exports.object({
   ontologyVersion: external_exports.string(),
   files: external_exports.array(PlumOntologyEntrySchema),
-  repositoryUrl: external_exports.string().nullable()
+  repositoryUrl: external_exports.string().nullable(),
+  /** The engagement folder this workspace reads and proposes to (1.29.0), or null for a repository of its own. */
+  engagement: external_exports.string().nullable().default(null)
 });
 var PlumEngagementSchema = external_exports.object({
   /** The folder name under engagements/, shown as the engagement's name. */
@@ -24279,16 +24284,28 @@ var PlumOntologyDocumentSchema = PlumOntologyEntrySchema.extend({
   editUrl: external_exports.string().nullable()
 });
 var PLUM_ONTOLOGY_PATH = /^(?:[a-z0-9][a-z0-9_-]{0,80}\/){0,5}(?:[a-z0-9][a-z0-9_.-]{0,100}|AGENT|README)\.md$/;
-var isPlumOntologyPath = (path8) => PLUM_ONTOLOGY_PATH.test(path8) && !path8.includes("..");
+var isPlumOntologyPath = (path9) => PLUM_ONTOLOGY_PATH.test(path9) && !path9.includes("..");
+var PLUM_UPDATE_MAX_FILES = 50;
+var PLUM_UPDATE_FILE_MAX_CHARS = 6e4;
+var PLUM_UPDATE_MAX_CHARS = 5e5;
+var PLUM_UPDATE_LIMITS_TEXT = `At most ${PLUM_UPDATE_MAX_FILES} files, ${PLUM_UPDATE_FILE_MAX_CHARS.toLocaleString("en-US")} characters per file and ${PLUM_UPDATE_MAX_CHARS.toLocaleString("en-US")} characters in all.`;
 var PlumOntologyUpdateRequestSchema = external_exports.strictObject({
   title: external_exports.string().trim().min(1).max(200).describe("What the change does, in a few words."),
   rationale: external_exports.string().trim().min(1).max(4e3).describe("Why, and which sources it comes from. The reviewer reads this before approving."),
   files: external_exports.array(
     external_exports.strictObject({
       path: external_exports.string().min(1).max(300).describe("Repository path, e.g. gtm/definitions/icp.md or AGENT.md."),
-      content: external_exports.string().max(6e4).describe("The whole new file, frontmatter included.")
+      content: external_exports.string().max(PLUM_UPDATE_FILE_MAX_CHARS).nullable().describe("The whole new file, frontmatter included; null removes the file (1.29.0).")
     })
-  ).min(1).max(50)
+  ).min(1).max(PLUM_UPDATE_MAX_FILES),
+  /**
+   * What the update was previewed against (1.29.0). The server refuses the update when the workspace reads another
+   * folder now, or when the approved version moved, so a change of folder under a batch never lands elsewhere.
+   */
+  expected: external_exports.strictObject({
+    engagement: external_exports.string().nullable(),
+    ontologyVersion: external_exports.string().min(1).max(200).nullable().default(null)
+  }).optional()
 });
 var PlumProposalChangeSchema = PlumOntologyEntrySchema.extend({
   status: external_exports.enum(["added", "modified", "deleted"])
@@ -24303,7 +24320,14 @@ var PlumProposalReviewSchema = external_exports.object({
   base: external_exports.string(),
   /** The proposal's branch commit; null when the branch no longer exists or the proposal was only recorded. */
   head: external_exports.string().nullable(),
-  changes: external_exports.array(PlumProposalChangeSchema)
+  changes: external_exports.array(PlumProposalChangeSchema),
+  /** Full repository paths the branch changes outside the folder this workspace reads (1.29.0): the update belongs to another engagement. */
+  elsewhere: external_exports.array(external_exports.string()).default([]),
+  /** Who rejected the proposal and why, in their words (1.30.0); null unless rejected. */
+  rejection: external_exports.object({ by: external_exports.string(), reason: external_exports.string() }).nullable().default(null)
+});
+var PlumProposalRejectRequestSchema = external_exports.strictObject({
+  reason: external_exports.string().trim().min(1).max(2e3).describe("Why, for the proposer and the record.")
 });
 var PlumProposalFileSchema = PlumProposalChangeSchema.extend({
   /** The file on main, or null when the proposal adds it. */
@@ -24784,7 +24808,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
   const config2 = options.config ?? getConfig();
   const fetcher = options.fetcher ?? fetch;
   const root = `${config2.serviceUrl}/api/v1`;
-  async function request(method, path8, input2) {
+  async function request(method, path9, input2) {
     if (input2.auth && !config2.token)
       throw new ApiError("UNAUTHENTICATED", `Not signed in. Run ${platform2.loginHint} first.`, 401);
     const params = new URLSearchParams();
@@ -24798,7 +24822,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
     if (input2.body !== void 0) headers["Content-Type"] = "application/json";
     let response;
     try {
-      response = await fetcher(`${root}${path8}${params.size ? `?${params}` : ""}`, {
+      response = await fetcher(`${root}${path9}${params.size ? `?${params}` : ""}`, {
         method,
         headers,
         ...input2.body !== void 0 ? { body: JSON.stringify(input2.body) } : {},
@@ -24838,11 +24862,11 @@ function createApiClient(platform2, pluginVersion, options = {}) {
   }
   return {
     serviceUrl: config2.serviceUrl,
-    get: (path8, query) => request("GET", path8, { query, auth: true }),
-    post: (path8, body) => request("POST", path8, { body, auth: true }),
-    put: (path8, body) => request("PUT", path8, { body, auth: true }),
-    delete: (path8) => request("DELETE", path8, { auth: true }),
-    anonymous: (method, path8, body) => request(method, path8, { body, auth: false })
+    get: (path9, query) => request("GET", path9, { query, auth: true }),
+    post: (path9, body) => request("POST", path9, { body, auth: true }),
+    put: (path9, body) => request("PUT", path9, { body, auth: true }),
+    delete: (path9) => request("DELETE", path9, { auth: true }),
+    anonymous: (method, path9, body) => request(method, path9, { body, auth: false })
   };
 }
 
@@ -25080,9 +25104,9 @@ function createApiSender(post) {
 }
 
 // src/toolHandlers.ts
-import fs5 from "node:fs";
+import fs6 from "node:fs";
 import os5 from "node:os";
-import path5 from "node:path";
+import path6 from "node:path";
 
 // src/links.ts
 function buildPagePath(page2, options = {}) {
@@ -25188,18 +25212,23 @@ var execBash = {
 };
 var ontologyUpdateFiles = external_exports.preprocess(
   parseJson,
-  external_exports.array(external_exports.object({ path: ontologyPath, content: external_exports.string().max(6e4).describe("The whole new file.") })).min(1).max(50)
-).describe("Every file to create or replace, each in full.");
+  external_exports.array(
+    external_exports.object({
+      path: ontologyPath,
+      content: external_exports.string().max(PLUM_UPDATE_FILE_MAX_CHARS).nullable().describe("The whole new file, or null to remove the file (a move is a removal plus a new file).")
+    })
+  ).min(1).max(PLUM_UPDATE_MAX_FILES)
+).describe(`Every file to create, replace or remove, each in full. ${PLUM_UPDATE_LIMITS_TEXT}`);
 var previewOntologyUpdate = {
   name: "preview_ontology_update",
   title: "Preview ontology update",
-  description: "Diff new or changed ontology files against the current approved version before proposing them: one unified diff per changed file, new files marked as such, unchanged files named so they can be dropped, and every path or file that the repository would refuse (a path outside the layout, a file without frontmatter). Nothing is written. Show the person this diff and get their go-ahead before propose_ontology_update.",
+  description: `Diff new, changed or removed ontology files against the current approved version before proposing them: one unified diff per changed file, new files marked as such, removed files named, unchanged files named so they can be dropped, and every path or file that the repository would refuse (a path outside the layout, a file without frontmatter, a removal of a file that does not exist, a file or update over its size limit). Nothing is written. The preview records the engagement folder and approved version it was made against; propose_ontology_update sends them back and is refused when either changed since. ${PLUM_UPDATE_LIMITS_TEXT} Show the person this diff and get their go-ahead before propose_ontology_update.`,
   inputSchema: { files: ontologyUpdateFiles }
 };
 var proposeOntologyUpdate = {
   name: "propose_ontology_update",
   title: "Propose ontology update",
-  description: "Open new or changed ontology files as one pull request on the ontology repository for a person to approve in the app or on GitHub. Nothing reaches the approved ontology until they do. Send each file whole, frontmatter included, following the repository layout: one topic per file, edit the file that owns a topic instead of adding another, label statements confirmed, inferred or unknown, write unknowns as OPEN, and update AGENT.md's navigation or the folder README when you add a file. Read the files you change first and preview_ontology_update the result.",
+  description: `Open new, changed or removed ontology files as one pull request on the ontology repository for a person to approve in the app or on GitHub. Nothing reaches the approved ontology until they do. Send each file whole, frontmatter included, following the repository layout: one topic per file, edit the file that owns a topic instead of adding another, label statements confirmed, inferred or unknown, write unknowns as OPEN, and update AGENT.md's navigation or the folder README when you add or remove a file. Read the files you change first and preview_ontology_update the result: the proposal is opened against the folder and version of the last preview and refused when the workspace reads another folder now or the approved version moved (preview again). ${PLUM_UPDATE_LIMITS_TEXT}`,
   inputSchema: {
     title: external_exports.string().trim().min(1).max(200).describe("What the change does, in a few words."),
     rationale: external_exports.string().trim().min(1).max(4e3).describe("Why, and which sources it comes from (document names, meeting dates). The reviewer reads this."),
@@ -25209,16 +25238,25 @@ var proposeOntologyUpdate = {
 var listOntologyUpdates = {
   name: "list_ontology_updates",
   title: "List ontology updates",
-  description: "Recent ontology updates in this workspace, newest first, with status (open: waiting for approval; merged: in the approved ontology) and their review links.",
+  description: "Recent ontology updates in the folder this workspace reads, newest first, with status (open: waiting for approval; merged: in the approved ontology) and their review links. An update opened for another engagement folder is listed in that workspace, not here.",
   inputSchema: {}
 };
 var reviewOntologyUpdate = {
   name: "review_ontology_update",
   title: "Review ontology update",
-  description: "One ontology update from list_ontology_updates: its status, who opened it and why, the review link, every file it adds, changes or deletes against the approved version, and the diff of each (or of one file when path is given). Read-only; approving happens in the app or on GitHub.",
+  description: "One ontology update from list_ontology_updates: its status, who opened it and why, the review link, every file it adds, changes or removes against the approved version, and the diff of each (or of one file when path is given). When the update changes files outside the folder this workspace reads, it names their full paths and the folder they belong to. Read-only; approving happens in the app or on GitHub.",
   inputSchema: {
     id: external_exports.string().trim().min(1).max(100).describe("The update id (pr_\u2026) from list_ontology_updates."),
     path: ontologyPath.optional().describe("Show only this file of the update.")
+  }
+};
+var rejectOntologyUpdate = {
+  name: "reject_ontology_update",
+  title: "Reject ontology update",
+  description: "Decline an open ontology update the person has decided against: its pull request is closed, its branch deleted, and the reason kept with it in the list. Editors and admins only. Nothing reaches the approved ontology either way; approving stays in the app or on GitHub. Ask the person before calling it.",
+  inputSchema: {
+    id: external_exports.string().trim().min(1).max(100).describe("The update id (pr_\u2026) from list_ontology_updates."),
+    reason: external_exports.string().trim().min(1).max(2e3).describe("Why, in the person's words, for the proposer and the record.")
   }
 };
 var discoveryLimit = int2(external_exports.number().min(1).max(100)).optional();
@@ -25544,6 +25582,7 @@ var ALL_TOOL_CONTRACTS = [
   proposeOntologyUpdate,
   listOntologyUpdates,
   reviewOntologyUpdate,
+  rejectOntologyUpdate,
   getDiscovery,
   saveDiscoveryIntake,
   startDiscovery,
@@ -25866,6 +25905,27 @@ function createDiscoveryHandlers(client, parse3) {
   };
 }
 
+// src/lineage.ts
+var LINEAGE_RULE = [
+  "Lineage rule for answers about this business: every statement names its label and its source.",
+  "- The label is confirmed, inferred or OPEN, as the ontology file carries it; never upgrade one.",
+  "- An ontology file is cited as path:line (get_ontology_file numbers its lines; exec_bash grep -n gives them too).",
+  "- A Granola meeting is cited by its title, date and note id, naming who said it.",
+  "- Imported records are cited by the query or view that produced the number.",
+  "- A statement with none of these is said to be unsourced, in that word, or left out.",
+  "The approved ontology is the record; a meeting note is informal and dated. When a note disagrees with a file, quote the file line and the note side by side and offer /plum:improve to propose the change, rather than overruling the file in the answer."
+].join("\n");
+function numberLines(text4) {
+  const lines = text4.replace(/\r\n/g, "\n").split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  const width = String(lines.length).length;
+  return lines.map((line, index) => `${String(index + 1).padStart(width)}	${line}`).join("\n");
+}
+var NUMBERED_FILE_NOTE = "Lines are numbered for citing as path:line; the numbers are not part of the file. Send the file back without them.";
+function noteCitation(note) {
+  return `Cite this note as "${note.title ?? "untitled"}" (${note.meetingAt.slice(0, 10)}, ${note.noteId}), naming who said it. It is informal and dated: the ontology files are the approved record.`;
+}
+
 // src/pending.ts
 import fs3 from "node:fs";
 import path3 from "node:path";
@@ -25907,10 +25967,30 @@ function describeOp(op) {
   return `${what} ${op.section} "${op.name}"${parts.length ? ` (${parts.join("; ")})` : ""}`;
 }
 
-// src/toolResults.ts
+// src/previewTarget.ts
 import fs4 from "node:fs";
-import os4 from "node:os";
 import path4 from "node:path";
+var fileFor2 = (serviceUrl) => path4.join(PENDING_DIR, `update-${new URL(serviceUrl).host.replace(/[^a-z0-9.-]/gi, "_")}.json`);
+function readPreviewTarget(serviceUrl) {
+  try {
+    const parsed = JSON.parse(fs4.readFileSync(fileFor2(serviceUrl), "utf8"));
+    return typeof parsed.ontologyVersion === "string" && "engagement" in parsed ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+function writePreviewTarget(serviceUrl, target) {
+  const record2 = { host: new URL(serviceUrl).host, ...target, at: (/* @__PURE__ */ new Date()).toISOString() };
+  fs4.mkdirSync(PENDING_DIR, { recursive: true });
+  fs4.writeFileSync(fileFor2(serviceUrl), JSON.stringify(record2));
+  return record2;
+}
+var describeTarget = (engagement) => engagement ? `engagement folder ${engagement}` : "this workspace's own repository";
+
+// src/toolResults.ts
+import fs5 from "node:fs";
+import os4 from "node:os";
+import path5 from "node:path";
 var OUTPUT_BUDGET = 4e4;
 var REPOSITORY_TOOLS = /* @__PURE__ */ new Set([
   "list_ontology_files",
@@ -25961,6 +26041,8 @@ function nextStep(error62, tool) {
   const listing = REPOSITORY_TOOLS.has(tool) ? "list_ontology_files lists every file and list_ontology_updates every update" : ONTOLOGY_TOOLS.has(tool) ? "get_ontology lists the versions" : DISCOVERY_TOOLS.has(tool) ? "list_discovery_questions lists the questions and get_discovery the runs" : RECORD_TOOLS.has(tool) ? "get_imported_model lists the imported types and fields" : VIEW_TOOLS.has(tool) ? "list_views lists the saved views" : "whoami shows where the plugin is working";
   if (error62.code === "UNAUTHENTICATED" && error62.message.includes(platform.loginHint)) return null;
   if (error62.code === "NOT_FOUND" && RECORD_TOOLS.has(tool) && error62.message.includes("get_imported_model")) return null;
+  if (error62.code === "CONFLICT" && tool === "propose_ontology_update" && error62.message.includes("Preview again"))
+    return null;
   switch (error62.code) {
     case "UNAUTHENTICATED":
       return `Next: the sign-in is missing or was revoked. Run ${platform.loginHint}; the tools use the new sign-in without a restart.`;
@@ -26012,7 +26094,7 @@ var TRUNCATION_HINTS = {
   list_discovery_claims: "Ask for a lower limit and page with cursor.",
   list_discovery_questions: "Ask for a lower limit and page with cursor."
 };
-function capText(tool, value, budget = OUTPUT_BUDGET, directory = path4.join(os4.tmpdir(), "plum", "outputs")) {
+function capText(tool, value, budget = OUTPUT_BUDGET, directory = path5.join(os4.tmpdir(), "plum", "outputs")) {
   if (value.length <= budget) return { text: value, truncated: false };
   const lines = value.split("\n");
   const kept = [];
@@ -26025,9 +26107,9 @@ function capText(tool, value, budget = OUTPUT_BUDGET, directory = path4.join(os4
   if (!kept.length) kept.push(value.slice(0, budget));
   let savedTo;
   try {
-    fs4.mkdirSync(directory, { recursive: true });
-    savedTo = path4.join(directory, `${tool}-${Date.now()}.txt`);
-    fs4.writeFileSync(savedTo, value);
+    fs5.mkdirSync(directory, { recursive: true });
+    savedTo = path5.join(directory, `${tool}-${Date.now()}.txt`);
+    fs5.writeFileSync(savedTo, value);
   } catch {
     savedTo = void 0;
   }
@@ -26503,11 +26585,11 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
         if (!page2.page.nextCursor || !hasMore) break;
         cursor = page2.page.nextCursor;
       }
-      const directory = path5.join(os5.tmpdir(), "plum", "exports");
-      fs5.mkdirSync(directory, { recursive: true });
-      const file2 = path5.join(directory, `${type.nativeName.replace(/[^A-Za-z0-9_-]/g, "_")}-${Date.now()}.json`);
+      const directory = path6.join(os5.tmpdir(), "plum", "exports");
+      fs6.mkdirSync(directory, { recursive: true });
+      const file2 = path6.join(directory, `${type.nativeName.replace(/[^A-Za-z0-9_-]/g, "_")}-${Date.now()}.json`);
       const snapshot = metadata ? { coverage: metadata.coverage.status, lastSuccessfulSyncAt: metadata.freshness.lastSuccessfulSyncAt } : null;
-      fs5.writeFileSync(file2, JSON.stringify({ type: type.nativeName, typeId, fields: fields ?? null, snapshot, rows: rows2 }));
+      fs6.writeFileSync(file2, JSON.stringify({ type: type.nativeName, typeId, fields: fields ?? null, snapshot, rows: rows2 }));
       const columns = [...new Set(rows2.flatMap((row) => Object.keys(row)))];
       return text3(
         [
@@ -26600,8 +26682,9 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       return structured(
         [
           `${file2.path} at ${file2.ontologyVersion.slice(0, 12)}:`,
+          NUMBERED_FILE_NOTE,
           "",
-          file2.text,
+          numberLines(file2.text),
           ...history.length ? ["", "Recent changes:", ...history] : [],
           `Open in the app: ${pageUrl(client.serviceUrl, "ontology", { path: file2.path })}`
         ].join("\n"),
@@ -26621,7 +26704,7 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
           `${result.hits.length} files mention "${query}":`,
           ...result.hits.map((hit) => `- ${hit.path} (${hit.title})
   ${hit.excerpt.replace(/\n/g, "\n  ")}`),
-          "get_ontology_file reads a whole file."
+          'get_ontology_file reads a whole file with its lines numbered; cite a statement as path:line (exec_bash grep -n "<phrase>" . gives the number for one phrase).'
         ].join("\n"),
         result
       );
@@ -26647,12 +26730,23 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       const existing = new Set(list.files.map((file2) => file2.path));
       const problems = [];
       const sections = [];
-      const counts = { added: 0, changed: 0, unchanged: 0 };
+      const counts = { added: 0, changed: 0, removed: 0, unchanged: 0 };
+      let total = 0;
       for (const file2 of files) {
         if (!isPlumOntologyPath(file2.path))
           problems.push(
             `${file2.path}: not a path the repository accepts. Use lowercase, hyphenated folders and a .md file (AGENT.md and README.md are the exceptions).`
           );
+        if (file2.content === null) {
+          if (!existing.has(file2.path)) {
+            problems.push(`${file2.path}: not in the approved ontology, so there is nothing to remove.`);
+            continue;
+          }
+          counts.removed += 1;
+          sections.push(`--- ${file2.path} (removed)`);
+          continue;
+        }
+        total += file2.content.length;
         if (!FRONTMATTER.test(file2.content))
           problems.push(`${file2.path}: no frontmatter block. Every file starts with --- type: \u2026 --- lines.`);
         if (!existing.has(file2.path)) {
@@ -26669,7 +26763,16 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
         counts.changed += 1;
         sections.push(unifiedDiff(current.text, file2.content, { before: `a/${file2.path}`, after: `b/${file2.path}` }));
       }
-      const summary = `${counts.added} new, ${counts.changed} changed, ${counts.unchanged} unchanged against ontology ${list.ontologyVersion.slice(0, 12)}.`;
+      if (total > PLUM_UPDATE_MAX_CHARS)
+        problems.push(
+          `The update is ${total.toLocaleString("en-US")} characters in all; at most ${PLUM_UPDATE_MAX_CHARS.toLocaleString("en-US")}. Split it into smaller proposals.`
+        );
+      const target = writePreviewTarget(client.serviceUrl, {
+        engagement: list.engagement,
+        ontologyVersion: list.ontologyVersion
+      });
+      const where = describeTarget(target.engagement);
+      const summary = `${counts.added} new, ${counts.changed} changed, ${counts.removed} removed, ${counts.unchanged} unchanged against ontology ${list.ontologyVersion.slice(0, 12)} in ${where}.`;
       return text3(
         [
           `Preview of ${files.length} file${files.length === 1 ? "" : "s"}: ${summary}`,
@@ -26677,16 +26780,24 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
           "",
           ...sections,
           "",
-          problems.length ? "Fix the problems above before propose_ontology_update." : "Nothing is written yet. Show this to the person; on their go-ahead, propose_ontology_update opens the pull request."
+          problems.length ? "Fix the problems above before propose_ontology_update." : `Nothing is written yet. Show this to the person; on their go-ahead, propose_ontology_update opens the pull request against ${where} at this version, and is refused if either changes first.`
         ].join("\n")
       );
     },
     async propose_ontology_update(args) {
       const body = args;
-      const proposal = parse3(PlumProposalSchema, await client.post("/plum/proposals", body));
+      const previewed = readPreviewTarget(client.serviceUrl);
+      const target = previewed ?? await (async () => {
+        const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files"));
+        return { engagement: list.engagement, ontologyVersion: list.ontologyVersion };
+      })();
+      const expected = { engagement: target.engagement, ontologyVersion: target.ontologyVersion };
+      const proposal = parse3(PlumProposalSchema, await client.post("/plum/proposals", { ...body, expected }));
+      const removed = body.files.filter((file2) => file2.content === null).length;
       return text3(
         [
-          `Proposed "${proposal.title}" (${body.files.length} file${body.files.length === 1 ? "" : "s"}) as ${proposal.id}. It is waiting for an editor or admin to approve it in the app; until then the ontology is unchanged.`,
+          `Proposed "${proposal.title}" (${body.files.length} file${body.files.length === 1 ? "" : "s"}${removed ? `, ${removed} removed` : ""}) as ${proposal.id} in ${describeTarget(target.engagement)}. It is waiting for an editor or admin to approve it in the app; until then the ontology is unchanged.`,
+          ...previewed ? [] : ["No preview was on record, so it was opened against the folder and version the workspace reads now."],
           ...proposal.url ? [`Review: ${proposal.url}`] : [],
           "list_ontology_updates shows when it has merged."
         ].join("\n")
@@ -26708,7 +26819,12 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
         `${proposal.id} \xB7 ${proposal.status} \xB7 "${proposal.title}" \xB7 opened ${when2(proposal.createdAt)} by ${review.proposedBy}${proposal.url ? ` \xB7 ${proposal.url}` : ""}`,
         ...review.rationale ? [`Why: ${review.rationale}`] : [],
         review.head ? `${review.changes.length} file${review.changes.length === 1 ? "" : "s"} against ontology ${review.base.slice(0, 12)}:` : proposal.status === "merged" ? `Merged${proposal.mergeCommit ? ` as ${proposal.mergeCommit.slice(0, 12)}` : ""}; its branch is gone, so there is no diff left to show.` : "Its branch no longer exists, so there is no diff to show.",
-        ...review.changes.map((change) => `- ${change.status} ${change.path} (${change.title})`)
+        ...review.changes.map((change) => `- ${change.status} ${change.path} (${change.title})`),
+        ...review.elsewhere.length ? [
+          `It changes ${review.elsewhere.length} file${review.elsewhere.length === 1 ? "" : "s"} outside the folder this workspace reads, so there is no diff to show here:`,
+          ...review.elsewhere.map((path9) => `- ${path9}`),
+          "Review it from the workspace that reads that folder (/plum:setup workspace)."
+        ] : []
       ];
       const diffs = [];
       if (review.head)
@@ -26732,6 +26848,19 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         ].join("\n")
       );
     },
+    async reject_ontology_update(args) {
+      const { id, reason } = args;
+      const proposal = parse3(
+        PlumProposalSchema,
+        await client.post(`/plum/proposals/${encodeURIComponent(id)}/reject`, { reason })
+      );
+      return text3(
+        [
+          `Rejected ${proposal.id} ("${shorten2(proposal.title, 100)}"), now ${proposal.status}. Its pull request is closed and its branch deleted; the reason stays with it. The approved ontology is unchanged.`,
+          "A new proposal with the corrected files is how to try again."
+        ].join("\n")
+      );
+    },
     async list_ontology_updates() {
       const { proposals } = parse3(
         external_exports.object({ proposals: external_exports.array(PlumProposalSchema) }),
@@ -26742,9 +26871,9 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         [
           `Ontology updates (${proposals.length}, newest first):`,
           ...proposals.map(
-            (item) => `- ${item.id} \xB7 ${item.status} \xB7 ${item.kind} \xB7 "${shorten2(item.title, 100)}" \xB7 ${when2(item.createdAt)}${item.url ? ` \xB7 ${item.url}` : ""}`
+            (item) => `- ${item.id} \xB7 ${item.status} \xB7 ${item.kind} \xB7 "${shorten2(item.title, 100)}" \xB7 ${when2(item.createdAt)}${item.engagement ? ` \xB7 in ${item.engagement}` : ""}${item.url ? ` \xB7 ${item.url}` : ""}`
           ),
-          "An editor or admin approves open updates in the app."
+          "An editor or admin approves open updates in the app. Updates opened for another engagement folder are listed in that workspace."
         ].join("\n")
       );
     },
@@ -26781,6 +26910,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
           `${note.title ?? "(untitled)"} \xB7 ${when2(note.meetingAt)} \xB7 ${note.noteId}`,
           `Attendees: ${people || "none listed"}`,
           ...note.webUrl ? [`In Granola: ${note.webUrl}`] : [],
+          noteCitation(note),
           "",
           note.summary || "(Granola has no summary for this meeting.)",
           ...note.transcript ? ["", "Transcript:", ...note.transcript.map((line) => `${line.speaker ?? "Speaker"}: ${line.text}`)] : ["", "Ask again with transcript: true for the full transcript."]
@@ -26974,25 +27104,25 @@ ${ignoredKeysNote(ignored)}` : "";
 }
 
 // src/version.ts
-import fs7 from "node:fs";
-import path7 from "node:path";
+import fs8 from "node:fs";
+import path8 from "node:path";
 
 // src/pluginRoot.ts
-import fs6 from "node:fs";
-import path6 from "node:path";
+import fs7 from "node:fs";
+import path7 from "node:path";
 import { fileURLToPath } from "node:url";
 function findRoot(start) {
   let dir = start;
   for (let depth = 0; depth < 5; depth++) {
-    if (fs6.existsSync(path6.join(dir, "package.json")) && fs6.existsSync(path6.join(dir, ".claude-plugin"))) return dir;
-    dir = path6.dirname(dir);
+    if (fs7.existsSync(path7.join(dir, "package.json")) && fs7.existsSync(path7.join(dir, ".claude-plugin"))) return dir;
+    dir = path7.dirname(dir);
   }
-  return path6.resolve(start, "..");
+  return path7.resolve(start, "..");
 }
-var PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT ?? findRoot(path6.dirname(fileURLToPath(import.meta.url)));
+var PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT ?? findRoot(path7.dirname(fileURLToPath(import.meta.url)));
 
 // src/version.ts
-var PLUGIN_VERSION = JSON.parse(fs7.readFileSync(path7.join(PLUGIN_ROOT, "package.json"), "utf8")).version;
+var PLUGIN_VERSION = JSON.parse(fs8.readFileSync(path8.join(PLUGIN_ROOT, "package.json"), "utf8")).version;
 function getVersion() {
   return PLUGIN_VERSION;
 }
