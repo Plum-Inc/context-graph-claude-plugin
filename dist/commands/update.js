@@ -19694,7 +19694,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.32.0";
+var CONTRACT_VERSION = "1.33.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -23796,6 +23796,8 @@ var PlumProposalReviewSchema = external_exports.object({
   rationale: external_exports.string().nullable(),
   /** A member's subject, or `discovery-agent` for a discovery run's proposal. */
   proposedBy: external_exports.string(),
+  /** The proposer as a person reads it (1.33.0): the member's name, or null when the directory cannot say. */
+  proposedByName: external_exports.string().nullable().default(null),
   /** The main commit the changes are compared with. */
   base: external_exports.string(),
   /** The proposal's branch commit; null when the branch no longer exists or the proposal was only recorded. */
@@ -23804,7 +23806,7 @@ var PlumProposalReviewSchema = external_exports.object({
   /** Full repository paths the branch changes outside the folder this workspace reads (1.29.0): the update belongs to another engagement. */
   elsewhere: external_exports.array(external_exports.string()).default([]),
   /** Who rejected the proposal and why, in their words (1.30.0); null unless rejected. */
-  rejection: external_exports.object({ by: external_exports.string(), reason: external_exports.string() }).nullable().default(null)
+  rejection: external_exports.object({ by: external_exports.string(), byName: external_exports.string().nullable().default(null), reason: external_exports.string() }).nullable().default(null)
 });
 var PlumProposalRejectRequestSchema = external_exports.strictObject({
   reason: external_exports.string().trim().min(1).max(2e3).describe("Why, for the proposer and the record.")
