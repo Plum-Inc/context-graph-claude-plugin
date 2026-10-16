@@ -1,10 +1,19 @@
 {
   "name": "plum",
   "description": "Start plum's discovery agent, learn from the ontology repository it proposes, improve it through proposals, and grow the playbook's skills, context and workflows from Claude Code.",
-  "version": "0.8.11",
-  "author": { "name": "plum" },
+  "version": "0.8.12",
+  "author": {
+    "name": "plum"
+  },
   "homepage": "https://github.com/anikal2001/context-graph-claude-plugin",
   "repository": "https://github.com/anikal2001/context-graph-claude-plugin",
   "license": "MIT",
-  "keywords": ["plum", "context-graph", "ontology", "knowledge-graph", "mcp"]
+  "keywords": [
+    "plum",
+    "context-graph",
+    "ontology",
+    "knowledge-graph",
+    "mcp"
+  ],
+  "types": "./types/index.d.ts"
 }

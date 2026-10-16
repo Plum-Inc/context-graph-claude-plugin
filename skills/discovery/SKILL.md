@@ -6,6 +6,7 @@ allowed-tools:
     'Bash',
     'AskUserQuestion',
     'mcp__plugin_plum_Plum__get_discovery',
+    'mcp__plugin_plum_Plum__get_discovery_run',
     'mcp__plugin_plum_Plum__save_discovery_intake',
     'mcp__plugin_plum_Plum__start_discovery',
     'mcp__plugin_plum_Plum__list_discovery_claims',
@@ -47,7 +48,9 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 | Mode        | Trigger                                 | What it does                                                                                                      |
 | ----------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `start`     | `start [<company> <website>]` (default) | Save the intake when there is none, then queue a run                                                              |
-| `status`    | `status`                                | Where discovery stands: the latest run, what it is working through, counts, recent events, the proposal it opened and its score against the playbook rubric |
+| `status`    | `status`                                | Where discovery stands: how many runs in each status, the newest runs and what they are working through, counts, recent events, the proposal the newest completed run opened and its score against the playbook rubric |
+| `run`       | `run <run id>`                          | One run: its status, lease and failure, the domains it is working through with their attempts and gaps, and its own events newest first |
+| `watch`     | `watch [<run id>]`                      | Follow a run until it ends, one notification per change, through Claude Code's Monitor tool; the newest run when none is named |
 | `findings`  | `findings`                              | The claims discovery has made, with their evidence and what stays uncertain                                       |
 | `questions` | `questions`                             | The clarification questions waiting for a person                                                                  |
 | `answer`    | `answer <question>: <answer>`           | Record the person's answer to one question                                                                        |
@@ -59,7 +62,8 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 - **Discovery's questions are not the ontology's.** A clarification question is what the agent asked during a run and is answered here; an `OPEN` line in an ontology file is answered by `/plum:improve answer`. When the words fit both, say which one you are answering.
 - **Answers are the person's words.** Record what the user said, as they said it. Never answer a question from the files or from your own reading: only a person settles a meaning.
 - **Every write queues a run.** Saving a changed intake, answering a question and sending a message each queue a run; say so once, not after every call.
-- **A run takes minutes, not seconds.** Report the state and stop; never poll in a loop. The person runs `/plum:discovery status` when they want to look again.
+- **A run takes minutes, not seconds.** Report the state and stop; never poll in a loop yourself. The person runs `/plum:discovery status` when they want to look again, or `watch` hands the waiting to the Monitor tool, which notifies once per change and costs nothing while nothing moves.
+- **Runs are listed newest first with counts by status.** The first run line is the newest; the counts say how many the workspace holds in all, so a long history (a workspace with dozens of runs "waiting for input") never hides the run just queued. `get_discovery_run` reads one run by id with its own events.
 
 ## Start
 
@@ -71,10 +75,34 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 
 ## Status
 
-1. Call `mcp__plugin_plum_Plum__get_discovery`. Relay in plain words: the newest run and its state (queued, running, waiting for input, completed, failed, superseded), what a running investigation is working through, how many claims, open questions and answers there are, and the last few events as one line each.
+1. Call `mcp__plugin_plum_Plum__get_discovery`. Relay in plain words: the counts of runs by status, the newest run (the first line) and its state (queued, running, waiting for input, completed, failed, superseded), what a running investigation is working through, how many claims, open questions and answers there are, and the last few events as one line each. A run still `queued` after a few minutes means an operator has paused discovery on this deployment; say so.
 2. When the newest run is `waiting_for_input`, name the open questions (`mcp__plugin_plum_Plum__list_discovery_questions`) and say `/plum:discovery answer` records an answer.
 3. When the newest run is `completed`, call `mcp__plugin_plum_Plum__list_ontology_updates` and name the proposal discovery opened (the newest one opened by `discovery-agent`) with its review link; an editor or admin approves it in the app or on GitHub. Then give the evals: call `mcp__plugin_plum_Plum__review_ontology_update` with its id and relay, from the proposal's rationale, the score against the playbook rubric and whether it passed, the hard fail if there is one, every criterion scored below 2 with its reason, and the "Fix first" line, as a short list. When the rationale says the model could not grade the files, say the proposal is ungraded and that the rubric is `skills/review-discovery-output.md` in the playbook. When no proposal appears, say the run ended without one and that `findings` shows what it recorded.
 4. When it `failed`, relay the failure in one line and say `/plum:discovery start` queues another run.
+
+## Run
+
+1. Take the run id from the arguments; when there is none, call `mcp__plugin_plum_Plum__get_discovery` and use the first run listed (the newest). Call `mcp__plugin_plum_Plum__get_discovery_run` with it.
+2. Relay in plain words: the status and when it last moved, the lease when it is running (held or lapsed), the failure when there is one, the domains with their status, attempts and gaps, and the run's events newest first, one line each. Keep the tool's advice line for the status (what to do next). `NOT_FOUND` means no run has that id in this workspace; `get_discovery` lists them.
+
+## Watch
+
+1. Resolve the run id as in **Run**. When the run is already completed, failed or superseded, relay it as **Run** does and stop: there is nothing to wait for.
+2. Arm the `Monitor` tool (load it with ToolSearch `select:Monitor` when it is deferred) with a 30-second poll that prints a line only when the run's first line or its "Working through" line changes, and exits when the status is completed, failed or superseded. The script, with `${CLAUDE_PLUGIN_ROOT}` replaced by this plugin's root:
+
+   ```bash
+   prev=""
+   while true; do
+     cur=$(node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" get_discovery_run '{"runId":"<run id>","limit":5}' 2>&1 | grep -E "^Run |^Working through|^Failed|^- " | head -8) || true
+     [ "$cur" != "$prev" ] && [ -n "$cur" ] && printf '%s\n' "$cur"
+     prev=$cur
+     echo "$cur" | grep -qE "^Run \S+ · (completed|failed|superseded)" && break
+     sleep 30
+   done
+   ```
+
+   Set `timeout_ms` to 1800000 and a description naming the run. Say in one line that the run is being watched and that each change arrives as a notification; then stop.
+3. When a notification arrives, relay what changed in one line. When it says the run completed, continue as **Status** does for a completed run (the proposal and its score). When the monitor expires with the run still going, say so and re-arm it only if the person asks.
 
 ## Findings
 

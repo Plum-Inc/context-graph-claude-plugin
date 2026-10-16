@@ -25359,9 +25359,19 @@ var discoveryCursor = external_exports.string().max(2048).optional().describe("T
 var getDiscovery = {
   name: "get_discovery",
   title: "Discovery status",
-  description: "Where discovery stands in this workspace: the intake (company, website, point of contact), the latest runs with their status and failure, what a running investigation is working through, the newest events, and how many claims, open questions and answers there are. Read-only. A completed run ends by opening a proposal on the ontology, listed by list_ontology_updates.",
+  description: "Where discovery stands in this workspace: the intake (company, website, point of contact), how many runs it holds in each status, the newest runs with their status and failure, what a running investigation is working through, the newest events, and how many claims, open questions and answers there are. Read-only. get_discovery_run follows one run; a completed run ends by opening a proposal on the ontology, listed by list_ontology_updates.",
   inputSchema: {
     limit: discoveryLimit.describe("Most runs, events, claims and questions to read; 20 by default.")
+  }
+};
+var getDiscoveryRun = {
+  name: "get_discovery_run",
+  title: "Discovery run",
+  description: "One discovery run by id: its status, when it was queued and last moved, its lease, its failure, the domains it is working through with their attempts and gaps, and its own events newest first. Read-only. get_discovery lists the runs; this follows one of them while it runs and explains it afterwards.",
+  inputSchema: {
+    runId: external_exports.string().trim().min(1).max(200).describe("The run id (run_\u2026) as get_discovery lists it."),
+    limit: discoveryLimit.describe("Most events to read; 50 by default."),
+    cursor: discoveryCursor
   }
 };
 var saveDiscoveryIntake = {
@@ -25679,6 +25689,7 @@ var ALL_TOOL_CONTRACTS = [
   reviewOntologyUpdate,
   rejectOntologyUpdate,
   getDiscovery,
+  getDiscoveryRun,
   saveDiscoveryIntake,
   startDiscovery,
   listDiscoveryClaims,
@@ -25786,8 +25797,22 @@ var RunSchema = external_exports.looseObject({
   id: external_exports.string(),
   status: external_exports.string(),
   failure: external_exports.string().nullable().optional(),
+  leaseExpiresAt: external_exports.string().nullable().optional(),
   createdAt: external_exports.string(),
   updatedAt: external_exports.string()
+});
+var InvestigationSchema = external_exports.looseObject({
+  runId: external_exports.string(),
+  domains: external_exports.array(
+    external_exports.looseObject({
+      domain: external_exports.string(),
+      status: external_exports.string(),
+      attempts: external_exports.number().optional(),
+      gapCount: external_exports.number().optional()
+    })
+  ),
+  chainRuns: external_exports.number().optional(),
+  requiresRestart: external_exports.boolean().optional()
 });
 var EventSchema = external_exports.looseObject({
   kind: external_exports.string(),
@@ -25823,16 +25848,16 @@ var StateSchema = external_exports.looseObject({
   answerRevision: external_exports.number().optional(),
   events: page(EventSchema),
   runs: page(RunSchema),
-  investigation: external_exports.array(
-    external_exports.looseObject({
-      runId: external_exports.string(),
-      domains: external_exports.array(external_exports.looseObject({ domain: external_exports.string(), status: external_exports.string(), gapCount: external_exports.number().optional() })),
-      requiresRestart: external_exports.boolean().optional()
-    })
-  ).optional().default([]),
+  runCounts: external_exports.record(external_exports.string(), external_exports.number()).optional().default({}),
+  investigation: external_exports.array(InvestigationSchema).optional().default([]),
   claims: page(ClaimSchema),
   questions: page(QuestionSchema),
   answers: page(external_exports.looseObject({ id: external_exports.string() }))
+});
+var RunResponseSchema = external_exports.looseObject({
+  run: RunSchema,
+  investigation: InvestigationSchema.nullable().optional(),
+  events: page(EventSchema)
 });
 var QueuedSchema = external_exports.looseObject({
   runId: external_exports.string().nullable().optional(),
@@ -25854,6 +25879,47 @@ function describeIntake(intake) {
 }
 function queued(run) {
   return run.runId ? `Queued run ${run.runId} (${run.status ?? "queued"}); get_discovery follows it, and list_ontology_updates shows the proposal it ends with.` : "No run was queued.";
+}
+var RUN_STATUS_ORDER = ["queued", "running", "waiting_for_input", "completed", "failed", "superseded"];
+var plain = (status) => status.replace(/_/g, " ");
+function describeRunCounts(counts) {
+  const known = RUN_STATUS_ORDER.filter((status) => counts[status]).map((status) => `${counts[status]} ${plain(status)}`);
+  const other = Object.entries(counts).filter(([status, count]) => count && !RUN_STATUS_ORDER.includes(status)).map(([status, count]) => `${count} ${plain(status)}`);
+  return [...known, ...other].join(" \xB7 ");
+}
+function describeDomains(working, detailed = false) {
+  if (!working?.domains.length) return "";
+  return working.domains.map((domain2) => {
+    const notes = [plain(domain2.status)];
+    if (detailed && domain2.attempts) notes.push(`${domain2.attempts} attempt${domain2.attempts === 1 ? "" : "s"}`);
+    if (domain2.gapCount) notes.push(`${domain2.gapCount} gap${domain2.gapCount === 1 ? "" : "s"}`);
+    return `${domain2.domain} (${notes.join(", ")})`;
+  }).join(", ");
+}
+function runLine(run, working) {
+  const domains = describeDomains(working);
+  return `- ${run.id} \xB7 ${plain(run.status)} \xB7 started ${when(run.createdAt)} \xB7 updated ${when(run.updatedAt)}${run.failure ? ` \xB7 failed: ${shorten(run.failure, 200)}` : ""}${domains ? ` \xB7 working through: ${domains}` : ""}${working?.requiresRestart ? " \xB7 needs a fresh start_discovery to continue" : ""}`;
+}
+function eventLine(event, withRun = true) {
+  return `- ${when(event.createdAt)} \xB7 ${event.actor} \xB7 ${plain(event.kind)}${withRun && event.runId ? ` \xB7 ${event.runId}` : ""} \xB7 ${shorten(event.message.replace(/\s+/g, " "), 200)}`;
+}
+function runAdvice(status) {
+  switch (status) {
+    case "queued":
+      return "Queued: a job picks it up within moments; one still queued after a few minutes means discovery is paused on this deployment.";
+    case "running":
+      return "Running: get_discovery_run again in a minute shows what moved; its events arrive as it works.";
+    case "waiting_for_input":
+      return "Waiting for input: list_discovery_questions shows what it asked, and answer_discovery_question lets it continue.";
+    case "completed":
+      return "Completed: list_ontology_updates shows the proposal it opened, and review_ontology_update its score against the playbook rubric.";
+    case "failed":
+      return "Failed: the failure above says why; start_discovery queues another run.";
+    case "superseded":
+      return "Superseded: the inputs changed while it ran, and a later run took over.";
+    default:
+      return "";
+  }
 }
 function claimLine(claim2) {
   const value = typeof claim2.value === "string" ? claim2.value : JSON.stringify(claim2.value);
@@ -25879,26 +25945,62 @@ function createDiscoveryHandlers(client, parse3) {
         `Discovery in this workspace \xB7 head revision ${state.revision} \xB7 intake: ${current ? describeIntake(current) : "none yet (save_discovery_intake names the company and its website)"}`
       ];
       if (state.runs.items.length) {
-        lines.push("", "Runs (newest first):");
-        for (const run of state.runs.items) {
-          const working = state.investigation.find((item) => item.runId === run.id);
-          const domains = working?.domains.length ? ` \xB7 working through: ${working.domains.map((domain2) => `${domain2.domain} (${domain2.status}${domain2.gapCount ? `, ${domain2.gapCount} gaps` : ""})`).join(", ")}` : "";
+        const total = Object.values(state.runCounts).reduce((sum, count) => sum + count, 0);
+        const counted = total ? `${total} in all: ${describeRunCounts(state.runCounts)}; ` : "";
+        lines.push(
+          "",
+          `Runs (${counted}newest ${state.runs.items.length} shown; get_discovery_run follows one by id):`
+        );
+        for (const run of state.runs.items)
           lines.push(
-            `- ${run.id} \xB7 ${run.status.replace(/_/g, " ")} \xB7 started ${when(run.createdAt)} \xB7 updated ${when(run.updatedAt)}${run.failure ? ` \xB7 failed: ${shorten(run.failure, 200)}` : ""}${domains}${working?.requiresRestart ? " \xB7 needs a fresh start_discovery to continue" : ""}`
+            runLine(
+              run,
+              state.investigation.find((item) => item.runId === run.id)
+            )
           );
-        }
       } else lines.push("", "No runs yet: start_discovery queues the first one once the intake is saved.");
       lines.push(
         "",
         `${state.claims.items.length} claim(s) read (list_discovery_claims for all) \xB7 ${open2} open question(s) of ${state.questions.items.length} read (list_discovery_questions) \xB7 ${state.answers.items.length} answer(s)`
       );
       if (state.events.items.length) {
-        lines.push("", "Recent events:");
-        for (const event of state.events.items)
-          lines.push(
-            `- ${when(event.createdAt)} \xB7 ${event.actor} \xB7 ${event.kind.replace(/_/g, " ")}${event.runId ? ` \xB7 ${event.runId}` : ""} \xB7 ${shorten(event.message.replace(/\s+/g, " "), 200)}`
-          );
+        lines.push("", "Recent events (newest first):");
+        for (const event of state.events.items) lines.push(eventLine(event));
       }
+      return text2(lines.join("\n"));
+    },
+    async get_discovery_run(args) {
+      const { runId, limit, cursor } = args;
+      const one = parse3(
+        RunResponseSchema,
+        await client.get(`/discovery/runs/${encodeURIComponent(runId)}`, {
+          limit: limit ?? 50,
+          ...cursor ? { cursor } : {}
+        })
+      );
+      const { run, investigation, events } = one;
+      const lease = run.leaseExpiresAt && run.status === "running" ? ` \xB7 lease ${Date.parse(run.leaseExpiresAt) <= Date.now() ? "lapsed" : "held"} until ${when(run.leaseExpiresAt)}` : "";
+      const lines = [
+        `Run ${run.id} \xB7 ${plain(run.status)} \xB7 queued ${when(run.createdAt)} \xB7 last moved ${when(run.updatedAt)}${lease}`
+      ];
+      if (run.failure) lines.push(`Failed: ${shorten(run.failure, 600)}`);
+      const domains = describeDomains(investigation, true);
+      lines.push(
+        domains ? `Working through: ${domains}` : "Working through: nothing recorded yet (the run has not checkpointed)."
+      );
+      if (investigation?.chainRuns)
+        lines.push(
+          `Continuation ${investigation.chainRuns} of a chain${investigation.requiresRestart ? "; needs a fresh start_discovery to continue" : ""}.`
+        );
+      const advice = runAdvice(run.status);
+      if (advice) lines.push(advice);
+      if (events.items.length) {
+        lines.push(
+          "",
+          `Events (newest first, ${events.items.length} read${events.nextCursor ? ", more with cursor" : ""}):`
+        );
+        for (const event of events.items) lines.push(eventLine(event, false));
+      } else lines.push("", "No events recorded for this run yet.");
       return text2(lines.join("\n"));
     },
     async save_discovery_intake(args) {
@@ -26114,6 +26216,7 @@ var ONTOLOGY_TOOLS = /* @__PURE__ */ new Set([
 ]);
 var DISCOVERY_TOOLS = /* @__PURE__ */ new Set([
   "get_discovery",
+  "get_discovery_run",
   "save_discovery_intake",
   "start_discovery",
   "list_discovery_claims",
@@ -26186,6 +26289,7 @@ var TRUNCATION_HINTS = {
   get_plugin_activity: "Ask for a lower limit.",
   list_views: "Ask for a lower limit.",
   get_discovery: "Ask for a lower limit; list_discovery_claims and list_discovery_questions page through the rest.",
+  get_discovery_run: "Ask for a lower limit and page the events with cursor.",
   list_discovery_claims: "Ask for a lower limit and page with cursor.",
   list_discovery_questions: "Ask for a lower limit and page with cursor."
 };
