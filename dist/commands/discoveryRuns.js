@@ -19677,7 +19677,7 @@ function date4(params) {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.35.0";
+var CONTRACT_VERSION = "1.36.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -23677,8 +23677,11 @@ var PlumProposalSchema = external_exports.object({
   mergeCommit: external_exports.string().nullable().default(null),
   /** The slug of the engagement folder the proposal lands in, read from its branch (1.29.0); null when the branch does not say. */
   engagement: external_exports.string().nullable().default(null),
+  /** True when it changes the firm's playbook at the repository root rather than the workspace's own ontology (1.36.0). */
+  playbook: external_exports.boolean().default(false),
   createdAt: external_exports.string()
 });
+var PlumOntologyTargetSchema = external_exports.enum(["workspace", "playbook"]);
 var PlumAskRequestSchema = external_exports.strictObject({
   question: external_exports.string().trim().min(1).max(2e3),
   ontologyRef: external_exports.string().min(1).max(200).default("HEAD")
@@ -23793,7 +23796,12 @@ var PlumOntologyUpdateRequestSchema = external_exports.strictObject({
   expected: external_exports.strictObject({
     engagement: external_exports.string().nullable(),
     ontologyVersion: external_exports.string().min(1).max(200).nullable().default(null)
-  }).optional()
+  }).optional(),
+  /**
+   * Where the update lands (1.36.0): the workspace's own ontology (the default) or the firm's playbook at the root of
+   * the shared repository. A playbook update takes an admin and never touches engagements/.
+   */
+  target: PlumOntologyTargetSchema.optional()
 });
 var PlumProposalChangeSchema = PlumOntologyEntrySchema.extend({
   status: external_exports.enum(["added", "modified", "deleted"])

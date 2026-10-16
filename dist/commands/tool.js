@@ -19677,7 +19677,7 @@ function date4(params) {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.35.0";
+var CONTRACT_VERSION = "1.36.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -24217,8 +24217,11 @@ var PlumProposalSchema = external_exports.object({
   mergeCommit: external_exports.string().nullable().default(null),
   /** The slug of the engagement folder the proposal lands in, read from its branch (1.29.0); null when the branch does not say. */
   engagement: external_exports.string().nullable().default(null),
+  /** True when it changes the firm's playbook at the repository root rather than the workspace's own ontology (1.36.0). */
+  playbook: external_exports.boolean().default(false),
   createdAt: external_exports.string()
 });
+var PlumOntologyTargetSchema = external_exports.enum(["workspace", "playbook"]);
 var PlumAskRequestSchema = external_exports.strictObject({
   question: external_exports.string().trim().min(1).max(2e3),
   ontologyRef: external_exports.string().min(1).max(200).default("HEAD")
@@ -24335,7 +24338,12 @@ var PlumOntologyUpdateRequestSchema = external_exports.strictObject({
   expected: external_exports.strictObject({
     engagement: external_exports.string().nullable(),
     ontologyVersion: external_exports.string().min(1).max(200).nullable().default(null)
-  }).optional()
+  }).optional(),
+  /**
+   * Where the update lands (1.36.0): the workspace's own ontology (the default) or the firm's playbook at the root of
+   * the shared repository. A playbook update takes an admin and never touches engagements/.
+   */
+  target: PlumOntologyTargetSchema.optional()
 });
 var PlumProposalChangeSchema = PlumOntologyEntrySchema.extend({
   status: external_exports.enum(["added", "modified", "deleted"])
@@ -25457,18 +25465,21 @@ var unlinkGranolaNote = {
   inputSchema: { noteId: granolaNoteId }
 };
 var ontologyPath = external_exports.string().min(1).max(300).describe("Repository path from list_ontology_files, e.g. AGENT.md or gtm/definitions/icp.md.");
+var ontologyTarget = PlumOntologyTargetSchema.optional().describe(
+  `"playbook" for the firm's playbook at the repository root (skills, patterns, workflows, templates, AGENT.md, glossary.md) instead of this workspace's client ontology; omit for the client ontology. Proposing to the playbook takes an admin and never touches engagements/.`
+);
 var listOntologyFiles = {
   name: "list_ontology_files",
   title: "List ontology files",
-  description: "Every file in the workspace's company ontology (the repository the team approves changes to): AGENT.md, domain folders, strategy, market, connectors, metrics, glossary. Read AGENT.md first: its navigation table says where each topic lives.",
-  inputSchema: {},
+  description: `Every file in the workspace's company ontology (the repository the team approves changes to): AGENT.md, domain folders, strategy, market, connectors, metrics, glossary. Read AGENT.md first: its navigation table says where each topic lives. With target "playbook", the firm's playbook files instead.`,
+  inputSchema: { target: ontologyTarget },
   outputSchema: PlumOntologyFilesResponseSchema
 };
 var getOntologyFile = {
   name: "get_ontology_file",
   title: "Read ontology file",
-  description: "One ontology file as stored, frontmatter included, at the current approved version, with its recent history.",
-  inputSchema: { path: ontologyPath },
+  description: `One ontology file as stored, frontmatter included, at the current approved version, with its recent history. With target "playbook", a file of the firm's playbook.`,
+  inputSchema: { path: ontologyPath, target: ontologyTarget },
   outputSchema: PlumOntologyDocumentSchema
 };
 var searchOntology = {
@@ -25509,17 +25520,18 @@ var ontologyUpdateFiles = external_exports.preprocess(
 var previewOntologyUpdate = {
   name: "preview_ontology_update",
   title: "Preview ontology update",
-  description: `Diff new, changed or removed ontology files against the current approved version before proposing them: one unified diff per changed file, new files marked as such, removed files named, unchanged files named so they can be dropped, and every path or file that the repository would refuse (a path outside the layout, a file without frontmatter, a removal of a file that does not exist, a file or update over its size limit). Nothing is written. The preview records the engagement folder and approved version it was made against; propose_ontology_update sends them back and is refused when either changed since. ${PLUM_UPDATE_LIMITS_TEXT} Show the person this diff and get their go-ahead before propose_ontology_update.`,
-  inputSchema: { files: ontologyUpdateFiles }
+  description: `Diff new, changed or removed ontology files against the current approved version before proposing them: one unified diff per changed file, new files marked as such, removed files named, unchanged files named so they can be dropped, and every path or file that the repository would refuse (a path outside the layout, a file without frontmatter, a removal of a file that does not exist, a file or update over its size limit). Nothing is written. The preview records the engagement folder and approved version it was made against; propose_ontology_update sends them back and is refused when either changed since. ${PLUM_UPDATE_LIMITS_TEXT} Show the person this diff and get their go-ahead before propose_ontology_update. With target "playbook" the files are diffed against the firm's playbook at the repository root.`,
+  inputSchema: { files: ontologyUpdateFiles, target: ontologyTarget }
 };
 var proposeOntologyUpdate = {
   name: "propose_ontology_update",
   title: "Propose ontology update",
-  description: `Open new, changed or removed ontology files as one pull request on the ontology repository for a person to approve in the app or on GitHub. Nothing reaches the approved ontology until they do. Send each file whole, frontmatter included, following the repository layout: one topic per file, edit the file that owns a topic instead of adding another, label statements confirmed, inferred or unknown, write unknowns as OPEN, and update AGENT.md's navigation or the folder README when you add or remove a file. Read the files you change first and preview_ontology_update the result: the proposal is opened against the folder and version of the last preview and refused when the workspace reads another folder now or the approved version moved (preview again). ${PLUM_UPDATE_LIMITS_TEXT}`,
+  description: `Open new, changed or removed ontology files as one pull request on the ontology repository for a person to approve in the app or on GitHub. Nothing reaches the approved ontology until they do. Send each file whole, frontmatter included, following the repository layout: one topic per file, edit the file that owns a topic instead of adding another, label statements confirmed, inferred or unknown, write unknowns as OPEN, and update AGENT.md's navigation or the folder README when you add or remove a file. Read the files you change first and preview_ontology_update the result: the proposal is opened against the folder and version of the last preview and refused when the workspace reads another folder now or the approved version moved (preview again). With target "playbook" (an admin only) it lands on the firm's playbook at the repository root, from this engagement workspace, as a playbook update every engagement reads once it merges. ${PLUM_UPDATE_LIMITS_TEXT}`,
   inputSchema: {
     title: external_exports.string().trim().min(1).max(200).describe("What the change does, in a few words."),
     rationale: external_exports.string().trim().min(1).max(4e3).describe("Why, and which sources it comes from (document names, meeting dates). The reviewer reads this."),
-    files: ontologyUpdateFiles
+    files: ontologyUpdateFiles,
+    target: ontologyTarget
   }
 };
 var listOntologyUpdates = {
@@ -26446,7 +26458,7 @@ function writePreviewTarget(serviceUrl, target) {
   fs4.writeFileSync(fileFor2(serviceUrl), JSON.stringify(record2));
   return record2;
 }
-var describeTarget = (engagement) => engagement ? `engagement folder ${engagement}` : "this workspace's own repository";
+var describeTarget = (engagement, target = "workspace") => target === "playbook" ? "the firm's playbook at the repository root" : engagement ? `engagement folder ${engagement}` : "this workspace's own repository";
 
 // src/toolResults.ts
 import fs5 from "node:fs";
@@ -26635,6 +26647,7 @@ var shorten2 = (value, max = 160) => value.length > max ? `${value.slice(0, max 
 var when2 = (iso) => iso.replace("T", " ").replace(/\.\d+Z$/, "Z");
 var FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 var REVIEW_DIFF_FILES = 10;
+var targetQuery = (target) => target === "playbook" ? { target } : {};
 function versionLine(version2, published) {
   const executable = version2.definitions.filter((definition) => definition.rule.kind === "filter").length;
   return `- v${version2.version} \xB7 ${version2.version === published ? "PUBLISHED" : version2.state} \xB7 ${when2(version2.createdAt)} \xB7 by ${version2.author} \xB7 ${version2.definitions.length} definitions (${executable} executable)`;
@@ -27256,8 +27269,9 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       );
       return text3(`Took down the public link of "${artifact.title}". Publishing again issues a new link.`);
     },
-    async list_ontology_files() {
-      const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files"));
+    async list_ontology_files(args) {
+      const { target } = args ?? {};
+      const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files", targetQuery(target)));
       if (!list.files.length)
         return structured(
           "The company ontology is empty. Propose AGENT.md and the first files with propose_ontology_update.",
@@ -27265,7 +27279,7 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
         );
       return structured(
         [
-          `Company ontology at ${list.ontologyVersion.slice(0, 12)} (${list.files.length} files):`,
+          `${target === "playbook" ? "Playbook" : "Company ontology"} at ${list.ontologyVersion.slice(0, 12)} (${list.files.length} files):`,
           ...list.files.map((file2) => `- ${file2.path} \xB7 ${file2.kind} \xB7 ${file2.title}`),
           "get_ontology_file reads one; start with AGENT.md when it exists.",
           `Ontology page: ${pageUrl(client.serviceUrl, "ontology")}`
@@ -27274,8 +27288,11 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       );
     },
     async get_ontology_file(args) {
-      const { path: filePath } = args;
-      const file2 = parse3(PlumOntologyDocumentSchema, await client.get("/plum/document", { path: filePath }));
+      const { path: filePath, target } = args;
+      const file2 = parse3(
+        PlumOntologyDocumentSchema,
+        await client.get("/plum/document", { path: filePath, ...targetQuery(target) })
+      );
       const history = file2.history.slice(0, 5).map((entry) => `- ${when2(entry.date)} \xB7 ${shorten2(entry.message.split("\n")[0] ?? "", 100)}`);
       return structured(
         [
@@ -27323,8 +27340,8 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       );
     },
     async preview_ontology_update(args) {
-      const { files } = args;
-      const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files"));
+      const { files, target = "workspace" } = args;
+      const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files", targetQuery(target)));
       const existing = new Set(list.files.map((file2) => file2.path));
       const problems = [];
       const sections = [];
@@ -27335,6 +27352,8 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
           problems.push(
             `${file2.path}: not a path the repository accepts. Use lowercase, hyphenated folders and a .md file (AGENT.md and README.md are the exceptions).`
           );
+        if (target === "playbook" && file2.path.startsWith("engagements/"))
+          problems.push(`${file2.path}: a client's folder; the playbook holds the firm's methods only.`);
         if (file2.content === null) {
           if (!existing.has(file2.path)) {
             problems.push(`${file2.path}: not in the approved ontology, so there is nothing to remove.`);
@@ -27352,7 +27371,10 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
           sections.push(`+++ ${file2.path} (new file, ${file2.content.split("\n").length} lines)`);
           continue;
         }
-        const current = parse3(PlumOntologyDocumentSchema, await client.get("/plum/document", { path: file2.path }));
+        const current = parse3(
+          PlumOntologyDocumentSchema,
+          await client.get("/plum/document", { path: file2.path, ...targetQuery(target) })
+        );
         if (current.text === file2.content) {
           counts.unchanged += 1;
           sections.push(`=== ${file2.path} is unchanged; drop it from the update.`);
@@ -27365,11 +27387,12 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
         problems.push(
           `The update is ${total.toLocaleString("en-US")} characters in all; at most ${PLUM_UPDATE_MAX_CHARS.toLocaleString("en-US")}. Split it into smaller proposals.`
         );
-      const target = writePreviewTarget(client.serviceUrl, {
+      const recorded = writePreviewTarget(client.serviceUrl, {
         engagement: list.engagement,
-        ontologyVersion: list.ontologyVersion
+        ontologyVersion: list.ontologyVersion,
+        target
       });
-      const where = describeTarget(target.engagement);
+      const where = describeTarget(recorded.engagement, target);
       const summary = `${counts.added} new, ${counts.changed} changed, ${counts.removed} removed, ${counts.unchanged} unchanged against ontology ${list.ontologyVersion.slice(0, 12)} in ${where}.`;
       return text3(
         [
@@ -27383,18 +27406,22 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       );
     },
     async propose_ontology_update(args) {
-      const body = args;
-      const previewed = readPreviewTarget(client.serviceUrl);
+      const { target: aim = "workspace", ...body } = args;
+      const recorded = readPreviewTarget(client.serviceUrl);
+      const previewed = recorded && (recorded.target ?? "workspace") === aim ? recorded : null;
       const target = previewed ?? await (async () => {
-        const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files"));
+        const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files", targetQuery(aim)));
         return { engagement: list.engagement, ontologyVersion: list.ontologyVersion };
       })();
       const expected = { engagement: target.engagement, ontologyVersion: target.ontologyVersion };
-      const proposal = parse3(PlumProposalSchema, await client.post("/plum/proposals", { ...body, expected }));
+      const proposal = parse3(
+        PlumProposalSchema,
+        await client.post("/plum/proposals", { ...body, expected, ...aim === "playbook" ? { target: aim } : {} })
+      );
       const removed = body.files.filter((file2) => file2.content === null).length;
       return text3(
         [
-          `Proposed "${proposal.title}" (${body.files.length} file${body.files.length === 1 ? "" : "s"}${removed ? `, ${removed} removed` : ""}) as ${proposal.id} in ${describeTarget(target.engagement)}. It is waiting for an editor or admin to approve it in the app; until then the ontology is unchanged.`,
+          `Proposed "${proposal.title}" (${body.files.length} file${body.files.length === 1 ? "" : "s"}${removed ? `, ${removed} removed` : ""}) as ${proposal.id} in ${describeTarget(target.engagement, aim)}. ${aim === "playbook" ? "It is waiting for an admin to approve it in the app or on GitHub; every engagement reads it once it merges." : "It is waiting for an editor or admin to approve it in the app; until then the ontology is unchanged."}`,
           ...previewed ? [] : ["No preview was on record, so it was opened against the folder and version the workspace reads now."],
           ...proposal.url ? [`Review: ${proposal.url}`] : [],
           "list_ontology_updates shows when it has merged."
