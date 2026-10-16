@@ -28508,7 +28508,7 @@ var StdioServerTransport = class {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.33.0";
+var CONTRACT_VERSION = "1.35.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -32081,6 +32081,31 @@ var VIEW_COMPONENTS = {
       unit: "opportunities"
     }
   },
+  Steps: {
+    props: external_exports.object({
+      title,
+      items: external_exports.array(
+        external_exports.object({
+          label: external_exports.string().min(1).max(120).describe("The step, as a short verb phrase."),
+          owner: external_exports.string().max(80).nullable().describe("Who does it: a role or a team, or null."),
+          detail: external_exports.string().max(400).nullable().describe("What happens, what it takes and what it hands on, or null."),
+          status: external_exports.enum(["done", "current", "next"]).nullable().describe("Where the work stands at this step, or null when the diagram describes the process itself.")
+        })
+      ).min(2).max(16),
+      orientation: external_exports.enum(["vertical", "horizontal"]).nullish().describe("vertical (the default) for steps with detail; horizontal for a short sequence read at a glance.")
+    }),
+    slots: [],
+    description: "A workflow as ordered steps, each with who does it: how a deal moves from lead to invoice, how a request is approved. Not data: for a flow of volumes between categories use Flow.",
+    example: {
+      title: "How a renewal is approved",
+      items: [
+        { label: "Flag the renewal", owner: "Account manager", detail: "90 days before the end date.", status: null },
+        { label: "Price it", owner: "Revenue operations", detail: null, status: null },
+        { label: "Sign off", owner: "Finance", detail: "Above 20% discount only.", status: null }
+      ],
+      orientation: null
+    }
+  },
   PieChart: {
     props: external_exports.object({
       title,
@@ -33529,6 +33554,169 @@ var GranolaSearchResultSchema = external_exports.object({
   )
 });
 
+// ../../packages/shared/src/artifacts.ts
+var ArtifactDocumentSchema = external_exports.strictObject({
+  title: ViewSchema.shape.title,
+  caption: ViewSchema.shape.caption.default(""),
+  facts: ViewFactsSchema.default({}),
+  spec: external_exports.record(external_exports.string(), external_exports.unknown())
+});
+var HexColorSchema = external_exports.string().regex(/^#[0-9a-fA-F]{6}$/, "a colour is written #rrggbb");
+var FontStackSchema = external_exports.string().min(1).max(200).regex(/^[A-Za-z0-9 ,'"-]+$/, 'a font is a family name list such as "Source Serif 4", Georgia, serif');
+var BrandTokensSchema = external_exports.strictObject({
+  /** Whose brand this is, shown nowhere but the editor. */
+  name: external_exports.string().min(1).max(80),
+  colors: external_exports.strictObject({
+    /** Headings rules, links and the first chart series when no palette is given. */
+    accent: HexColorSchema,
+    /** Body text. */
+    ink: HexColorSchema,
+    /** Secondary text: captions, labels, notes. */
+    muted: HexColorSchema,
+    /** The page the content sits on. */
+    surface: HexColorSchema,
+    /** Behind the page, on the public link. */
+    background: HexColorSchema,
+    /** Rules and borders. */
+    line: HexColorSchema
+  }),
+  fonts: external_exports.strictObject({ heading: FontStackSchema, body: FontStackSchema }),
+  /** Chart series colours in order; past the list a chart folds into "Other". */
+  chart: external_exports.array(HexColorSchema).min(3).max(8),
+  /** Corner radius of the page and its panels, in pixels. */
+  radius: external_exports.number().int().min(0).max(24).default(10),
+  /** An SVG beside the skill file, by its path relative to the skill's folder, drawn above the title. */
+  logo: external_exports.strictObject({
+    path: external_exports.string().max(200).regex(/^(?!.*\.\.)[A-Za-z0-9 ._/-]+\.svg$/, "the logo is an .svg file beside the skill"),
+    alt: external_exports.string().min(1).max(120)
+  }).optional()
+});
+var ArtifactBrandPinSchema = external_exports.strictObject({
+  path: external_exports.string().min(1).max(300),
+  commit: external_exports.string().regex(/^[0-9a-f]{7,64}$/)
+});
+var ArtifactBrandSchema = ArtifactBrandPinSchema.extend({
+  tokens: BrandTokensSchema,
+  logo: external_exports.string().regex(/^data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+$/).nullable()
+});
+var ArtifactBrandStateSchema = external_exports.strictObject({
+  /** The pinned brand kit, read; null when the revision has none or it can no longer be read (see `problem`). */
+  applied: ArtifactBrandSchema.nullable(),
+  /** Why the pinned or the newest brand kit cannot be used, in words, or null. */
+  problem: external_exports.string().nullable(),
+  /** The brand kit the playbook holds now, when it differs from the pin and reads cleanly; `rebase-brand` moves to it. */
+  available: ArtifactBrandPinSchema.nullable()
+});
+var ARTIFACT_TEMPLATES = ["brief", "findings", "dashboard", "workflow"];
+var ArtifactTemplateSchema = external_exports.enum(ARTIFACT_TEMPLATES);
+var ArtifactRevisionSourceSchema = external_exports.discriminatedUnion("kind", [
+  /** Written directly: through the API, the plugin or the editor. */
+  external_exports.strictObject({ kind: external_exports.literal("direct") }),
+  /** Copied from a saved view at one of its revisions. */
+  external_exports.strictObject({ kind: external_exports.literal("view"), viewId: IdSchema, viewRevision: external_exports.number().int().positive() }),
+  /** Started from an approved template (1.35.0). */
+  external_exports.strictObject({ kind: external_exports.literal("template"), template: ArtifactTemplateSchema }),
+  /** The same content moved to a newer brand kit (1.35.0). */
+  external_exports.strictObject({ kind: external_exports.literal("brand") }),
+  /** A model's proposal the owner applied (1.35.0). */
+  external_exports.strictObject({ kind: external_exports.literal("generation"), generationId: IdSchema })
+]);
+var ActorSchema = external_exports.strictObject({ subjectId: IdSchema, tokenId: IdSchema.nullable() });
+var ArtifactSchema = external_exports.strictObject({
+  id: IdSchema,
+  /** The title of the latest revision. */
+  title: ViewSchema.shape.title,
+  /** The one person who may change the artifact. */
+  ownerSubjectId: IdSchema,
+  /** The engagement folder the workspace read when the artifact was made; null for the repository root. */
+  engagement: external_exports.string().nullable(),
+  /** The latest revision; a save sends it back as `expectedRevision`. */
+  revision: external_exports.number().int().positive(),
+  /** The revision anyone with the link sees, or null when it is not published (1.35.0). */
+  publishedRevision: external_exports.number().int().positive().nullable(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  updatedBy: ActorSchema
+});
+var ArtifactRevisionSchema = external_exports.strictObject({
+  artifactId: IdSchema,
+  revision: external_exports.number().int().positive(),
+  document: ArtifactDocumentSchema,
+  schemaVersion: external_exports.number().int().positive(),
+  rendererVersion: external_exports.number().int().positive(),
+  source: ArtifactRevisionSourceSchema,
+  /** The brand kit this revision is drawn with, or null when the playbook had none (1.35.0). */
+  brand: ArtifactBrandPinSchema.nullable(),
+  createdBy: ActorSchema,
+  createdAt: TimestampSchema
+});
+var ArtifactPublicationSchema = external_exports.strictObject({
+  /** The path anyone can open, `/a/<token>`, on the app's origin. */
+  path: external_exports.string().regex(/^\/a\/[A-Za-z0-9_-]{43}$/),
+  revision: external_exports.number().int().positive(),
+  publishedAt: TimestampSchema,
+  publishedBy: IdSchema
+});
+var ArtifactDetailSchema = ArtifactSchema.extend({
+  latest: ArtifactRevisionSchema,
+  brand: ArtifactBrandStateSchema,
+  publication: ArtifactPublicationSchema.nullable()
+});
+var CreateArtifactRequestSchema = external_exports.union([
+  external_exports.strictObject({ fromViewId: IdSchema }),
+  external_exports.strictObject({ document: ArtifactDocumentSchema }),
+  external_exports.strictObject({ template: ArtifactTemplateSchema, title: ViewSchema.shape.title.optional() })
+]);
+var SaveArtifactRequestSchema = external_exports.strictObject({
+  expectedRevision: external_exports.number().int().positive(),
+  document: ArtifactDocumentSchema
+});
+var ArtifactRevisionRequestSchema = external_exports.strictObject({ expectedRevision: external_exports.number().int().positive() });
+var ArtifactListQuerySchema = external_exports.strictObject({ limit: external_exports.coerce.number().int().min(1).max(200).default(50) });
+var ArtifactListResponseSchema = external_exports.strictObject({
+  items: external_exports.array(ArtifactSchema),
+  serverTime: TimestampSchema
+});
+var PublicArtifactSchema = external_exports.strictObject({
+  title: ViewSchema.shape.title,
+  caption: external_exports.string(),
+  spec: external_exports.record(external_exports.string(), external_exports.unknown()),
+  brand: external_exports.strictObject({ tokens: BrandTokensSchema, logo: ArtifactBrandSchema.shape.logo }).nullable(),
+  rendererVersion: external_exports.number().int().positive(),
+  publishedAt: TimestampSchema
+});
+var ArtifactPublicationPreviewSchema = external_exports.strictObject({
+  revision: external_exports.number().int().positive(),
+  payload: PublicArtifactSchema,
+  /** Components on the page, and data rows inside them, including rows a reader only sees by opening a fold. */
+  elements: external_exports.number().int().nonnegative(),
+  rows: external_exports.number().int().nonnegative()
+});
+var ARTIFACT_GENERATION_STATUSES = ["pending", "running", "ready", "failed", "applied", "discarded"];
+var ArtifactGenerationStatusSchema = external_exports.enum(ARTIFACT_GENERATION_STATUSES);
+var ArtifactGenerationSchema = external_exports.strictObject({
+  id: IdSchema,
+  artifactId: IdSchema,
+  baseRevision: external_exports.number().int().positive(),
+  /** What the person asked for, in their words. */
+  request: external_exports.string(),
+  status: ArtifactGenerationStatusSchema,
+  /** The proposed document, once ready. */
+  proposal: ArtifactDocumentSchema.nullable(),
+  /** The model's one-paragraph account of what it changed. */
+  note: external_exports.string().nullable(),
+  error: external_exports.string().nullable(),
+  /** The revision applying it made, once applied. */
+  appliedRevision: external_exports.number().int().positive().nullable(),
+  createdBy: ActorSchema,
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema
+});
+var CreateArtifactGenerationRequestSchema = external_exports.strictObject({
+  expectedRevision: external_exports.number().int().positive(),
+  request: external_exports.string().trim().min(1).max(4e3)
+});
+
 // src/config.ts
 import fs from "node:fs";
 import os from "node:os";
@@ -33847,6 +34035,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
     get: (path9, query) => request("GET", path9, { query, auth: true }),
     post: (path9, body) => request("POST", path9, { body, auth: true }),
     put: (path9, body) => request("PUT", path9, { body, auth: true }),
+    patch: (path9, body) => request("PATCH", path9, { body, auth: true }),
     delete: (path9) => request("DELETE", path9, { auth: true }),
     anonymous: (method, path9, body) => request(method, path9, { body, auth: false })
   };
@@ -42452,7 +42641,7 @@ var exportRecords = {
 var getViewCatalog = {
   name: "get_view_catalog",
   title: "Get the view catalog",
-  description: "The components a view may be built from: layout (Page, Row, Section, Divider), words (Caption, Note, Callout, Quote, Toggle, Checklist, Badges), numbers (Kpi, Trend, Progress, Gauge, Sparkline, Cards) and charts (BarChart, LineChart, PieChart, Waterfall, Funnel, Heatmap, Scatter, Histogram, Flow, DataTable), each with its props, an example and the rules views follow, plus the spec format save_view expects. Read it once before composing a view: it is the whole vocabulary, and the presentation knobs every chart takes (labels, tooltip, overlay, orientation, palette, emphasis, size, annotations) are described there too.",
+  description: "The components a view may be built from: layout (Page, Row, Section, Divider), words (Caption, Note, Callout, Quote, Toggle, Checklist, Badges), numbers (Kpi, Trend, Progress, Gauge, Sparkline, Cards), charts (BarChart, LineChart, PieChart, Waterfall, Funnel, Heatmap, Scatter, Histogram, Flow, DataTable) and workflows (Steps), each with its props, an example and the rules views follow, plus the spec format save_view expects. Read it once before composing a view: it is the whole vocabulary, and the presentation knobs every chart takes (labels, tooltip, overlay, orientation, palette, emphasis, size, annotations) are described there too.",
   inputSchema: {}
 };
 var saveView = {
@@ -42487,6 +42676,71 @@ var deleteView = {
   title: "Delete a view",
   description: "Remove a saved view from the workspace's Views page. Ask the person first unless they asked for the deletion themselves.",
   inputSchema: { id: external_exports.string().min(1).max(200).describe("View id from list_views.") }
+};
+var artifactId = external_exports.string().min(1).max(200).describe("Artifact id from list_artifacts or create_artifact.");
+var expectedRevision = int2(external_exports.number().min(1)).describe(
+  "The revision you last read (get_artifact). A change made against an older one is refused, so nothing newer is overwritten."
+);
+var artifactSpec = external_exports.record(external_exports.string(), external_exports.unknown()).describe("The json-render spec { root, elements } over the view catalog (get_view_catalog), root a Page.");
+var listArtifacts = {
+  name: "list_artifacts",
+  title: "List artifacts",
+  description: "The artifacts of this workspace, newest change first: branded briefs, findings reports, snapshot dashboards and workflow diagrams that one person owns. Each line gives the id, title, latest revision, whether a revision is published to a public link, and the owner. Use it to find the artifact the person means.",
+  inputSchema: { limit: int2(external_exports.number().min(1).max(200)).optional() },
+  outputSchema: ArtifactListResponseSchema
+};
+var getArtifact = {
+  name: "get_artifact",
+  title: "Get an artifact",
+  description: "One artifact at its latest revision (or an earlier one): the document (title, caption, facts and spec) as JSON, its owner, the brand kit it is pinned to, whether a newer brand kit is available, and its public link if published. Read it before save_artifact and pass its revision as expectedRevision.",
+  inputSchema: {
+    id: artifactId,
+    revision: int2(external_exports.number().min(1)).optional().describe("An earlier revision to read; the latest when omitted.")
+  }
+};
+var getArtifactBrand = {
+  name: "get_artifact_brand",
+  title: "Get the brand kit of an artifact",
+  description: "The brand kit skill an artifact is drawn with, at the commit it is pinned to: the playbook's (or the engagement's own) guidance on voice and on how to lay out each kind of artifact, plus the colours, fonts and chart palette the app applies. Read it before composing or revising an artifact and follow its guidance; never write colours or fonts into the spec, since the app applies them.",
+  inputSchema: { id: artifactId }
+};
+var createArtifact = {
+  name: "create_artifact",
+  title: "Create an artifact",
+  description: `Create an artifact the person will own and edit in the app, pinned to the current brand kit. Start it from an approved template (${ARTIFACT_TEMPLATES.join(", ")}), from a saved view (fromViewId), or from a document you composed over the view catalog. Give exactly one of template, fromViewId or spec. Returns the id, revision 1 and the link to the Artifacts page.`,
+  inputSchema: {
+    template: external_exports.enum(ARTIFACT_TEMPLATES).optional().describe("An approved template to start from."),
+    fromViewId: external_exports.string().min(1).max(200).optional().describe("A saved view (list_views) to copy."),
+    title: external_exports.string().min(1).max(120).optional().describe("The title; required with spec, optional with a template."),
+    caption: external_exports.string().max(2e3).optional().describe("Provenance in one paragraph, with spec."),
+    facts: external_exports.record(external_exports.string().min(1).max(40), external_exports.union([external_exports.string().max(1e3), external_exports.number(), external_exports.boolean(), external_exports.null()])).optional().describe("The facts the numbers rest on, with spec."),
+    spec: artifactSpec.optional()
+  }
+};
+var saveArtifact = {
+  name: "save_artifact",
+  title: "Save an artifact",
+  description: "Save a new revision of an artifact the person owns: the whole document, made against expectedRevision. Earlier revisions stay readable and unchanged, and the public link (if any) keeps showing the revision it published until publish_artifact is called again. Only the owner can save; someone else's artifact is refused. Keep element keys of the parts you keep.",
+  inputSchema: {
+    id: artifactId,
+    expectedRevision,
+    title: external_exports.string().min(1).max(120),
+    caption: external_exports.string().max(2e3).optional(),
+    facts: external_exports.record(external_exports.string().min(1).max(40), external_exports.union([external_exports.string().max(1e3), external_exports.number(), external_exports.boolean(), external_exports.null()])).optional(),
+    spec: artifactSpec
+  }
+};
+var publishArtifact = {
+  name: "publish_artifact",
+  title: "Publish an artifact",
+  description: "Publish the latest revision to a public link anyone who has it can open, without signing in. Everything in the spec becomes public, including rows in folded sections. Ask the person first and say which revision goes out. Publishing again points the same link at the newer revision. Returns the link.",
+  inputSchema: { id: artifactId, expectedRevision }
+};
+var unpublishArtifact = {
+  name: "unpublish_artifact",
+  title: "Take down a public link",
+  description: "Take an artifact's public link down: every later request to it fails. Copies people already saved cannot be recalled. Publishing again issues a new link.",
+  inputSchema: { id: artifactId }
 };
 var whoAmI = {
   name: "whoami",
@@ -42579,6 +42833,13 @@ var ALL_TOOL_CONTRACTS = [
   saveView,
   listViews,
   deleteView,
+  listArtifacts,
+  getArtifact,
+  getArtifactBrand,
+  createArtifact,
+  saveArtifact,
+  publishArtifact,
+  unpublishArtifact,
   whoAmI,
   listOrganizations,
   switchOrganization,
@@ -42734,6 +42995,8 @@ import path6 from "node:path";
 
 // src/links.ts
 function buildPagePath(page2, options = {}) {
+  if (page2 === "artifacts")
+    return options.artifactId ? `/#artifacts:${encodeURIComponent(options.artifactId)}` : "/#artifacts";
   if (page2 === "ontology") return options.path ? `/#ontology:${encodeURIComponent(options.path)}` : "/#ontology";
   const params = new URLSearchParams({ stage: page2 });
   if (options.viewId) params.set("view", options.viewId);
@@ -42742,6 +43005,7 @@ function buildPagePath(page2, options = {}) {
 function pageUrl(serviceUrl, page2, options = {}) {
   return `${serviceUrl.replace(/\/$/, "")}${buildPagePath(page2, options)}`;
 }
+var appOrigin = (serviceUrl) => serviceUrl.replace(/\/$/, "");
 
 // src/diff.ts
 function unifiedDiff(before, after, labels2, context = 2) {
@@ -43238,6 +43502,15 @@ var DISCOVERY_TOOLS = /* @__PURE__ */ new Set([
 ]);
 var RECORD_TOOLS = /* @__PURE__ */ new Set(["get_imported_model", "search_entities", "aggregate_records", "export_records"]);
 var VIEW_TOOLS = /* @__PURE__ */ new Set(["save_view", "list_views", "delete_view"]);
+var ARTIFACT_TOOLS = /* @__PURE__ */ new Set([
+  "list_artifacts",
+  "get_artifact",
+  "get_artifact_brand",
+  "create_artifact",
+  "save_artifact",
+  "publish_artifact",
+  "unpublish_artifact"
+]);
 function unknownKeys(shape, args) {
   if (!args || typeof args !== "object" || Array.isArray(args)) return [];
   return Object.keys(args).filter((key) => !Object.hasOwn(shape, key));
@@ -43248,7 +43521,7 @@ function ignoredKeysNote(keys) {
 }
 function nextStep(error62, tool) {
   const reread = REPOSITORY_TOOLS.has(tool) ? "Re-read the files with get_ontology_file (the approved version moved), tell the person what changed, preview again and propose again." : "Re-read get_ontology and retry with its head revision as expectedRevision.";
-  const listing = REPOSITORY_TOOLS.has(tool) ? "list_ontology_files lists every file and list_ontology_updates every update" : ONTOLOGY_TOOLS.has(tool) ? "get_ontology lists the versions" : DISCOVERY_TOOLS.has(tool) ? "list_discovery_questions lists the questions and get_discovery the runs" : RECORD_TOOLS.has(tool) ? "get_imported_model lists the imported types and fields" : VIEW_TOOLS.has(tool) ? "list_views lists the saved views" : "whoami shows where the plugin is working";
+  const listing = REPOSITORY_TOOLS.has(tool) ? "list_ontology_files lists every file and list_ontology_updates every update" : ONTOLOGY_TOOLS.has(tool) ? "get_ontology lists the versions" : DISCOVERY_TOOLS.has(tool) ? "list_discovery_questions lists the questions and get_discovery the runs" : RECORD_TOOLS.has(tool) ? "get_imported_model lists the imported types and fields" : VIEW_TOOLS.has(tool) ? "list_views lists the saved views" : ARTIFACT_TOOLS.has(tool) ? "list_artifacts lists the artifacts" : "whoami shows where the plugin is working";
   if (error62.code === "UNAUTHENTICATED" && error62.message.includes(platform.loginHint)) return null;
   if (error62.code === "NOT_FOUND" && RECORD_TOOLS.has(tool) && error62.message.includes("get_imported_model")) return null;
   if (error62.code === "CONFLICT" && tool === "propose_ontology_update" && error62.message.includes("Preview again"))
@@ -43259,6 +43532,8 @@ function nextStep(error62, tool) {
     case "FORBIDDEN":
       if (DISCOVERY_TOOLS.has(tool))
         return "Next: starting discovery, saving its intake, answering its questions and messaging it take an admin of the workspace; whoami shows the role. Reading (get_discovery, the lists) is open to everyone.";
+      if (ARTIFACT_TOOLS.has(tool))
+        return "Next: only the owner of an artifact changes, publishes or takes it down, and viewers make none. get_artifact names the owner; ask them, or create_artifact from it as a new one the person owns.";
       return `Next: this account may not do that here. whoami shows its role and workspace; if the work belongs to another organization, list_organizations and ${platform.setupHint} org move the plugin. Otherwise a workspace admin has to make the change.`;
     case "NOT_FOUND":
       return `Next: check the id: ${listing}. It may also live in another organization (list_organizations).`;
@@ -43271,6 +43546,8 @@ function nextStep(error62, tool) {
         return "Next: the question changed or was answered meanwhile. list_discovery_questions again, tell the person, and answer again if it is still open.";
       if (tool === "save_discovery_intake")
         return "Next: someone saved the intake meanwhile. get_discovery shows it; save again with what should change.";
+      if (ARTIFACT_TOOLS.has(tool))
+        return "Next: the artifact changed since the revision you read. get_artifact again, tell the person what changed, and make the change against the new revision.";
       return `Next: someone else saved first. ${reread}`;
     case "INVALID_REQUEST":
       if (REPOSITORY_TOOLS.has(tool))
@@ -43430,20 +43707,20 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       );
     },
     async save_ontology_version(args) {
-      const { expectedRevision, markdown } = args;
-      const next = parse3(OntologyStateSchema, await client.post("/ontology/save", { expectedRevision, markdown }));
+      const { expectedRevision: expectedRevision2, markdown } = args;
+      const next = parse3(OntologyStateSchema, await client.post("/ontology/save", { expectedRevision: expectedRevision2, markdown }));
       const version2 = next.versions[0];
       return text3(
         `Saved ontology draft v${version2.version} (head revision ${next.revision}, ${version2.definitions.length} definitions, ${version2.definitions.filter((definition) => definition.rule.kind === "filter").length} executable). Preview with preview_ontology_publication before publishing.`
       );
     },
     async configure_ontology(args) {
-      const { expectedRevision, sources, questions } = args;
+      const { expectedRevision: expectedRevision2, sources, questions } = args;
       const first = sources[0];
       const next = parse3(
         OntologyStateSchema,
         await client.post("/ontology/configure", {
-          expectedRevision,
+          expectedRevision: expectedRevision2,
           selection: { connectionId: first.connectionId, objects: first.objects, questions, sources }
         })
       );
@@ -43452,16 +43729,16 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       );
     },
     async request_ontology_draft(args) {
-      const { expectedRevision } = args;
-      const next = parse3(OntologyStateSchema, await client.post("/ontology/draft", { expectedRevision }));
+      const { expectedRevision: expectedRevision2 } = args;
+      const next = parse3(OntologyStateSchema, await client.post("/ontology/draft", { expectedRevision: expectedRevision2 }));
       const job = next.jobs[0];
       return text3(
         `Draft job ${job?.id ?? "queued"} is ${job?.status ?? "pending"}. Poll get_ontology; a new draft version appears when it succeeds (usually within a few minutes).`
       );
     },
     async preview_ontology_publication(args) {
-      const { expectedRevision } = args;
-      const preview = parse3(OntologyPreviewSchema, await client.post("/ontology/preview", { expectedRevision }));
+      const { expectedRevision: expectedRevision2 } = args;
+      const preview = parse3(OntologyPreviewSchema, await client.post("/ontology/preview", { expectedRevision: expectedRevision2 }));
       const lines = [
         `Publication preview (revision ${preview.revision}) \xB7 previewToken ${preview.previewToken}`,
         "",
@@ -43487,10 +43764,10 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       return text3(lines.join("\n"));
     },
     async publish_ontology(args) {
-      const { expectedRevision, previewToken } = args;
+      const { expectedRevision: expectedRevision2, previewToken } = args;
       const next = parse3(
         OntologyStateSchema,
-        await client.post("/ontology/publish", { expectedRevision, previewToken })
+        await client.post("/ontology/publish", { expectedRevision: expectedRevision2, previewToken })
       );
       return text3(
         `Published ontology v${next.publishedVersion} (head revision ${next.revision}). The app now treats it as the live version.`
@@ -43586,13 +43863,13 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       );
     },
     async save_ontology_changes(args) {
-      const { expectedRevision, rebase } = args;
+      const { expectedRevision: expectedRevision2, rebase } = args;
       const pending = readPending(client.serviceUrl);
       if (!pending || !pending.ops.length) return failure3("No staged ontology changes to save.");
       const current = await ontology();
-      if (current.revision !== expectedRevision)
+      if (current.revision !== expectedRevision2)
         return failure3(
-          `CONFLICT: the ontology head is at revision ${current.revision}, not ${expectedRevision}. Re-read get_ontology and retry.`
+          `CONFLICT: the ontology head is at revision ${current.revision}, not ${expectedRevision2}. Re-read get_ontology and retry.`
         );
       const newest = current.versions[0];
       let base2 = current.versions.find((item) => item.version === pending.baseVersion);
@@ -43615,7 +43892,7 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
           `The staged edits do not apply to v${base2.version}: ${error62 instanceof Error ? error62.message : String(error62)}.`
         );
       }
-      const next = parse3(OntologyStateSchema, await client.post("/ontology/save", { expectedRevision, markdown }));
+      const next = parse3(OntologyStateSchema, await client.post("/ontology/save", { expectedRevision: expectedRevision2, markdown }));
       clearPending(client.serviceUrl);
       const saved = next.versions[0];
       return text3(
@@ -43868,6 +44145,128 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       const { id } = args;
       await client.delete(`/views/${encodeURIComponent(id)}`);
       return text3(`Deleted view ${id}. The Views page drops it within seconds: ${pageUrl(client.serviceUrl, "views")}`);
+    },
+    async list_artifacts(args) {
+      const { limit } = args;
+      const list = parse3(ArtifactListResponseSchema, await client.get("/artifacts", { limit: limit ?? 50 }));
+      if (!list.items.length)
+        return structured(
+          "No artifacts in this workspace yet. create_artifact starts one from a template, a saved view or a document.",
+          list
+        );
+      return structured(
+        [
+          `Artifacts (${list.items.length}, newest change first):`,
+          ...list.items.map(
+            (item) => `- ${item.id} \xB7 "${item.title}" \xB7 revision ${item.revision}${item.publishedRevision ? ` \xB7 public at revision ${item.publishedRevision}` : " \xB7 private"} \xB7 owner ${item.ownerSubjectId} \xB7 ${when2(item.updatedAt)}`
+          ),
+          `Artifacts page: ${pageUrl(client.serviceUrl, "artifacts")}`
+        ].join("\n"),
+        list
+      );
+    },
+    async get_artifact(args) {
+      const { id, revision } = args;
+      const path9 = `/artifacts/${encodeURIComponent(id)}`;
+      const artifact = parse3(ArtifactDetailSchema, await client.get(path9));
+      const shown = revision && revision !== artifact.revision ? parse3(ArtifactRevisionSchema, await client.get(`${path9}/revisions/${revision}`)) : artifact.latest;
+      const { brand } = artifact;
+      return text3(
+        [
+          `Artifact ${artifact.id} "${artifact.title}" \xB7 owner ${artifact.ownerSubjectId} \xB7 latest revision ${artifact.revision}${shown.revision !== artifact.revision ? ` (showing revision ${shown.revision})` : ""}.`,
+          brand.applied ? `Brand: ${brand.applied.tokens.name}, ${brand.applied.path} at ${brand.applied.commit.slice(0, 12)}. get_artifact_brand reads its guidance.` : "Brand: none; the app draws it in its own style.",
+          ...brand.available ? [
+            `A newer brand kit is available (${brand.available.commit.slice(0, 12)}); the owner moves to it from the Artifacts page.`
+          ] : [],
+          ...brand.problem ? [`Brand problem: ${brand.problem}`] : [],
+          artifact.publication ? `Public link: ${appOrigin(client.serviceUrl)}${artifact.publication.path} (revision ${artifact.publication.revision}${artifact.publication.revision < artifact.revision ? "; later revisions are not public yet" : ""}).` : "Not published.",
+          `Pass expectedRevision ${artifact.revision} to save_artifact or publish_artifact.`,
+          "",
+          "Document (JSON):",
+          JSON.stringify(shown.document),
+          "",
+          `Artifacts page: ${pageUrl(client.serviceUrl, "artifacts", { artifactId: artifact.id })}`
+        ].join("\n")
+      );
+    },
+    async get_artifact_brand(args) {
+      const { id } = args;
+      const result = parse3(
+        external_exports.object({ brand: ArtifactBrandSchema.nullable(), guidance: external_exports.string() }),
+        await client.get(`/artifacts/${encodeURIComponent(id)}/brand`)
+      );
+      if (!result.brand)
+        return text3(
+          "This artifact has no brand kit: the playbook has none at skills/brand-kit.md, or it did not read cleanly when the artifact was made. Compose in plain, client-ready prose; the app draws it in its own style."
+        );
+      const { tokens } = result.brand;
+      return text3(
+        [
+          `Brand kit: ${tokens.name} \xB7 ${result.brand.path} at ${result.brand.commit.slice(0, 12)}.`,
+          `Applied by the app (never write these into the spec): accent ${tokens.colors.accent}, headings in ${tokens.fonts.heading}, body in ${tokens.fonts.body}, ${tokens.chart.length} chart colours${result.brand.logo ? ", a logo above the title" : ""}.`,
+          "",
+          "Guidance (the brand kit skill; follow it for voice and layout):",
+          result.guidance || "(The skill has no prose beyond its tokens.)"
+        ].join("\n")
+      );
+    },
+    async create_artifact(args) {
+      const { template, fromViewId, title: title2, caption, facts, spec } = args;
+      if ([template, fromViewId, spec].filter((value) => value !== void 0).length !== 1)
+        return failure3("Give exactly one of template, fromViewId or spec.");
+      let body;
+      if (spec) {
+        if (!title2) return failure3("A title is required with spec.");
+        const checked = validateViewSpec(spec);
+        if (!checked.ok)
+          return failure3(
+            `The spec does not match the view catalog. Fix these and try again:
+${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
+          );
+        body = { document: { title: title2, caption: caption ?? "", facts: facts ?? {}, spec } };
+      } else body = fromViewId ? { fromViewId } : { template, ...title2 ? { title: title2 } : {} };
+      const artifact = parse3(ArtifactDetailSchema, await client.post("/artifacts", body));
+      return text3(
+        `Created artifact "${artifact.title}" (${artifact.id}, revision 1)${artifact.brand.applied ? `, branded with ${artifact.brand.applied.tokens.name}` : ", unbranded"}. The person owns it and can edit it here: ${pageUrl(client.serviceUrl, "artifacts", { artifactId: artifact.id })}`
+      );
+    },
+    async save_artifact(args) {
+      const { id, expectedRevision: expectedRevision2, title: title2, caption, facts, spec } = args;
+      const checked = validateViewSpec(spec);
+      if (!checked.ok)
+        return failure3(
+          `The spec does not match the view catalog. Fix these and save again:
+${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
+        );
+      const artifact = parse3(
+        ArtifactDetailSchema,
+        await client.patch(`/artifacts/${encodeURIComponent(id)}`, {
+          expectedRevision: expectedRevision2,
+          document: { title: title2, caption: caption ?? "", facts: facts ?? {}, spec }
+        })
+      );
+      return text3(
+        `Saved revision ${artifact.revision} of "${artifact.title}".${artifact.publishedRevision ? ` The public link still shows revision ${artifact.publishedRevision} until it is published again.` : ""} ${pageUrl(client.serviceUrl, "artifacts", { artifactId: artifact.id })}`
+      );
+    },
+    async publish_artifact(args) {
+      const { id, expectedRevision: expectedRevision2 } = args;
+      const artifact = parse3(
+        ArtifactDetailSchema,
+        await client.post(`/artifacts/${encodeURIComponent(id)}/publish`, { expectedRevision: expectedRevision2 })
+      );
+      const publication = artifact.publication;
+      return text3(
+        `Published revision ${publication.revision} of "${artifact.title}". Anyone with this link can open it: ${appOrigin(client.serviceUrl)}${publication.path}`
+      );
+    },
+    async unpublish_artifact(args) {
+      const { id } = args;
+      const artifact = parse3(
+        ArtifactDetailSchema,
+        await client.post(`/artifacts/${encodeURIComponent(id)}/unpublish`, {})
+      );
+      return text3(`Took down the public link of "${artifact.title}". Publishing again issues a new link.`);
     },
     async list_ontology_files() {
       const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files"));
@@ -44403,6 +44802,7 @@ function createMcpServer() {
     get: (path9, query) => createApiClient(platform, getVersion()).get(path9, query),
     post: (path9, body) => createApiClient(platform, getVersion()).post(path9, body),
     put: (path9, body) => createApiClient(platform, getVersion()).put(path9, body),
+    patch: (path9, body) => createApiClient(platform, getVersion()).patch(path9, body),
     delete: (path9) => createApiClient(platform, getVersion()).delete(path9),
     anonymous: (method, path9, body) => createApiClient(platform, getVersion()).anonymous(method, path9, body)
   };

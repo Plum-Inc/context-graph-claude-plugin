@@ -19677,7 +19677,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.33.0";
+var CONTRACT_VERSION = "1.35.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -22819,6 +22819,31 @@ var VIEW_COMPONENTS = {
       unit: "opportunities"
     }
   },
+  Steps: {
+    props: external_exports.object({
+      title,
+      items: external_exports.array(
+        external_exports.object({
+          label: external_exports.string().min(1).max(120).describe("The step, as a short verb phrase."),
+          owner: external_exports.string().max(80).nullable().describe("Who does it: a role or a team, or null."),
+          detail: external_exports.string().max(400).nullable().describe("What happens, what it takes and what it hands on, or null."),
+          status: external_exports.enum(["done", "current", "next"]).nullable().describe("Where the work stands at this step, or null when the diagram describes the process itself.")
+        })
+      ).min(2).max(16),
+      orientation: external_exports.enum(["vertical", "horizontal"]).nullish().describe("vertical (the default) for steps with detail; horizontal for a short sequence read at a glance.")
+    }),
+    slots: [],
+    description: "A workflow as ordered steps, each with who does it: how a deal moves from lead to invoice, how a request is approved. Not data: for a flow of volumes between categories use Flow.",
+    example: {
+      title: "How a renewal is approved",
+      items: [
+        { label: "Flag the renewal", owner: "Account manager", detail: "90 days before the end date.", status: null },
+        { label: "Price it", owner: "Revenue operations", detail: null, status: null },
+        { label: "Sign off", owner: "Finance", detail: "Above 20% discount only.", status: null }
+      ],
+      orientation: null
+    }
+  },
   PieChart: {
     props: external_exports.object({
       title,
@@ -24156,6 +24181,169 @@ var GranolaSearchResultSchema = external_exports.object({
   )
 });
 
+// ../../packages/shared/src/artifacts.ts
+var ArtifactDocumentSchema = external_exports.strictObject({
+  title: ViewSchema.shape.title,
+  caption: ViewSchema.shape.caption.default(""),
+  facts: ViewFactsSchema.default({}),
+  spec: external_exports.record(external_exports.string(), external_exports.unknown())
+});
+var HexColorSchema = external_exports.string().regex(/^#[0-9a-fA-F]{6}$/, "a colour is written #rrggbb");
+var FontStackSchema = external_exports.string().min(1).max(200).regex(/^[A-Za-z0-9 ,'"-]+$/, 'a font is a family name list such as "Source Serif 4", Georgia, serif');
+var BrandTokensSchema = external_exports.strictObject({
+  /** Whose brand this is, shown nowhere but the editor. */
+  name: external_exports.string().min(1).max(80),
+  colors: external_exports.strictObject({
+    /** Headings rules, links and the first chart series when no palette is given. */
+    accent: HexColorSchema,
+    /** Body text. */
+    ink: HexColorSchema,
+    /** Secondary text: captions, labels, notes. */
+    muted: HexColorSchema,
+    /** The page the content sits on. */
+    surface: HexColorSchema,
+    /** Behind the page, on the public link. */
+    background: HexColorSchema,
+    /** Rules and borders. */
+    line: HexColorSchema
+  }),
+  fonts: external_exports.strictObject({ heading: FontStackSchema, body: FontStackSchema }),
+  /** Chart series colours in order; past the list a chart folds into "Other". */
+  chart: external_exports.array(HexColorSchema).min(3).max(8),
+  /** Corner radius of the page and its panels, in pixels. */
+  radius: external_exports.number().int().min(0).max(24).default(10),
+  /** An SVG beside the skill file, by its path relative to the skill's folder, drawn above the title. */
+  logo: external_exports.strictObject({
+    path: external_exports.string().max(200).regex(/^(?!.*\.\.)[A-Za-z0-9 ._/-]+\.svg$/, "the logo is an .svg file beside the skill"),
+    alt: external_exports.string().min(1).max(120)
+  }).optional()
+});
+var ArtifactBrandPinSchema = external_exports.strictObject({
+  path: external_exports.string().min(1).max(300),
+  commit: external_exports.string().regex(/^[0-9a-f]{7,64}$/)
+});
+var ArtifactBrandSchema = ArtifactBrandPinSchema.extend({
+  tokens: BrandTokensSchema,
+  logo: external_exports.string().regex(/^data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+$/).nullable()
+});
+var ArtifactBrandStateSchema = external_exports.strictObject({
+  /** The pinned brand kit, read; null when the revision has none or it can no longer be read (see `problem`). */
+  applied: ArtifactBrandSchema.nullable(),
+  /** Why the pinned or the newest brand kit cannot be used, in words, or null. */
+  problem: external_exports.string().nullable(),
+  /** The brand kit the playbook holds now, when it differs from the pin and reads cleanly; `rebase-brand` moves to it. */
+  available: ArtifactBrandPinSchema.nullable()
+});
+var ARTIFACT_TEMPLATES = ["brief", "findings", "dashboard", "workflow"];
+var ArtifactTemplateSchema = external_exports.enum(ARTIFACT_TEMPLATES);
+var ArtifactRevisionSourceSchema = external_exports.discriminatedUnion("kind", [
+  /** Written directly: through the API, the plugin or the editor. */
+  external_exports.strictObject({ kind: external_exports.literal("direct") }),
+  /** Copied from a saved view at one of its revisions. */
+  external_exports.strictObject({ kind: external_exports.literal("view"), viewId: IdSchema, viewRevision: external_exports.number().int().positive() }),
+  /** Started from an approved template (1.35.0). */
+  external_exports.strictObject({ kind: external_exports.literal("template"), template: ArtifactTemplateSchema }),
+  /** The same content moved to a newer brand kit (1.35.0). */
+  external_exports.strictObject({ kind: external_exports.literal("brand") }),
+  /** A model's proposal the owner applied (1.35.0). */
+  external_exports.strictObject({ kind: external_exports.literal("generation"), generationId: IdSchema })
+]);
+var ActorSchema = external_exports.strictObject({ subjectId: IdSchema, tokenId: IdSchema.nullable() });
+var ArtifactSchema = external_exports.strictObject({
+  id: IdSchema,
+  /** The title of the latest revision. */
+  title: ViewSchema.shape.title,
+  /** The one person who may change the artifact. */
+  ownerSubjectId: IdSchema,
+  /** The engagement folder the workspace read when the artifact was made; null for the repository root. */
+  engagement: external_exports.string().nullable(),
+  /** The latest revision; a save sends it back as `expectedRevision`. */
+  revision: external_exports.number().int().positive(),
+  /** The revision anyone with the link sees, or null when it is not published (1.35.0). */
+  publishedRevision: external_exports.number().int().positive().nullable(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  updatedBy: ActorSchema
+});
+var ArtifactRevisionSchema = external_exports.strictObject({
+  artifactId: IdSchema,
+  revision: external_exports.number().int().positive(),
+  document: ArtifactDocumentSchema,
+  schemaVersion: external_exports.number().int().positive(),
+  rendererVersion: external_exports.number().int().positive(),
+  source: ArtifactRevisionSourceSchema,
+  /** The brand kit this revision is drawn with, or null when the playbook had none (1.35.0). */
+  brand: ArtifactBrandPinSchema.nullable(),
+  createdBy: ActorSchema,
+  createdAt: TimestampSchema
+});
+var ArtifactPublicationSchema = external_exports.strictObject({
+  /** The path anyone can open, `/a/<token>`, on the app's origin. */
+  path: external_exports.string().regex(/^\/a\/[A-Za-z0-9_-]{43}$/),
+  revision: external_exports.number().int().positive(),
+  publishedAt: TimestampSchema,
+  publishedBy: IdSchema
+});
+var ArtifactDetailSchema = ArtifactSchema.extend({
+  latest: ArtifactRevisionSchema,
+  brand: ArtifactBrandStateSchema,
+  publication: ArtifactPublicationSchema.nullable()
+});
+var CreateArtifactRequestSchema = external_exports.union([
+  external_exports.strictObject({ fromViewId: IdSchema }),
+  external_exports.strictObject({ document: ArtifactDocumentSchema }),
+  external_exports.strictObject({ template: ArtifactTemplateSchema, title: ViewSchema.shape.title.optional() })
+]);
+var SaveArtifactRequestSchema = external_exports.strictObject({
+  expectedRevision: external_exports.number().int().positive(),
+  document: ArtifactDocumentSchema
+});
+var ArtifactRevisionRequestSchema = external_exports.strictObject({ expectedRevision: external_exports.number().int().positive() });
+var ArtifactListQuerySchema = external_exports.strictObject({ limit: external_exports.coerce.number().int().min(1).max(200).default(50) });
+var ArtifactListResponseSchema = external_exports.strictObject({
+  items: external_exports.array(ArtifactSchema),
+  serverTime: TimestampSchema
+});
+var PublicArtifactSchema = external_exports.strictObject({
+  title: ViewSchema.shape.title,
+  caption: external_exports.string(),
+  spec: external_exports.record(external_exports.string(), external_exports.unknown()),
+  brand: external_exports.strictObject({ tokens: BrandTokensSchema, logo: ArtifactBrandSchema.shape.logo }).nullable(),
+  rendererVersion: external_exports.number().int().positive(),
+  publishedAt: TimestampSchema
+});
+var ArtifactPublicationPreviewSchema = external_exports.strictObject({
+  revision: external_exports.number().int().positive(),
+  payload: PublicArtifactSchema,
+  /** Components on the page, and data rows inside them, including rows a reader only sees by opening a fold. */
+  elements: external_exports.number().int().nonnegative(),
+  rows: external_exports.number().int().nonnegative()
+});
+var ARTIFACT_GENERATION_STATUSES = ["pending", "running", "ready", "failed", "applied", "discarded"];
+var ArtifactGenerationStatusSchema = external_exports.enum(ARTIFACT_GENERATION_STATUSES);
+var ArtifactGenerationSchema = external_exports.strictObject({
+  id: IdSchema,
+  artifactId: IdSchema,
+  baseRevision: external_exports.number().int().positive(),
+  /** What the person asked for, in their words. */
+  request: external_exports.string(),
+  status: ArtifactGenerationStatusSchema,
+  /** The proposed document, once ready. */
+  proposal: ArtifactDocumentSchema.nullable(),
+  /** The model's one-paragraph account of what it changed. */
+  note: external_exports.string().nullable(),
+  error: external_exports.string().nullable(),
+  /** The revision applying it made, once applied. */
+  appliedRevision: external_exports.number().int().positive().nullable(),
+  createdBy: ActorSchema,
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema
+});
+var CreateArtifactGenerationRequestSchema = external_exports.strictObject({
+  expectedRevision: external_exports.number().int().positive(),
+  request: external_exports.string().trim().min(1).max(4e3)
+});
+
 // src/browser.ts
 import { spawn } from "node:child_process";
 import os from "node:os";
@@ -24527,6 +24715,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
     get: (path5, query) => request("GET", path5, { query, auth: true }),
     post: (path5, body) => request("POST", path5, { body, auth: true }),
     put: (path5, body) => request("PUT", path5, { body, auth: true }),
+    patch: (path5, body) => request("PATCH", path5, { body, auth: true }),
     delete: (path5) => request("DELETE", path5, { auth: true }),
     anonymous: (method, path5, body) => request(method, path5, { body, auth: false })
   };

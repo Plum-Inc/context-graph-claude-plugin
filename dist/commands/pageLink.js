@@ -179,6 +179,8 @@ async function runCommand(spec, work) {
 
 // src/links.ts
 function buildPagePath(page, options = {}) {
+  if (page === "artifacts")
+    return options.artifactId ? `/#artifacts:${encodeURIComponent(options.artifactId)}` : "/#artifacts";
   if (page === "ontology") return options.path ? `/#ontology:${encodeURIComponent(options.path)}` : "/#ontology";
   const params = new URLSearchParams({ stage: page });
   if (options.viewId) params.set("view", options.viewId);
