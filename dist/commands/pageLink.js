@@ -208,17 +208,18 @@ if (process.env.VITEST === void 0) {
       flags: [
         {
           name: "page",
-          description: "ontology (the repository, file by file) or views when no path is given.",
+          description: "ontology (the repository, file by file), views or artifacts when no path is given.",
           default: "ontology"
         },
         { name: "path", description: "Ontology file to open, e.g. AGENT.md or gtm/icp.md." },
-        { name: "view", description: "View id to open on the views page." }
+        { name: "view", description: "View id to open on the views page." },
+        { name: "artifact", description: "Artifact id to open on the artifacts page." }
       ]
     },
     ({ positional, flags }) => {
-      const page = flags.page === "views" ? "views" : "ontology";
+      const page = flags.page === "views" || flags.page === "artifacts" ? flags.page : "ontology";
       const text = (name) => typeof flags[name] === "string" ? flags[name] : void 0;
-      const path2 = positional[0] ? validateRelativePath(positional[0]) : buildPagePath(page, { path: text("path"), viewId: text("view") });
+      const path2 = positional[0] ? validateRelativePath(positional[0]) : buildPagePath(page, { path: text("path"), viewId: text("view"), artifactId: text("artifact") });
       emitPageLink(getConfig().serviceUrl, path2);
     }
   );

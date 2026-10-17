@@ -24831,7 +24831,9 @@ var KNOWN_MODES = /* @__PURE__ */ new Set([
   "template",
   "start",
   "findings",
-  "tell"
+  "tell",
+  "create",
+  "unpublish"
 ]);
 var INVOCATION = /^\/plum:([a-z-]+)(?:\s+([a-z-]+))?/;
 function readInvocation(prompt) {
