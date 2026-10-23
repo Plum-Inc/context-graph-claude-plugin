@@ -73,7 +73,7 @@ Edits are **staged, never saved on their own**. Every staged edit is diffed agai
 1. Call `get_ontology`. The newest version must be a draft; if the newest is already published, say so and stop.
 2. Call `mcp__plugin_plum_Plum__preview_ontology_publication` with the head revision. Relay the membership table (definition, before, after, entered, left). On `CONFLICT` ("Source data changed"), the sources were re-imported since the draft: run Save again, then preview again.
 3. Publishing is irreversible (a new version is created, the old one stays). Confirm with `AskUserQuestion`: "Publish version N with these changes?" with options "Publish" and "Not now". Only on "Publish", call `mcp__plugin_plum_Plum__publish_ontology` with the same `expectedRevision` and the `previewToken` from the preview. A `CONFLICT` here means the draft or the data changed after the preview: preview again and re-confirm.
-4. Report the published version in one line; it is the version answers and views now run against.
+4. Report the published version in one line; it is the version answers and artifacts now run against.
 
 ## Compare
 

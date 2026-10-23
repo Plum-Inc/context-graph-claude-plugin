@@ -1,7 +1,7 @@
 ---
-description: Connect Claude Code to a plum workspace, and move it between organizations and between the workspaces of one organization. TRIGGER when the user wants to sign in to plum, connect the plugin, check whether it is signed in, switch organization or workspace, see which organizations or workspaces they have, work in a named engagement's workspace, set or clear the workspace this project's sessions start in, point the plugin at another deployment, or sign out, or says 'plum login', 'connect plum', 'plum status', 'switch org', 'change organization', 'switch workspace', 'work in the Dundas workspace', 'go look at the Dundas folder', 'work in Stratis', 'use the Stratis engagement', 'default workspace for this project', 'I am in the wrong workspace', 'where are my other views'. SKIP when the user wants to read or change the ontology (use /plum:learn, /plum:improve or /plum:harness) or update the plugin (use /plum:update).
+description: Connect Claude Code to a plum workspace, and move it between organizations and between the workspaces of one organization. TRIGGER when the user wants to sign in to plum, connect the plugin, check whether it is signed in, switch organization or workspace, see which organizations or workspaces they have, work in a named engagement's workspace, set or clear the workspace this project's sessions start in, point the plugin at another deployment, or sign out, or says 'plum login', 'connect plum', 'plum status', 'switch org', 'change organization', 'switch workspace', 'work in the Dundas workspace', 'go look at the Dundas folder', 'work in Stratis', 'use the Stratis engagement', 'default workspace for this project', 'I am in the wrong workspace', 'where are my other artifacts'. SKIP when the user wants to read or change the ontology (use /plum:learn, /plum:improve or /plum:harness) or update the plugin (use /plum:update).
 argument-hint: "[login|status|logout|org [<name>]|workspace [<name>|default [<name>|clear]]|url <app-url>]"
-allowed-tools: ["Bash", "AskUserQuestion", "mcp__plugin_plum_Plum__whoami", "mcp__plugin_plum_Plum__list_ontology_files", "mcp__plugin_plum_Plum__list_organizations", "mcp__plugin_plum_Plum__switch_organization", "mcp__plugin_plum_Plum__list_workspaces", "mcp__plugin_plum_Plum__switch_workspace", "mcp__plugin_plum_Plum__list_views"]
+allowed-tools: ["Bash", "AskUserQuestion", "mcp__plugin_plum_Plum__whoami", "mcp__plugin_plum_Plum__list_ontology_files", "mcp__plugin_plum_Plum__list_organizations", "mcp__plugin_plum_Plum__switch_organization", "mcp__plugin_plum_Plum__list_workspaces", "mcp__plugin_plum_Plum__switch_workspace", "mcp__plugin_plum_Plum__list_artifacts"]
 ---
 
 # plum Setup
@@ -17,7 +17,7 @@ Sign the plugin in to a plum workspace from the browser, check its state, or sig
 | `logout.js` | Revoke this machine's token on the server and forget it |
 | `switchOrg.js [<organizationId>]` | List the organizations this person belongs to, or move the plugin to one of them |
 | `workspaceDefault.js [<workspaceId>\|clear]` | Show, set or clear the workspace sessions in this project start in (`.plum/config.local.json`) |
-| `pageLink.js [--page ontology\|views] [--path <file>]` | Print a link to the Ontology page (optionally on one file) or the Views page |
+| `pageLink.js [--page ontology\|artifacts] [--path <file>] [--artifact <id>]` | Print a link to the Ontology page (optionally on one file) or the Artifacts page |
 
 ## Output
 
@@ -41,7 +41,7 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 | `logout` | `logout` | Revoke the token and sign out |
 | `url` | `url <app-url>` | Point the plugin at another deployment (local dev server, preview) and sign in there |
 
-**Natural-language aliases:** "switch org", "change organization", "I'm in the wrong organization" → `org`; "switch workspace", "work in the Dundas workspace", "go look at the Dundas folder", "work in Stratis", "which workspace am I in", "where are my other views" → `workspace`; "always start in", "default workspace for this project", "pin this workspace" → `workspace default`.
+**Natural-language aliases:** "switch org", "change organization", "I'm in the wrong organization" → `org`; "switch workspace", "work in the Dundas workspace", "go look at the Dundas folder", "work in Stratis", "which workspace am I in", "where are my other artifacts" → `workspace`; "always start in", "default workspace for this project", "pin this workspace" → `workspace default`.
 
 ## Login
 
@@ -76,7 +76,7 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 
 ## Org
 
-Every organization is its own workspace: its own sources, discovery, ontology and views. The plugin holds a token for exactly one of them — whichever was active in the browser when it signed in — so "my view has disappeared" and "the plugin cannot see our Salesforce data" are usually one organization away from being true.
+Every organization is its own workspace: its own sources, discovery, ontology and artifacts. The plugin holds a token for exactly one of them — whichever was active in the browser when it signed in — so "my view has disappeared" and "the plugin cannot see our Salesforce data" are usually one organization away from being true.
 
 1. Call `mcp__plugin_plum_Plum__list_organizations`. It marks the organization the plugin is in now and names the others with the person's role in each. If the tool cannot be called, run `node "${CLAUDE_PLUGIN_ROOT}/dist/commands/switchOrg.js"`, which prints one JSON line with the same list.
 
@@ -87,14 +87,14 @@ Every organization is its own workspace: its own sources, discovery, ontology an
 
    Never print, read or ask for a token, and never read files under `~/.config/plum`.
 3. Report the switch in two lines:
-   - which organization the plugin now reads and writes, and that everything after this (sources, ontology, views) is that organization's;
+   - which organization the plugin now reads and writes, and that everything after this (sources, ontology, artifacts) is that organization's;
    - that the browser does not follow on its own: the person picks the same organization in the app's own switcher to watch the plugin work.
 
-   Then call `mcp__plugin_plum_Plum__list_views` and say how many views this organization has, with the Views page link, so the person sees immediately whether what they were looking for is here. Stop.
+   Then call `mcp__plugin_plum_Plum__list_artifacts` and say how many artifacts this organization has, with the Artifacts page link, so the person sees immediately whether what they were looking for is here. Stop.
 
 ## Workspace
 
-An organization holds one or more workspaces, each one engagement with its own sources, ontology (one engagement folder of the playbook repository, fixed when the workspace was made, or the repository root, which is the playbook itself) and views. The plugin's token is bound to exactly one of them. "The plugin cannot see the Dundas AI files", "my view is gone" and "I cannot change the playbook from here" are usually one workspace away from being true.
+An organization holds one or more workspaces, each one engagement with its own sources, ontology (one engagement folder of the playbook repository, fixed when the workspace was made, or the repository root, which is the playbook itself) and artifacts. The plugin's token is bound to exactly one of them. "The plugin cannot see the Dundas AI files", "my view is gone" and "I cannot change the playbook from here" are usually one workspace away from being true.
 
 1. Call `mcp__plugin_plum_Plum__list_workspaces`. It marks the workspace the plugin is in now and names the others with the engagement folder each is; a workspace without one reads the repository root.
 

@@ -19674,7 +19674,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.36.0";
+var CONTRACT_VERSION = "1.40.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -20729,40 +20729,6 @@ var AggregateQuerySchema = external_exports.strictObject({
   limit: external_exports.coerce.number().int().min(1).max(500).default(50)
 });
 var AggregateValueSchema = external_exports.union([external_exports.number(), external_exports.string(), external_exports.null()]);
-var ViewFactsSchema = external_exports.record(
-  external_exports.string().min(1).max(40),
-  external_exports.union([external_exports.string().max(1e3), external_exports.number(), external_exports.boolean(), external_exports.null()])
-);
-var ViewSchema = external_exports.strictObject({
-  id: IdSchema,
-  title: external_exports.string().min(1).max(120),
-  /** The question the view answers, in the person's words. */
-  question: external_exports.string().max(1e3),
-  /** The main form of the view: waterfall, funnel, line, bar, table, kpi, flow, heatmap, scatter, histogram, or another word. */
-  form: external_exports.string().min(1).max(40),
-  /** One paragraph naming the type, filter, snapshot, coverage and exactness the numbers come from. */
-  caption: external_exports.string().max(2e3),
-  facts: ViewFactsSchema,
-  /** Elements in the spec. */
-  elementCount: CountSchema,
-  createdBy: external_exports.strictObject({ subjectId: IdSchema, tokenId: IdSchema.nullable() }),
-  revision: external_exports.number().int().positive(),
-  createdAt: TimestampSchema,
-  updatedAt: TimestampSchema
-});
-var ViewDetailSchema = ViewSchema.extend({ spec: external_exports.record(external_exports.string(), external_exports.unknown()) });
-var SaveViewRequestSchema = external_exports.strictObject({
-  /** Present to replace an existing view (its link stays); absent to create one. */
-  id: IdSchema.optional(),
-  title: ViewSchema.shape.title,
-  question: ViewSchema.shape.question.default(""),
-  form: ViewSchema.shape.form,
-  caption: ViewSchema.shape.caption.default(""),
-  facts: ViewFactsSchema.default({}),
-  spec: external_exports.record(external_exports.string(), external_exports.unknown())
-});
-var ViewListResponseSchema = external_exports.strictObject({ items: external_exports.array(ViewSchema), serverTime: TimestampSchema });
-var ViewListQuerySchema = external_exports.strictObject({ limit: external_exports.coerce.number().int().min(1).max(200).default(50) });
 var AggregateResponseSchema = external_exports.strictObject({
   type: external_exports.strictObject({ id: IdSchema, connectionId: IdSchema, nativeName: external_exports.string(), label: external_exports.string() }),
   query: external_exports.strictObject({
@@ -22264,6 +22230,7 @@ var ViewTableSchema = external_exports.object({
   columns: external_exports.array(external_exports.string().min(1).max(200)).min(1).max(12).describe('Column headers, e.g. ["StageName","count","sum:Amount"].'),
   rows: external_exports.array(external_exports.array(ViewValueSchema)).max(2e3).describe("One array per row, values in column order. Copy the aggregate result as is.")
 }).describe("A data table: the JSON block aggregate_records returns, or rows from export_records.");
+var VIEW_COLUMN_FORMATS = ["text", "number", "percent", "currency", "link"];
 var column = (what) => external_exports.string().min(1).describe(`Header in data.columns of ${what}.`);
 var optionalColumn = (what) => external_exports.string().nullable().describe(`Header in data.columns of ${what}, or null.`);
 var title = external_exports.string().nullable().describe("Short title above the chart, or null.");
@@ -22426,11 +22393,21 @@ var VIEW_COMPONENTS = {
     props: external_exports.object({
       title: external_exports.string().min(1).max(120).describe("What this part of the page answers."),
       subtitle: external_exports.string().nullable().describe("One line under the heading, or null."),
-      collapsed: external_exports.boolean().nullish().describe("Start folded away, for detail a reader opens only when they want it. Omit for open.")
+      eyebrow: external_exports.string().min(1).max(60).nullish().describe(
+        'A few words above the heading naming where this part sits in the argument, e.g. "The target list" or "Step 2". Omit for none.'
+      ),
+      collapsed: external_exports.boolean().nullish().describe(
+        "true starts it folded away, for detail a reader opens only when they want it; false offers the fold but starts open. Omit for open. In an artifact only a section that sets it can fold."
+      )
     }),
     slots: ["default"],
     description: "A titled group of panels with its own heading and breathing room. Use it once a page carries more than one question, so the reader sees three short sections instead of nine stacked charts.",
-    example: { title: "Where the pipeline leaks", subtitle: "Stage by stage, this quarter", collapsed: null }
+    example: {
+      title: "Where the pipeline leaks",
+      subtitle: "Stage by stage, this quarter",
+      eyebrow: "Pipeline",
+      collapsed: null
+    }
   },
   Divider: {
     props: external_exports.object({
@@ -22445,11 +22422,14 @@ var VIEW_COMPONENTS = {
       label: external_exports.string().min(1).max(80),
       value: external_exports.union([external_exports.string(), external_exports.number()]),
       unit,
-      note: external_exports.string().nullable().describe('What is behind the number, e.g. "90 opportunities", or null.')
+      note: external_exports.string().nullable().describe('What is behind the number, e.g. "90 opportunities", or null.'),
+      headline: external_exports.boolean().nullish().describe(
+        "true for the one number a section turns on, drawn at display size without a tile around it. At most one per section. Omit for a tile."
+      )
     }),
     slots: [],
     description: "One headline number with its label. Put several in a Row for a KPI strip. Not a chart with one bar.",
-    example: { label: "Closed-won amount", value: 11783485, unit: null, note: "90 opportunities" }
+    example: { label: "Closed-won amount", value: 11783485, unit: null, note: "90 opportunities", headline: null }
   },
   Trend: {
     props: external_exports.object({
@@ -22694,6 +22674,9 @@ var VIEW_COMPONENTS = {
       value: column("the count or amount at that stage"),
       order: external_exports.array(external_exports.string()).nullable().describe("Stage names in process order (from the picklist), or null to keep the row order."),
       unit,
+      form: external_exports.enum(["bars", "taper"]).nullish().describe(
+        "bars (the default) draws each stage as a bar sized by its value, so the drop between stages is measured by eye. taper draws the stages as one narrowing shape, numbered as steps, with each value written large on its step: for a short argument of filters (every brand, then the ones that qualify, then the ones that fit) where the reader follows the numbers rather than compares bar lengths. Taper ignores overlay."
+      ),
       palette: palette("single, so the eye follows the drop and not the colour"),
       emphasis,
       size,
@@ -22702,7 +22685,7 @@ var VIEW_COMPONENTS = {
       overlay
     }),
     slots: [],
-    description: 'Progression through ordered stages, each step carrying its own value and the conversion from the step before it. Order by the process, never by size. `labels` decides what is written on the steps themselves and `overlay` draws a second measure behind them, so one funnel can show both the count and the amount at each stage. Only for cohorts that pass through the stages, where each step counts records that also reached the one before it: a snapshot of how many records sit in each stage today is not one, and drawing it here produces conversions above 100% that mean nothing. Use a BarChart with sort "none" and the stages in process order for a snapshot.',
+    description: 'Progression through ordered stages, each step carrying its own value and the conversion from the step before it. Order by the process, never by size. `labels` decides what is written on the steps themselves and `overlay` draws a second measure behind them, so one funnel can show both the count and the amount at each stage. `form` "taper" turns it into the numbered narrowing shape a target-list argument reads as. Only for cohorts that pass through the stages, where each step counts records that also reached the one before it: a snapshot of how many records sit in each stage today is not one, and drawing it here produces conversions above 100% that mean nothing. Use a BarChart with sort "none" and the stages in process order for a snapshot.',
     example: {
       title: "Pipeline by stage",
       data: sampleTable,
@@ -22883,11 +22866,89 @@ var VIEW_COMPONENTS = {
       data: ViewTableSchema,
       totals: external_exports.array(ViewValueSchema).nullable().describe("A totals row aligned with the columns (null for grouping columns), or null."),
       unit,
-      size
+      size,
+      formats: external_exports.array(
+        external_exports.object({
+          column: external_exports.string().min(1).max(200).describe("Header in data.columns this format applies to."),
+          as: external_exports.enum(VIEW_COLUMN_FORMATS).nullish().describe(
+            "How the values read: text, number, percent (values already in percent, e.g. 12.5), currency (needs `currency`), or link (a web address or bare domain, opened in a new tab). Omit to keep the default for the column."
+          ),
+          currency: external_exports.string().regex(/^[A-Z]{3}$/).nullish().describe(
+            'ISO code with as "currency", e.g. "USD", only when the source states it. Large amounts are written short, e.g. $47.9M.'
+          ),
+          linkText: external_exports.string().min(1).max(40).nullish().describe('Words a link shows instead of its address, e.g. "Source". Omit to show the address.'),
+          detail: external_exports.string().min(1).max(200).nullish().describe(
+            'Header of another column written small under this one, e.g. "Spend basis" under a spend column. That column is then not drawn on its own.'
+          )
+        })
+      ).max(12).nullish().describe("Per-column formats, one entry per column that needs one. Omit for the defaults."),
+      search: external_exports.boolean().nullish().describe("true for a search box over the rows, for a list a reader hunts through. Omit for none."),
+      download: external_exports.boolean().nullish().describe("true to let the reader download the rows as CSV. Omit for none.")
     }),
     slots: [],
-    description: "The numbers themselves, sortable by any column, with an optional totals row. Put one under every chart so every value can be read.",
-    example: { title: null, data: sampleTable, totals: [null, 348, 49655153], unit: null }
+    description: 'The numbers themselves, sortable by any column, with an optional totals row. Put one under every chart so every value can be read. `formats` writes money, percentages and links the way a reader expects, and folds a qualifier such as "modeled" under the value it qualifies.',
+    example: {
+      title: null,
+      data: sampleTable,
+      totals: [null, 348, 49655153],
+      unit: null,
+      formats: [{ column: "sum:Amount", as: "currency", currency: "USD", linkText: null, detail: null }],
+      search: null,
+      download: null
+    }
+  },
+  Rubric: {
+    props: external_exports.object({
+      title,
+      criteria: external_exports.array(external_exports.string().min(1).max(60)).min(1).max(6).describe('The conditions, in the order the levels add them, e.g. ["100+ franchisees","Multi-brand parent"].'),
+      levels: external_exports.array(
+        external_exports.object({
+          label: external_exports.string().min(1).max(40).describe('The level, e.g. "Level 2".'),
+          met: external_exports.array(external_exports.string().min(1).max(60)).max(6).describe("The criteria this level meets, named exactly as in criteria."),
+          count: external_exports.number().nullable().describe("How many records sit at this level, or null."),
+          kept: external_exports.boolean().nullable().describe(
+            "Whether this level passes the step the rubric explains, or null when nothing is kept or dropped."
+          ),
+          note: external_exports.string().max(80).nullable().describe('A few words for a level that meets no criterion, e.g. "Under 100 franchisees", or null.')
+        })
+      ).min(2).max(8),
+      unit
+    }),
+    slots: [],
+    description: "A scoring rule drawn as a grid: one row per level, one column per criterion, each criterion a level meets filled in and named, with how many records sit at each level and whether the level is kept. For explaining how a tier or score was assigned. Not for numbers across two dimensions: use Heatmap.",
+    example: {
+      title: "How the complexity level is scored",
+      criteria: ["100+ franchisees", "Multi-brand parent", "In the US and Canada"],
+      levels: [
+        { label: "Level 0", met: [], count: 389, kept: false, note: "Under 100 franchisees" },
+        { label: "Level 1", met: ["100+ franchisees"], count: 400, kept: false, note: null },
+        { label: "Level 2", met: ["100+ franchisees", "Multi-brand parent"], count: 124, kept: true, note: null }
+      ],
+      unit: "brands"
+    }
+  },
+  Segments: {
+    props: external_exports.object({
+      state: external_exports.string().regex(/^[a-z][a-zA-Z0-9]{0,39}$/).describe('A short name for the choice, e.g. "region". Elements name it in `visible` as "/region".'),
+      label: external_exports.string().min(1).max(60).describe('What the reader is choosing, e.g. "Region".'),
+      options: external_exports.array(
+        external_exports.object({
+          value: external_exports.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/).describe('A slug, e.g. "us".'),
+          label: external_exports.string().min(1).max(40).describe('What the reader sees, e.g. "United States".')
+        })
+      ).min(2).max(6)
+    }),
+    slots: [],
+    description: 'A switch between a few versions of the same part of a page, such as North America, the United States and Canada. The first option is chosen when the page opens. Each version is its own element carrying `visible: { "$state": "/region", "eq": "us" }` (or `{ "$or": [...] }` of those) with that option\'s numbers: nothing is filtered in the browser, so every number on every version comes from a tool result.',
+    example: {
+      state: "region",
+      label: "Region",
+      options: [
+        { value: "all", label: "North America" },
+        { value: "us", label: "United States" },
+        { value: "ca", label: "Canada" }
+      ]
+    }
   }
 };
 var viewSchema = defineSchema((s) => ({
@@ -23818,8 +23879,21 @@ var PlumProposalReviewSchema = external_exports.object({
   changes: external_exports.array(PlumProposalChangeSchema),
   /** Full repository paths the branch changes outside the folder this workspace reads (1.29.0): the update belongs to another engagement. */
   elsewhere: external_exports.array(external_exports.string()).default([]),
-  /** Who rejected the proposal and why, in their words (1.30.0); null unless rejected. */
-  rejection: external_exports.object({ by: external_exports.string(), byName: external_exports.string().nullable().default(null), reason: external_exports.string() }).nullable().default(null)
+  /**
+   * Who rejected the proposal and why, in their words (1.30.0); null unless rejected. outsideReview (1.39.0): its pull
+   * request was closed on GitHub rather than rejected in Plum, and `by` is `github:<login>`.
+   */
+  rejection: external_exports.object({
+    by: external_exports.string(),
+    byName: external_exports.string().nullable().default(null),
+    reason: external_exports.string(),
+    outsideReview: external_exports.boolean().default(false)
+  }).nullable().default(null),
+  /**
+   * Who merged the proposal (1.39.0); null unless merged, or merged before 1.39.0 recorded nothing. outsideReview: its
+   * pull request was merged on GitHub, not approved in Plum, and `by` is `github:<login>`.
+   */
+  merge: external_exports.object({ by: external_exports.string(), byName: external_exports.string().nullable().default(null), outsideReview: external_exports.boolean() }).nullable().default(null)
 });
 var PlumProposalRejectRequestSchema = external_exports.strictObject({
   reason: external_exports.string().trim().min(1).max(2e3).describe("Why, for the proposer and the record.")
@@ -24187,10 +24261,16 @@ var GranolaSearchResultSchema = external_exports.object({
 });
 
 // ../../packages/shared/src/artifacts.ts
+var ArtifactTitleSchema = external_exports.string().min(1).max(120);
+var ArtifactFactsSchema = external_exports.record(
+  external_exports.string().min(1).max(40),
+  external_exports.union([external_exports.string().max(1e3), external_exports.number(), external_exports.boolean(), external_exports.null()])
+);
+var ARTIFACT_RECIPIENT_MAX_CHARS = 80;
 var ArtifactDocumentSchema = external_exports.strictObject({
-  title: ViewSchema.shape.title,
-  caption: ViewSchema.shape.caption.default(""),
-  facts: ViewFactsSchema.default({}),
+  title: ArtifactTitleSchema,
+  caption: external_exports.string().max(2e3).default(""),
+  facts: ArtifactFactsSchema.default({}),
   spec: external_exports.record(external_exports.string(), external_exports.unknown())
 });
 var HexColorSchema = external_exports.string().regex(/^#[0-9a-fA-F]{6}$/, "a colour is written #rrggbb");
@@ -24244,7 +24324,7 @@ var ArtifactTemplateSchema = external_exports.enum(ARTIFACT_TEMPLATES);
 var ArtifactRevisionSourceSchema = external_exports.discriminatedUnion("kind", [
   /** Written directly: through the API, the plugin or the editor. */
   external_exports.strictObject({ kind: external_exports.literal("direct") }),
-  /** Copied from a saved view at one of its revisions. */
+  /** Copied from a saved view at one of its revisions (before 1.38.0, when saved views were removed). */
   external_exports.strictObject({ kind: external_exports.literal("view"), viewId: IdSchema, viewRevision: external_exports.number().int().positive() }),
   /** Started from an approved template (1.35.0). */
   external_exports.strictObject({ kind: external_exports.literal("template"), template: ArtifactTemplateSchema }),
@@ -24257,7 +24337,7 @@ var ActorSchema = external_exports.strictObject({ subjectId: IdSchema, tokenId: 
 var ArtifactSchema = external_exports.strictObject({
   id: IdSchema,
   /** The title of the latest revision. */
-  title: ViewSchema.shape.title,
+  title: ArtifactTitleSchema,
   /** The one person who may change the artifact. */
   ownerSubjectId: IdSchema,
   /** The engagement folder the workspace read when the artifact was made; null for the repository root. */
@@ -24283,36 +24363,87 @@ var ArtifactRevisionSchema = external_exports.strictObject({
   createdAt: TimestampSchema
 });
 var ArtifactPublicationSchema = external_exports.strictObject({
-  /** The path anyone can open, `/a/<token>`, on the app's origin. */
-  path: external_exports.string().regex(/^\/a\/[A-Za-z0-9_-]{43}$/),
+  /**
+   * The path anyone can open, `/a/<token>`, on the app's origin. Since 1.38.0 the server keeps only a hash of the
+   * token, so the path comes back once, in the response that made the link, and is null on every later read.
+   */
+  path: external_exports.string().regex(/^\/a\/[A-Za-z0-9_-]{43}$/).nullable(),
   revision: external_exports.number().int().positive(),
   publishedAt: TimestampSchema,
-  publishedBy: IdSchema
+  publishedBy: IdSchema,
+  /** Names the link without its token, to move or revoke it (1.38.0). */
+  id: external_exports.string().regex(/^lnk_[0-9a-f-]{36}$/).optional(),
+  /** Who the link was made for, or null for the one link that names nobody (1.38.0). */
+  recipient: external_exports.string().nullable().default(null),
+  /** When the link stops working, or null for never (1.38.0). */
+  expiresAt: TimestampSchema.nullable().default(null),
+  /** How many times the link was read, and when last, from its view log (1.38.0). */
+  opens: external_exports.number().int().nonnegative().default(0),
+  lastOpenedAt: TimestampSchema.nullable().default(null)
 });
 var ArtifactDetailSchema = ArtifactSchema.extend({
   latest: ArtifactRevisionSchema,
   brand: ArtifactBrandStateSchema,
-  publication: ArtifactPublicationSchema.nullable()
+  /** The live link that names no recipient, as ADR 0015 made it, or null. */
+  publication: ArtifactPublicationSchema.nullable(),
+  /** Every live link, one per recipient plus the unnamed one, newest first (1.38.0). */
+  publications: external_exports.array(ArtifactPublicationSchema).default([])
 });
 var CreateArtifactRequestSchema = external_exports.union([
-  external_exports.strictObject({ fromViewId: IdSchema }),
   external_exports.strictObject({ document: ArtifactDocumentSchema }),
-  external_exports.strictObject({ template: ArtifactTemplateSchema, title: ViewSchema.shape.title.optional() })
+  external_exports.strictObject({ template: ArtifactTemplateSchema, title: ArtifactTitleSchema.optional() })
 ]);
 var SaveArtifactRequestSchema = external_exports.strictObject({
   expectedRevision: external_exports.number().int().positive(),
   document: ArtifactDocumentSchema
 });
 var ArtifactRevisionRequestSchema = external_exports.strictObject({ expectedRevision: external_exports.number().int().positive() });
+var PublishArtifactRequestSchema = external_exports.strictObject({
+  expectedRevision: external_exports.number().int().positive(),
+  recipient: external_exports.string().trim().min(1).max(ARTIFACT_RECIPIENT_MAX_CHARS).optional(),
+  linkId: external_exports.string().min(1).max(100).optional(),
+  /** When the link stops working; null clears an expiry, and leaving it out keeps the link's own. */
+  expiresAt: TimestampSchema.nullable().optional()
+}).refine(
+  (body) => !(body.recipient && body.linkId),
+  "Give a recipient for a new link or a linkId to move one, not both."
+);
+var UnpublishArtifactRequestSchema = external_exports.strictObject({ linkId: external_exports.string().min(1).max(100).optional() });
 var ArtifactListQuerySchema = external_exports.strictObject({ limit: external_exports.coerce.number().int().min(1).max(200).default(50) });
 var ArtifactListResponseSchema = external_exports.strictObject({
   items: external_exports.array(ArtifactSchema),
   serverTime: TimestampSchema
 });
+var EXTERNAL_ARTIFACT_URL_MAX_CHARS = 2e3;
+var ExternalArtifactUrlSchema = external_exports.string().trim().min(1).max(EXTERNAL_ARTIFACT_URL_MAX_CHARS).refine((value) => {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}, "the link is a full https:// address");
+var ExternalArtifactSchema = external_exports.strictObject({
+  id: external_exports.string().regex(/^ext_[0-9a-f-]{36}$/),
+  title: ArtifactTitleSchema,
+  url: ExternalArtifactUrlSchema,
+  /** Who added it; they, or an admin, can remove it. */
+  createdBy: IdSchema,
+  createdAt: TimestampSchema
+});
+var CreateExternalArtifactRequestSchema = external_exports.strictObject({
+  title: ArtifactTitleSchema,
+  url: ExternalArtifactUrlSchema
+});
+var ExternalArtifactListResponseSchema = external_exports.strictObject({
+  items: external_exports.array(ExternalArtifactSchema),
+  serverTime: TimestampSchema
+});
 var PublicArtifactSchema = external_exports.strictObject({
-  title: ViewSchema.shape.title,
+  title: ArtifactTitleSchema,
   caption: external_exports.string(),
   spec: external_exports.record(external_exports.string(), external_exports.unknown()),
+  /** Who the link was made for, shown on the page (1.38.0). */
+  recipient: external_exports.string().nullable().default(null),
   brand: external_exports.strictObject({ tokens: BrandTokensSchema, logo: ArtifactBrandSchema.shape.logo }).nullable(),
   rendererVersion: external_exports.number().int().positive(),
   publishedAt: TimestampSchema
@@ -24806,7 +24937,7 @@ async function runSwitchOrg(organizationId, client, save = saveToken) {
 if (process.env.VITEST === void 0) {
   void runCommand(
     {
-      description: "List the organizations this person belongs to, or move this install to one of them. Each organization is a separate workspace with its own sources, ontology and views.",
+      description: "List the organizations this person belongs to, or move this install to one of them. Each organization is a separate workspace with its own sources, ontology and artifacts.",
       positional: [
         {
           name: "organizationId",

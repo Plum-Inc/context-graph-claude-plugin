@@ -181,10 +181,7 @@ async function runCommand(spec, work) {
 function buildPagePath(page, options = {}) {
   if (page === "artifacts")
     return options.artifactId ? `/#artifacts:${encodeURIComponent(options.artifactId)}` : "/#artifacts";
-  if (page === "ontology") return options.path ? `/#ontology:${encodeURIComponent(options.path)}` : "/#ontology";
-  const params = new URLSearchParams({ stage: page });
-  if (options.viewId) params.set("view", options.viewId);
-  return `/?${params}`;
+  return options.path ? `/#ontology:${encodeURIComponent(options.path)}` : "/#ontology";
 }
 
 // src/commands/pageLink.ts
@@ -202,24 +199,23 @@ if (process.env.VITEST === void 0) {
         {
           name: "path",
           required: false,
-          description: "Relative app path, e.g. /#ontology:gtm/icp.md or /?stage=views&view=view_1."
+          description: "Relative app path, e.g. /#ontology:gtm/icp.md or /#artifacts:art_1."
         }
       ],
       flags: [
         {
           name: "page",
-          description: "ontology (the repository, file by file), views or artifacts when no path is given.",
+          description: "ontology (the repository, file by file) or artifacts when no path is given.",
           default: "ontology"
         },
         { name: "path", description: "Ontology file to open, e.g. AGENT.md or gtm/icp.md." },
-        { name: "view", description: "View id to open on the views page." },
         { name: "artifact", description: "Artifact id to open on the artifacts page." }
       ]
     },
     ({ positional, flags }) => {
-      const page = flags.page === "views" || flags.page === "artifacts" ? flags.page : "ontology";
+      const page = flags.page === "artifacts" ? flags.page : "ontology";
       const text = (name) => typeof flags[name] === "string" ? flags[name] : void 0;
-      const path2 = positional[0] ? validateRelativePath(positional[0]) : buildPagePath(page, { path: text("path"), viewId: text("view"), artifactId: text("artifact") });
+      const path2 = positional[0] ? validateRelativePath(positional[0]) : buildPagePath(page, { path: text("path"), artifactId: text("artifact") });
       emitPageLink(getConfig().serviceUrl, path2);
     }
   );

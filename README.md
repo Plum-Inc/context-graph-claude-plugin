@@ -40,8 +40,7 @@ Beside the pipeline:
 | `/plum:discovery [start [<company> <website>]\|status\|findings\|questions\|answer <question>: <answer>\|tell <message>]` | Start and steer the discovery agent: save the intake (the company, its website, who to ask first) and queue a run that reads the website and the connected sources, records claims with their evidence, asks what it cannot settle, and ends by opening a proposal on the ontology; follow the run, read what it found and asked, record your answer to a question, or tell it something |
 | `/plum:setup [login\|status\|org\|workspace [default]\|logout\|url <app-url>]` | Sign in from the browser, check the connection, move the plugin to another organization or to another workspace of the same organization (an engagement folder, or the repository root that holds the playbook), pin the workspace this project's sessions start in, sign out, or switch deployments |
 | `/plum:ontology [edit\|versions\|save\|draft\|publish\|compare\|settings]` | The numbered ontology versions over imported records: stage edits to entities, definitions with executable rules, relationships, metrics or processes, see the diff, save a draft only when you say save; preview exact membership changes and publish; diff versions; set automatic drafting |
-| `/plum:views [edit\|list\|delete] <question>` | Show what the data represents on the app's Views page as whatever UI the question needs (a waterfall, a funnel, a trend, a pie, a sankey, a heatmap, cards, a table, a KPI row), computed over every imported record with the published definitions applied; replaced in place when you ask for a change |
-| `/plum:artifacts [create\|edit\|list\|publish\|unpublish] <what>` | Make and manage client deliverables (a brief, a findings report, a snapshot dashboard, a workflow diagram) in the firm's brand kit on the app's Artifacts page: start from a template or a saved view, fill it from the ontology and the imported records, revise it as new revisions, and publish one revision to a public link, or take the link down, only when you say so |
+| `/plum:artifacts [create\|edit\|list\|publish\|unpublish] <what>` | Make and manage client deliverables (a brief, a findings report, a snapshot dashboard, a workflow diagram, a target list) in the firm's brand kit on the app's Artifacts page: fill it from the ontology and charts computed over every imported record, revise it as new revisions, give each client their own link (shown once, optionally expiring, with its opens counted), and move or revoke one link at a time, only when you say so |
 | `/plum:update [check]` | Report the version state, or apply an update the automatic one could not. Updates are not offered: the plugin applies an available one when a session starts and the banner tells you to restart |
 
 ## MCP tools
@@ -56,13 +55,15 @@ Numbered ontology versions: `get_ontology`, `get_ontology_version`, `edit_ontolo
 
 Sources and identity: `list_sources`, `get_imported_model`, `search_entities`, `whoami`, `list_organizations`, `switch_organization`, `list_workspaces`, `switch_workspace`, `get_plugin_activity`.
 
-Views: `aggregate_records` (group and total every record of a type on the server), `export_records` (every record of a type, up to 5,000, to a JSON file on this machine), `get_view_catalog`, `save_view`, `list_views` and `delete_view`.
+Records: `aggregate_records` (group and total every record of a type on the server), `export_records` (every record of a type, up to 5,000, to a JSON file on this machine).
+
+Artifacts: `get_view_catalog` (the components an artifact is built from), `list_artifacts`, `get_artifact`, `get_artifact_brand`, `create_artifact`, `save_artifact`, `publish_artifact` (one link per recipient, or move a link) and `unpublish_artifact` (revoke one link or all).
 
 MCP resources: every file of the ontology repository as `plum://ontology/<path>` (markdown), plus the newest and the published numbered ontology version.
 
 ## Organizations and workspaces
 
-An organization holds one or more workspaces, each with its own sources, ontology and views. A workspace reads one engagement folder of the shared ontology repository, or the repository root, which in Plum Consulting's repository is the playbook itself. The plugin signs in to one workspace, the one your browser was in at the time, so a file or a view you cannot find is often one workspace or one organization away. `/plum:setup workspace` lists the organization's workspaces and moves the plugin to one; `/plum:setup org` does the same across organizations. Neither needs a browser sign-in, and the app's own switchers move the browser. Naming an engagement in a prompt is enough ("go look at the Dundas folder", "work in Stratis"): the session banner names the organization's workspaces, so the plugin moves there, says so in one line, and stays for the rest of the session.
+An organization holds one or more workspaces, each with its own sources, ontology and artifacts. A workspace reads one engagement folder of the shared ontology repository, or the repository root, which in Plum Consulting's repository is the playbook itself. The plugin signs in to one workspace, the one your browser was in at the time, so a file or an artifact you cannot find is often one workspace or one organization away. `/plum:setup workspace` lists the organization's workspaces and moves the plugin to one; `/plum:setup org` does the same across organizations. Neither needs a browser sign-in, and the app's own switchers move the browser. Naming an engagement in a prompt is enough ("go look at the Dundas folder", "work in Stratis"): the session banner names the organization's workspaces, so the plugin moves there, says so in one line, and stays for the rest of the session.
 
 A project can name the workspace its sessions start in: `/plum:setup workspace default <name>` writes `workspaceId` to `.plum/config.local.json` (found upward from the working directory, so it can sit at a repository root and be committed), and every new session in that project moves the plugin there when it is elsewhere in the same organization. `/plum:setup workspace default clear` forgets it.
 
@@ -87,7 +88,7 @@ Every `dist/commands/*.js` answers `-h`:
 | `update.js [--check]` | Apply the latest published version through `claude plugin` |
 | `switchOrg.js [<organizationId>]` | List the organizations this person belongs to, or move the plugin to one |
 | `workspaceDefault.js [<workspaceId>\|clear]` | Show, set or clear the workspace this project's sessions start in |
-| `pageLink.js [path] [--page ontology\|views] [--path <file>] [--view <id>]` | Print a link into the app: the Ontology page, optionally on one file, or the Views page |
+| `pageLink.js [path] [--page ontology\|artifacts] [--path <file>] [--artifact <id>]` | Print a link into the app: the Ontology page, optionally on one file, or the Artifacts page, optionally on one artifact |
 | `tool.js <tool> ['<json>']` | Run any MCP tool from the shell; `--list` names them |
 
 ## Configuration
@@ -99,7 +100,7 @@ Every `dist/commands/*.js` answers `-h`:
 | `.plum/config.local.json` (searched upward from the working directory) | Per-project `serviceUrl` and `workspaceId` |
 | `CONTEXT_GRAPH_URL`, `CONTEXT_GRAPH_TOKEN` | Environment overrides |
 
-Sign an installation out from the "Claude Code" panel on the Views page at any time.
+Sign an installation out from the Claude Code card on the app's Settings page at any time.
 
 ## Development
 
