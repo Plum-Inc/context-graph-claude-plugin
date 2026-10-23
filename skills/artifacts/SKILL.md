@@ -41,7 +41,7 @@ The Artifacts page gives the owner a prompt to paste here, `/plum:artifacts edit
 
 ### List
 
-Call `mcp__plugin_plum_Plum__list_artifacts`. Report each on one line: title, revision, whether it is shared and at which revision, when it last changed. End with the Artifacts page link. Stop.
+Call `mcp__plugin_plum_Plum__list_artifacts`. It lists the whole workspace's artifacts, whoever made them. Report each on one line: title, revision, whether it is shared and at which revision, when it last changed; then the links added by hand on the Artifacts page (deliverables that live at a link), each with its address and who added it. End with the Artifacts page link. Stop.
 
 ### Create
 

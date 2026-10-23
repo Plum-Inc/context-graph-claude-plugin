@@ -26000,7 +26000,7 @@ var artifactSpec = external_exports.record(external_exports.string(), external_e
 var listArtifacts = {
   name: "list_artifacts",
   title: "List artifacts",
-  description: "The artifacts of this workspace, newest change first: branded briefs, findings reports, snapshot dashboards and workflow diagrams that one person owns. Each line gives the id, title, latest revision, whether a revision is published to a public link, and the owner. Use it to find the artifact the person means.",
+  description: "Every artifact of this workspace, newest change first \u2014 whoever made it: branded briefs, findings reports, snapshot dashboards and workflow diagrams that one person owns, then the links added by hand on the Artifacts page (deliverables that live at a link, such as a deck). Each artifact line gives the id, title, latest revision, whether a revision is published to a public link, and the owner. Use it to find the artifact the person means.",
   inputSchema: { limit: int2(external_exports.number().min(1).max(200)).optional() },
   outputSchema: ArtifactListResponseSchema
 };
@@ -27261,17 +27261,32 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
     async list_artifacts(args) {
       const { limit } = args;
       const list = parse3(ArtifactListResponseSchema, await client.get("/artifacts", { limit: limit ?? 50 }));
-      if (!list.items.length)
+      let external = [];
+      try {
+        external = parse3(ExternalArtifactListResponseSchema, await client.get("/artifacts/external")).items;
+      } catch (error62) {
+        if (!(error62 instanceof ApiError) || !["NOT_FOUND", "SERVICE_UNAVAILABLE"].includes(error62.code)) throw error62;
+      }
+      const links = external.length ? [
+        `Links on the Artifacts page (${external.length}, deliverables that live at a link):`,
+        ...external.map(
+          (item) => `- "${item.title}" \xB7 ${item.url} \xB7 added by ${item.createdBy} \xB7 ${when2(item.createdAt)}`
+        )
+      ] : [];
+      if (!list.items.length && !external.length)
         return structured(
           "No artifacts in this workspace yet. create_artifact starts one from a template or a document.",
           list
         );
       return structured(
         [
-          `Artifacts (${list.items.length}, newest change first):`,
-          ...list.items.map(
-            (item) => `- ${item.id} \xB7 "${item.title}" \xB7 revision ${item.revision}${item.publishedRevision ? ` \xB7 public at revision ${item.publishedRevision}` : " \xB7 private"} \xB7 owner ${item.ownerSubjectId} \xB7 ${when2(item.updatedAt)}`
-          ),
+          ...list.items.length ? [
+            `Artifacts (${list.items.length}, newest change first):`,
+            ...list.items.map(
+              (item) => `- ${item.id} \xB7 "${item.title}" \xB7 revision ${item.revision}${item.publishedRevision ? ` \xB7 public at revision ${item.publishedRevision}` : " \xB7 private"} \xB7 owner ${item.ownerSubjectId} \xB7 ${when2(item.updatedAt)}`
+            )
+          ] : ["No composed artifacts in this workspace yet."],
+          ...links,
           `Artifacts page: ${pageUrl(client.serviceUrl, "artifacts")}`
         ].join("\n"),
         list
