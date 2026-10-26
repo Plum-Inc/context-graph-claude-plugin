@@ -28508,7 +28508,7 @@ var StdioServerTransport = class {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.44.0";
+var CONTRACT_VERSION = "1.45.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -33919,6 +33919,12 @@ var ArtifactListResponseSchema = external_exports.strictObject({
   items: external_exports.array(ArtifactSchema),
   serverTime: TimestampSchema
 });
+var ArtifactWorkspaceSchema = WorkspaceSummarySchema.omit({ createdAt: true });
+var ArtifactsElsewhereResponseSchema = external_exports.strictObject({
+  workspaces: external_exports.array(ArtifactWorkspaceSchema.extend({ items: external_exports.array(ArtifactSchema) })),
+  serverTime: TimestampSchema
+});
+var ArtifactLocationSchema = external_exports.strictObject({ workspace: ArtifactWorkspaceSchema });
 var EXTERNAL_ARTIFACT_URL_MAX_CHARS = 2e3;
 var ExternalArtifactUrlSchema = external_exports.string().trim().min(1).max(EXTERNAL_ARTIFACT_URL_MAX_CHARS).refine((value) => {
   try {
@@ -43163,8 +43169,11 @@ var artifactSpec = external_exports.record(external_exports.string(), external_e
 var listArtifacts = {
   name: "list_artifacts",
   title: "List artifacts",
-  description: "Every artifact of this workspace, newest change first \u2014 whoever made it: branded briefs, findings reports, snapshot dashboards and workflow diagrams that one person owns, then the links added by hand on the Artifacts page (deliverables that live at a link, such as a deck). Each artifact line gives the id, title, latest revision, whether a revision is published to a public link, and the owner. Use it to find the artifact the person means.",
-  inputSchema: { limit: int2(external_exports.number().min(1).max(200)).optional() },
+  description: `Every artifact of this workspace, newest change first \u2014 whoever made it: branded briefs, findings reports, snapshot dashboards and workflow diagrams that one person owns, then the links added by hand on the Artifacts page (deliverables that live at a link, such as a deck). Each artifact line gives the id, title, latest revision, whether a revision is published to a public link, and the owner. Use it to find the artifact the person means. When it is not here, workspaces "others" lists the artifacts of the organization's other workspaces, grouped by workspace; opening one needs switch_workspace, called only after the person agrees.`,
+  inputSchema: {
+    limit: int2(external_exports.number().min(1).max(200)).optional().describe("Most artifacts to list, per workspace; 50 by default."),
+    workspaces: external_exports.enum(["current", "others"]).optional().describe("current (default): this workspace. others: every other workspace of the organization, grouped.")
+  },
   outputSchema: ArtifactListResponseSchema
 };
 var getArtifact = {
@@ -43192,6 +43201,15 @@ var createArtifact = {
     caption: external_exports.string().max(2e3).optional().describe("Provenance in one paragraph, drawn under the page, with spec."),
     facts: external_exports.record(external_exports.string().min(1).max(40), external_exports.union([external_exports.string().max(1e3), external_exports.number(), external_exports.boolean(), external_exports.null()])).optional().describe("The facts the numbers rest on, with spec."),
     spec: artifactSpec.optional()
+  }
+};
+var addArtifactLink = {
+  name: "add_artifact_link",
+  title: "Add a link to the Artifacts page",
+  description: "Save a deliverable that lives at a link (a deck, a shared document, a claude.ai artifact) to this workspace's Artifacts page, by title and https address, where everyone in the workspace sees it beside the artifacts. It is not a branded artifact (that is create_artifact) and the app does not open or copy what is at the link. Viewers cannot add one.",
+  inputSchema: {
+    title: external_exports.string().min(1).max(120).describe("What the Artifacts page lists it as."),
+    url: ExternalArtifactUrlSchema.describe("The full https:// address of the deliverable.")
   }
 };
 var saveArtifact = {
@@ -43320,6 +43338,7 @@ var ALL_TOOL_CONTRACTS = [
   getArtifact,
   getArtifactBrand,
   createArtifact,
+  addArtifactLink,
   saveArtifact,
   publishArtifact,
   unpublishArtifact,
@@ -43986,6 +44005,7 @@ var ARTIFACT_TOOLS = /* @__PURE__ */ new Set([
   "get_artifact",
   "get_artifact_brand",
   "create_artifact",
+  "add_artifact_link",
   "save_artifact",
   "publish_artifact",
   "unpublish_artifact"
@@ -44015,6 +44035,8 @@ function nextStep(error62, tool) {
         return "Next: only the owner of an artifact changes, publishes or takes it down, and viewers make none. get_artifact names the owner; ask them, or create_artifact from it as a new one the person owns.";
       return `Next: this account may not do that here. whoami shows its role and workspace; if the work belongs to another organization, list_organizations and ${platform.setupHint} org move the plugin. Otherwise a workspace admin has to make the change.`;
     case "NOT_FOUND":
+      if (ARTIFACT_TOOLS.has(tool))
+        return `Next: check the id: list_artifacts lists this workspace's artifacts, and list_artifacts with workspaces "others" the other workspaces of this organization (ask the person before switch_workspace). It may also live in another organization (list_organizations).`;
       return `Next: check the id: ${listing}. It may also live in another organization (list_organizations).`;
     case "CONFLICT":
       if (tool === "request_ontology_draft")
@@ -44121,11 +44143,22 @@ async function resolveType(client, requested, connectionId) {
     throw new ApiError("INVALID_REQUEST", `Ambiguous entity type ${requested}: pass connectionId or the type id.`, 400);
   return found[0];
 }
+var ARTIFACT_ID_TOOLS = /* @__PURE__ */ new Set([
+  "get_artifact",
+  "get_artifact_brand",
+  "save_artifact",
+  "publish_artifact",
+  "unpublish_artifact"
+]);
+var ELSEWHERE_HINT = `Not here? list_artifacts with workspaces "others" checks the organization's other workspaces.`;
 var shorten2 = (value, max = 160) => value.length > max ? `${value.slice(0, max - 1)}\u2026` : value;
 var when2 = (iso) => iso.replace("T", " ").replace(/\.\d+Z$/, "Z");
 var FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 var REVIEW_DIFF_FILES = 10;
 var targetQuery = (target) => target === "playbook" ? { target } : {};
+function artifactLine(item) {
+  return `- ${item.id} \xB7 "${item.title}" \xB7 revision ${item.revision}${item.publishedRevision ? ` \xB7 public at revision ${item.publishedRevision}` : " \xB7 private"} \xB7 owner ${item.ownerSubjectId} \xB7 ${when2(item.updatedAt)}`;
+}
 function versionLine(version2, published) {
   const executable = version2.definitions.filter((definition) => definition.rule.kind === "filter").length;
   return `- v${version2.version} \xB7 ${version2.version === published ? "PUBLISHED" : version2.state} \xB7 ${when2(version2.createdAt)} \xB7 by ${version2.author} \xB7 ${version2.definitions.length} definitions (${executable} executable)`;
@@ -44578,7 +44611,36 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       );
     },
     async list_artifacts(args) {
-      const { limit } = args;
+      const { limit, workspaces } = args;
+      if (workspaces === "others") {
+        let body;
+        try {
+          body = await client.get("/artifacts/elsewhere", { limit: limit ?? 50 });
+        } catch (error62) {
+          if (!(error62 instanceof ApiError) || error62.code !== "NOT_FOUND") throw error62;
+          return failure3(
+            "This app cannot look in other workspaces yet. list_workspaces names them; ask the person which one to switch to, and only on a yes call switch_workspace."
+          );
+        }
+        const elsewhere = parse3(ArtifactsElsewhereResponseSchema, body);
+        const all = { items: elsewhere.workspaces.flatMap((group) => group.items), serverTime: elsewhere.serverTime };
+        if (!elsewhere.workspaces.length)
+          return structured(
+            "No artifacts in this organization's other workspaces. If the person expected one, it may live in another organization (list_organizations).",
+            all
+          );
+        return structured(
+          [
+            "Artifacts in this organization's other workspaces (newest change first in each):",
+            ...elsewhere.workspaces.flatMap((group) => [
+              `${group.name} \xB7 workspace ${group.id}${group.engagement ? ` \xB7 engagements/${group.engagement}` : ""} (${group.items.length}):`,
+              ...group.items.map((item) => `  ${artifactLine(item)}`)
+            ]),
+            "Opening or changing one needs its workspace: ask the person whether to switch, and only on a yes call switch_workspace with that workspace id."
+          ].join("\n"),
+          all
+        );
+      }
       const list = parse3(ArtifactListResponseSchema, await client.get("/artifacts", { limit: limit ?? 50 }));
       let external = [];
       try {
@@ -44594,19 +44656,15 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       ] : [];
       if (!list.items.length && !external.length)
         return structured(
-          "No artifacts in this workspace yet. create_artifact starts one from a template or a document.",
+          `No artifacts in this workspace yet. create_artifact starts one from a template or a document. ${ELSEWHERE_HINT}`,
           list
         );
       return structured(
         [
-          ...list.items.length ? [
-            `Artifacts (${list.items.length}, newest change first):`,
-            ...list.items.map(
-              (item) => `- ${item.id} \xB7 "${item.title}" \xB7 revision ${item.revision}${item.publishedRevision ? ` \xB7 public at revision ${item.publishedRevision}` : " \xB7 private"} \xB7 owner ${item.ownerSubjectId} \xB7 ${when2(item.updatedAt)}`
-            )
-          ] : ["No composed artifacts in this workspace yet."],
+          ...list.items.length ? [`Artifacts (${list.items.length}, newest change first):`, ...list.items.map(artifactLine)] : ["No composed artifacts in this workspace yet."],
           ...links,
-          `Artifacts page: ${pageUrl(client.serviceUrl, "artifacts")}`
+          `Artifacts page: ${pageUrl(client.serviceUrl, "artifacts")}`,
+          ELSEWHERE_HINT
         ].join("\n"),
         list
       );
@@ -44679,6 +44737,22 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       const artifact = parse3(ArtifactDetailSchema, await client.post("/artifacts", body));
       return text3(
         `Created artifact "${artifact.title}" (${artifact.id}, revision 1)${artifact.brand.applied ? `, branded with ${artifact.brand.applied.tokens.name}` : ", unbranded"}. The person owns it and can edit it here: ${pageUrl(client.serviceUrl, "artifacts", { artifactId: artifact.id })}`
+      );
+    },
+    async add_artifact_link(args) {
+      const { title: title2, url: url2 } = args;
+      let body;
+      try {
+        body = await client.post("/artifacts/external", { title: title2, url: url2 });
+      } catch (error62) {
+        if (!(error62 instanceof ApiError) || error62.code !== "NOT_FOUND") throw error62;
+        return failure3(
+          "This app cannot save links to the Artifacts page yet. The person can add it there by hand once the app is updated."
+        );
+      }
+      const added = parse3(ExternalArtifactSchema, body);
+      return text3(
+        `Added "${added.title}" \xB7 ${added.url} to the Artifacts page (${added.id}). Everyone in this workspace sees it beside the artifacts: ${pageUrl(client.serviceUrl, "artifacts")}`
       );
     },
     async save_artifact(args) {
@@ -45159,6 +45233,16 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
       return structured(lines.join("\n"), activity);
     }
   };
+  async function artifactElsewhere(error62, tool, args) {
+    if (error62.code !== "NOT_FOUND" || !ARTIFACT_ID_TOOLS.has(tool) || typeof args.id !== "string") return null;
+    const location = await client.get(`/artifacts/${encodeURIComponent(args.id)}/workspace`).then((body) => ArtifactLocationSchema.parse(body)).catch(() => null);
+    if (!location || location.workspace.current) return null;
+    const { workspace } = location;
+    return [
+      `NOT_FOUND: ${args.id} is not in this workspace. It is in the workspace ${workspace.name} (id ${workspace.id}${workspace.engagement ? `, engagements/${workspace.engagement}` : ""}).`,
+      `Next: ask the person whether to switch to ${workspace.name}. Only on a yes, call switch_workspace with workspaceId "${workspace.id}", say so in one line, then call ${tool} again. Never switch without asking.`
+    ].join("\n");
+  }
   return ALL_TOOL_CONTRACTS.map((contract) => {
     const handle = handlers[contract.name];
     if (!handle) throw new Error(`No handler for tool ${contract.name}`);
@@ -45187,6 +45271,8 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
               "invalid-arguments"
             );
           if (error62 instanceof ApiError) {
+            const elsewhere = await artifactElsewhere(error62, contract.name, args);
+            if (elsewhere) return done(failure3(elsewhere), error62.code);
             const next = nextStep(error62, contract.name);
             return done(
               failure3(

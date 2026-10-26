@@ -19678,7 +19678,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.44.0";
+var CONTRACT_VERSION = "1.45.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -24486,6 +24486,12 @@ var ArtifactListResponseSchema = external_exports.strictObject({
   items: external_exports.array(ArtifactSchema),
   serverTime: TimestampSchema
 });
+var ArtifactWorkspaceSchema = WorkspaceSummarySchema.omit({ createdAt: true });
+var ArtifactsElsewhereResponseSchema = external_exports.strictObject({
+  workspaces: external_exports.array(ArtifactWorkspaceSchema.extend({ items: external_exports.array(ArtifactSchema) })),
+  serverTime: TimestampSchema
+});
+var ArtifactLocationSchema = external_exports.strictObject({ workspace: ArtifactWorkspaceSchema });
 var EXTERNAL_ARTIFACT_URL_MAX_CHARS = 2e3;
 var ExternalArtifactUrlSchema = external_exports.string().trim().min(1).max(EXTERNAL_ARTIFACT_URL_MAX_CHARS).refine((value) => {
   try {
