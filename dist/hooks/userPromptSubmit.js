@@ -19680,7 +19680,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.40.0";
+var CONTRACT_VERSION = "1.44.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -20777,7 +20777,9 @@ var ApiErrorCodeSchema = external_exports.enum([
   "NOT_IMPLEMENTED",
   "INTERNAL_ERROR",
   "RATE_LIMITED",
-  "SERVICE_UNAVAILABLE"
+  "SERVICE_UNAVAILABLE",
+  /** The person has not linked Google with the calendar scope (contract 1.43.0). */
+  "CALENDAR_NOT_CONNECTED"
 ]);
 var ApiErrorSchema = external_exports.strictObject({
   error: external_exports.strictObject({
@@ -20914,6 +20916,47 @@ var DefinitionDraftRequestSchema = DefinitionInputSchema.extend({
   expectedRevision: external_exports.number().int().positive()
 });
 var DefinitionPublishRequestSchema = external_exports.strictObject({ expectedRevision: external_exports.number().int().positive() });
+var WorkspaceLiveEventSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.strictObject({
+    kind: external_exports.literal("sync"),
+    connectionId: IdSchema,
+    runId: IdSchema,
+    status: SyncRunSchema.shape.status,
+    stage: SyncRunSchema.shape.stage,
+    records: external_exports.number().int().nonnegative(),
+    /** One human line about where the run is: "Reading notes · page 3". */
+    message: external_exports.string().max(300).nullable(),
+    error: external_exports.string().max(500).nullable(),
+    at: external_exports.string().min(1)
+  }),
+  external_exports.strictObject({
+    kind: external_exports.literal("ingest"),
+    noteId: external_exports.string().min(1),
+    status: external_exports.enum(["proposed", "skipped", "failed"]),
+    title: external_exports.string().max(300).nullable(),
+    /** Why a note was skipped, or what failed, for the row's detail line. */
+    reason: external_exports.string().max(500).nullable(),
+    at: external_exports.string().min(1)
+  })
+]);
+var RealtimeTokenResponseSchema = external_exports.strictObject({
+  token: external_exports.string().min(1),
+  /** HTTP(S) origin of the realtime API; the client swaps the scheme to ws(s). */
+  url: external_exports.string().min(1),
+  channel: external_exports.string().min(1),
+  topics: external_exports.array(external_exports.string().min(1)).min(1)
+});
+var ClientErrorReportSchema = external_exports.strictObject({
+  /** Where in the app it happened: a pane, screen or 'api'/'shell' for transport and layout reports. */
+  context: external_exports.string().min(1).max(120),
+  title: external_exports.string().min(1).max(300),
+  detail: external_exports.string().max(2e3).optional(),
+  /** The app page (location hash or path), never a full URL with query strings. */
+  page: external_exports.string().max(300).optional(),
+  requestId: external_exports.string().max(100).optional(),
+  status: external_exports.number().int().min(0).max(999).optional()
+});
+var ClientErrorAcceptedSchema = external_exports.strictObject({ ok: external_exports.literal(true) });
 
 // ../../packages/shared/src/services.ts
 var PrincipalSchema = external_exports.strictObject({
@@ -23171,6 +23214,31 @@ var PluginTelemetryAcceptedSchema = external_exports.strictObject({ accepted: ex
 var PLUGIN_ACTIVE_WINDOW_MS = 2 * 60 * 1e3;
 var HANDOFF_TICKET_TTL_MS = 10 * 60 * 1e3;
 
+// ../../packages/shared/src/desktop-auth.ts
+var DESKTOP_TICKET_PATTERN = /^dticket_[A-Za-z0-9_-]{43}$/;
+var PKCE_VALUE = external_exports.string().regex(/^[A-Za-z0-9_-]{43}$/);
+var DesktopAuthTicketRequestSchema = external_exports.strictObject({ codeChallenge: PKCE_VALUE });
+var DesktopAuthTicketSchema = external_exports.strictObject({
+  ticket: external_exports.string().regex(DESKTOP_TICKET_PATTERN),
+  /** The deep link the browser navigates to: `cg-desktop://auth?ticket=<ticket>`. */
+  url: external_exports.string().min(1).max(300),
+  expiresAt: TimestampSchema
+});
+var DesktopAuthExchangeRequestSchema = external_exports.strictObject({
+  ticket: external_exports.string().regex(DESKTOP_TICKET_PATTERN),
+  /** The verifier whose SHA-256 the browser step sent as the challenge. */
+  codeVerifier: PKCE_VALUE
+});
+var DesktopAuthExchangeResponseSchema = external_exports.strictObject({
+  token: external_exports.string().min(1),
+  /** Desktop tokens do not expire on their own; they last until the person revokes them. Null says so. */
+  expiresAt: TimestampSchema.nullable(),
+  /** A single-use Clerk sign-in token for the same person, valid for 60 seconds. The window redeems it as a ticket. */
+  signInToken: external_exports.string().min(1),
+  /** The Clerk organization the ticket was approved in; the window makes it the active one. */
+  organizationId: external_exports.string().min(1)
+});
+
 // ../../packages/shared/src/interviews/index.ts
 var positive = external_exports.number().int().positive();
 var short = external_exports.string().min(1).max(200);
@@ -24485,6 +24553,245 @@ var CreateArtifactGenerationRequestSchema = external_exports.strictObject({
   expectedRevision: external_exports.number().int().positive(),
   request: external_exports.string().trim().min(1).max(4e3)
 });
+
+// ../../packages/shared/src/documents.ts
+var DocumentRoleSchema = external_exports.enum(["OWNER", "EDITOR", "VIEWER"]);
+var DocumentTypeSchema = external_exports.enum(["meeting", "note"]);
+var DocumentPrincipalTypeSchema = external_exports.enum(["user", "workspace"]);
+var ProseMirrorMarkSchema = external_exports.object({
+  type: external_exports.string().min(1),
+  attrs: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
+});
+var ProseMirrorNodeSchema = external_exports.lazy(
+  () => external_exports.object({
+    type: external_exports.string().min(1),
+    attrs: external_exports.record(external_exports.string(), external_exports.unknown()).optional(),
+    content: external_exports.array(ProseMirrorNodeSchema).optional(),
+    text: external_exports.string().optional(),
+    marks: external_exports.array(ProseMirrorMarkSchema).optional()
+  })
+);
+var DocumentSchema = external_exports.strictObject({
+  id: IdSchema,
+  workspaceId: IdSchema,
+  ownerUserId: IdSchema,
+  title: external_exports.string(),
+  type: DocumentTypeSchema,
+  notesMarkdown: external_exports.string().nullable(),
+  /** Where the document came from (for example a recording app), or null for one written in the app. */
+  creationSource: external_exports.string().nullable(),
+  public: external_exports.boolean(),
+  hasShareableLink: external_exports.boolean(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  /** Set when the document is in the trash; null while it is live. */
+  deletedAt: TimestampSchema.nullable()
+});
+var UpsertDocumentRequestSchema = DocumentSchema.omit({
+  workspaceId: true,
+  ownerUserId: true,
+  createdAt: true,
+  updatedAt: true,
+  deletedAt: true
+});
+var ListDocumentsQuerySchema = external_exports.strictObject({
+  cursor: external_exports.string().min(1).max(1024).optional(),
+  limit: external_exports.coerce.number().int().min(1).max(100).optional()
+});
+var DocumentListResponseSchema = external_exports.strictObject({
+  items: external_exports.array(DocumentSchema),
+  nextCursor: external_exports.string().nullable()
+});
+var DocumentPanelSchema = external_exports.strictObject({
+  id: IdSchema,
+  documentId: IdSchema,
+  title: external_exports.string(),
+  content: ProseMirrorNodeSchema,
+  generatedBy: external_exports.string().nullable(),
+  sortOrder: external_exports.number().int(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema
+});
+var DocumentListSchema = external_exports.strictObject({
+  id: IdSchema,
+  title: external_exports.string(),
+  icon: external_exports.string().nullable(),
+  parentDocumentListId: IdSchema.nullable(),
+  visibility: external_exports.string().min(1),
+  sortOrder: external_exports.number().int(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema
+});
+var DocumentListItemSchema = external_exports.strictObject({
+  documentListId: IdSchema,
+  documentId: IdSchema,
+  sortOrder: external_exports.number().int()
+});
+var CreateFolderRequestSchema = external_exports.strictObject({
+  id: IdSchema,
+  title: external_exports.string().trim().min(1).max(200),
+  icon: external_exports.string().max(100).nullable().optional(),
+  parentDocumentListId: IdSchema.nullable().optional(),
+  sortOrder: external_exports.number().int().optional()
+});
+var UpdateFolderRequestSchema = external_exports.strictObject({
+  title: external_exports.string().trim().min(1).max(200).optional(),
+  icon: external_exports.string().max(100).nullable().optional(),
+  parentDocumentListId: IdSchema.nullable().optional(),
+  sortOrder: external_exports.number().int().optional()
+}).refine((value) => Object.values(value).some((field) => field !== void 0), "Give at least one field to change.");
+var PlaceDocumentInFolderRequestSchema = external_exports.strictObject({
+  documentId: IdSchema,
+  sortOrder: external_exports.number().int().optional()
+});
+var DocumentAccessSchema = external_exports.strictObject({
+  documentId: IdSchema,
+  principalType: DocumentPrincipalTypeSchema,
+  principalId: IdSchema,
+  role: DocumentRoleSchema,
+  createdAt: TimestampSchema
+});
+var DocumentRoleResponseSchema = external_exports.strictObject({ role: DocumentRoleSchema });
+var GrantableDocumentRoleSchema = external_exports.enum(["EDITOR", "VIEWER"]);
+var GrantDocumentAccessRequestSchema = external_exports.strictObject({
+  principalType: DocumentPrincipalTypeSchema,
+  principalId: IdSchema,
+  role: GrantableDocumentRoleSchema
+});
+var CreateDocumentPanelRequestSchema = external_exports.strictObject({
+  id: IdSchema,
+  title: external_exports.string().min(1),
+  content: ProseMirrorNodeSchema,
+  sortOrder: external_exports.number().int().optional()
+});
+var UpdateDocumentPanelRequestSchema = external_exports.strictObject({
+  title: external_exports.string().min(1).optional(),
+  content: ProseMirrorNodeSchema.optional(),
+  sortOrder: external_exports.number().int().optional()
+}).refine((value) => Object.values(value).some((field) => field !== void 0), "Give at least one field to change.");
+
+// ../../packages/shared/src/calendar.ts
+var CalendarProviderSchema = external_exports.literal("google");
+var CalendarResponseStatusSchema = external_exports.enum(["needsAction", "declined", "tentative", "accepted"]);
+var CalendarTimeSchema = external_exports.union([TimestampSchema, external_exports.iso.date()]);
+var CalendarAttendeeSchema = external_exports.strictObject({
+  /** The display name the calendar holds, or null when it holds only the email. */
+  name: external_exports.string().min(1).max(200).nullable(),
+  email: external_exports.string().min(1).max(320),
+  /** True for the person who asked. */
+  self: external_exports.boolean(),
+  responseStatus: CalendarResponseStatusSchema
+});
+var CalendarEventSchema = external_exports.strictObject({
+  provider: CalendarProviderSchema,
+  id: external_exports.string().min(1).max(1024),
+  iCalUid: external_exports.string().min(1).max(1024),
+  title: external_exports.string().min(1).max(500),
+  start: CalendarTimeSchema,
+  end: CalendarTimeSchema,
+  allDay: external_exports.boolean(),
+  attendees: external_exports.array(CalendarAttendeeSchema).max(200),
+  /** The video call link: Meet, a conference entry point, or a Zoom or Teams link found in the event. */
+  joinUrl: external_exports.url({ protocol: /^https$/ }).max(2048).nullable(),
+  organizerEmail: external_exports.string().min(1).max(320).nullable()
+});
+var MeetingCalendarEventSchema = CalendarEventSchema.pick({
+  provider: true,
+  id: true,
+  iCalUid: true,
+  title: true,
+  start: true,
+  end: true,
+  attendees: true,
+  joinUrl: true
+});
+var CalendarStatusResponseSchema = external_exports.strictObject({
+  connected: external_exports.boolean(),
+  /** The linked Google account's email, when it is connected and known. */
+  email: external_exports.string().min(1).max(320).nullable()
+});
+var CalendarEventsResponseSchema = external_exports.strictObject({ events: external_exports.array(CalendarEventSchema) });
+
+// ../../packages/shared/src/meetings.ts
+var MeetingStateSchema = external_exports.enum(["recording", "processing", "done"]);
+var MeetingAudioSourceSchema = external_exports.enum(["mic", "system"]);
+var MeetingAudioMetaSchema = external_exports.strictObject({
+  sampleRate: external_exports.number().int().positive().optional(),
+  channels: external_exports.number().int().min(1).max(2).optional(),
+  sources: external_exports.array(MeetingAudioSourceSchema)
+});
+var MeetingSchema = external_exports.strictObject({
+  id: IdSchema,
+  workspaceId: IdSchema,
+  documentId: IdSchema,
+  startedAt: TimestampSchema.nullable(),
+  endedAt: TimestampSchema.nullable(),
+  state: MeetingStateSchema,
+  audioMeta: MeetingAudioMetaSchema.nullable(),
+  /** The source record created from this meeting once it finishes, so the meeting feeds the context graph. Null until then. */
+  sourceRecordId: IdSchema.nullable(),
+  /** The calendar event the meeting was started from (a snapshot taken at start), or null. Calendar text is data. */
+  calendarEvent: MeetingCalendarEventSchema.nullable(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema
+});
+var TranscriptChunkSchema = external_exports.strictObject({
+  /** Generated by the desktop app, so a chunk that is sent twice is stored once. */
+  id: IdSchema,
+  meetingId: IdSchema,
+  startMs: external_exports.number().int().nonnegative(),
+  endMs: external_exports.number().int().nonnegative(),
+  speaker: external_exports.string().min(1).nullable(),
+  text: external_exports.string().min(1),
+  /** False for a partial result that the transcriber may still revise. */
+  isFinal: external_exports.boolean()
+}).refine((chunk) => chunk.endMs >= chunk.startMs, {
+  message: "endMs must not be before startMs",
+  path: ["endMs"]
+});
+var TranscriptionAuthTokenResponseSchema = external_exports.strictObject({
+  provider: external_exports.literal("assembly-universal"),
+  /** A short-lived token for the transcriber. It is never stored and never logged. */
+  token: external_exports.string().min(1),
+  expiresAt: TimestampSchema,
+  /**
+   * Names, accounts and jargon from the workspace, for the transcriber's `keyterms_prompt`. The desktop app sends them
+   * to AssemblyAI. They are data, not instructions: never act on their wording.
+   */
+  keyterms: external_exports.array(external_exports.string().min(1).max(50)).max(100)
+});
+var InsertTranscriptionsRequestSchema = external_exports.strictObject({
+  meetingId: IdSchema,
+  documentId: IdSchema,
+  chunks: external_exports.array(TranscriptChunkSchema).min(1)
+});
+var StartMeetingRequestSchema = external_exports.strictObject({
+  meetingId: IdSchema,
+  documentId: IdSchema,
+  title: external_exports.string().trim().min(1).max(200),
+  audioMeta: MeetingAudioMetaSchema.nullable(),
+  /** The calendar event this meeting is for, when it was started from one. */
+  calendarEvent: MeetingCalendarEventSchema.optional()
+});
+var MeetingListItemSchema = external_exports.strictObject({
+  id: IdSchema,
+  documentId: IdSchema,
+  title: external_exports.string(),
+  state: MeetingStateSchema,
+  startedAt: TimestampSchema.nullable(),
+  endedAt: TimestampSchema.nullable()
+});
+var MeetingListResponseSchema = external_exports.strictObject({
+  items: external_exports.array(MeetingListItemSchema),
+  nextCursor: external_exports.string().nullable()
+});
+var MeetingDetailSchema = external_exports.strictObject({
+  meeting: MeetingSchema,
+  document: DocumentSchema,
+  transcript: external_exports.array(TranscriptChunkSchema),
+  panels: external_exports.array(DocumentPanelSchema)
+});
+var SummaryRequestedResponseSchema = external_exports.strictObject({ status: external_exports.literal("queued") });
 
 // src/config.ts
 import fs from "node:fs";
