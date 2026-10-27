@@ -19678,7 +19678,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.46.0";
+var CONTRACT_VERSION = "1.47.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -23912,9 +23912,10 @@ var PLUM_UPDATE_MAX_FILES = 50;
 var PLUM_UPDATE_FILE_MAX_CHARS = 6e4;
 var PLUM_UPDATE_MAX_CHARS = 5e5;
 var PLUM_UPDATE_LIMITS_TEXT = `At most ${PLUM_UPDATE_MAX_FILES} files, ${PLUM_UPDATE_FILE_MAX_CHARS.toLocaleString("en-US")} characters per file and ${PLUM_UPDATE_MAX_CHARS.toLocaleString("en-US")} characters in all.`;
+var PLUM_RATIONALE_TEXT = 'Write three Markdown sections, in this order: "## Before" (what the ontology says now), "## What changed" (one bullet per change) and "## Why" (the reason, and the sources: document names, meeting dates, who said it). Use short sentences in the active voice, one idea in each (ASD-STE100 style). Leave out filler and detail that the diff shows. Plain text without these sections goes under Why, with the changed files listed for you.';
 var PlumOntologyUpdateRequestSchema = external_exports.strictObject({
   title: external_exports.string().trim().min(1).max(200).describe("What the change does, in a few words."),
-  rationale: external_exports.string().trim().min(1).max(4e3).describe("Why, and which sources it comes from. The reviewer reads this before approving."),
+  rationale: external_exports.string().trim().min(1).max(4e3).describe(`The pull request description the reviewer reads before approving. ${PLUM_RATIONALE_TEXT}`),
   files: external_exports.array(
     external_exports.strictObject({
       path: external_exports.string().min(1).max(300).describe("Repository path, e.g. gtm/definitions/icp.md or AGENT.md."),
@@ -24775,6 +24776,10 @@ var InsertTranscriptionsRequestSchema = external_exports.strictObject({
   meetingId: IdSchema,
   documentId: IdSchema,
   chunks: external_exports.array(TranscriptChunkSchema).min(1)
+});
+var RelabelTranscriptionsRequestSchema = external_exports.strictObject({
+  meetingId: IdSchema,
+  changes: external_exports.array(external_exports.strictObject({ id: external_exports.string().min(1), speaker: external_exports.string().min(1).nullable() })).min(1).max(500)
 });
 var StartMeetingRequestSchema = external_exports.strictObject({
   meetingId: IdSchema,

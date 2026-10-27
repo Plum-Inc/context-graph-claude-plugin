@@ -28508,7 +28508,7 @@ var StdioServerTransport = class {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.46.0";
+var CONTRACT_VERSION = "1.47.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -33345,9 +33345,10 @@ var PLUM_UPDATE_MAX_FILES = 50;
 var PLUM_UPDATE_FILE_MAX_CHARS = 6e4;
 var PLUM_UPDATE_MAX_CHARS = 5e5;
 var PLUM_UPDATE_LIMITS_TEXT = `At most ${PLUM_UPDATE_MAX_FILES} files, ${PLUM_UPDATE_FILE_MAX_CHARS.toLocaleString("en-US")} characters per file and ${PLUM_UPDATE_MAX_CHARS.toLocaleString("en-US")} characters in all.`;
+var PLUM_RATIONALE_TEXT = 'Write three Markdown sections, in this order: "## Before" (what the ontology says now), "## What changed" (one bullet per change) and "## Why" (the reason, and the sources: document names, meeting dates, who said it). Use short sentences in the active voice, one idea in each (ASD-STE100 style). Leave out filler and detail that the diff shows. Plain text without these sections goes under Why, with the changed files listed for you.';
 var PlumOntologyUpdateRequestSchema = external_exports.strictObject({
   title: external_exports.string().trim().min(1).max(200).describe("What the change does, in a few words."),
-  rationale: external_exports.string().trim().min(1).max(4e3).describe("Why, and which sources it comes from. The reviewer reads this before approving."),
+  rationale: external_exports.string().trim().min(1).max(4e3).describe(`The pull request description the reviewer reads before approving. ${PLUM_RATIONALE_TEXT}`),
   files: external_exports.array(
     external_exports.strictObject({
       path: external_exports.string().min(1).max(300).describe("Repository path, e.g. gtm/definitions/icp.md or AGENT.md."),
@@ -34208,6 +34209,10 @@ var InsertTranscriptionsRequestSchema = external_exports.strictObject({
   meetingId: IdSchema,
   documentId: IdSchema,
   chunks: external_exports.array(TranscriptChunkSchema).min(1)
+});
+var RelabelTranscriptionsRequestSchema = external_exports.strictObject({
+  meetingId: IdSchema,
+  changes: external_exports.array(external_exports.strictObject({ id: external_exports.string().min(1), speaker: external_exports.string().min(1).nullable() })).min(1).max(500)
 });
 var StartMeetingRequestSchema = external_exports.strictObject({
   meetingId: IdSchema,
@@ -42914,7 +42919,7 @@ var proposeOntologyUpdate = {
   description: `Open new, changed or removed ontology files as one pull request on the ontology repository for a person to approve in the app or on GitHub. Nothing reaches the approved ontology until they do. Send each file whole, frontmatter included, following the repository layout: one topic per file, edit the file that owns a topic instead of adding another, label statements confirmed, inferred or unknown, write unknowns as OPEN, and update AGENT.md's navigation or the folder README when you add or remove a file. Read the files you change first and preview_ontology_update the result: the proposal is opened against the folder and version of the last preview and refused when the workspace reads another folder now or the approved version moved (preview again). With target "playbook" (an admin only) it lands on the firm's playbook at the repository root, from this engagement workspace, as a playbook update every engagement reads once it merges. ${PLUM_UPDATE_LIMITS_TEXT}`,
   inputSchema: {
     title: external_exports.string().trim().min(1).max(200).describe("What the change does, in a few words."),
-    rationale: external_exports.string().trim().min(1).max(4e3).describe("Why, and which sources it comes from (document names, meeting dates). The reviewer reads this."),
+    rationale: external_exports.string().trim().min(1).max(4e3).describe(`The pull request description the reviewer reads. ${PLUM_RATIONALE_TEXT}`),
     files: ontologyUpdateFiles,
     target: ontologyTarget
   }
@@ -42937,7 +42942,7 @@ var reviewOntologyUpdate = {
 var rejectOntologyUpdate = {
   name: "reject_ontology_update",
   title: "Reject ontology update",
-  description: "Decline an open ontology update the person has decided against: its pull request is closed, its branch deleted, and the reason kept with it in the list. Editors and admins only. Nothing reaches the approved ontology either way; approving stays in the app or on GitHub. Ask the person before calling it.",
+  description: "Decline an open ontology update the person has decided against: the reason is posted on its pull request and kept with it in the list, then the pull request is closed and its branch deleted. Editors and admins only. Nothing reaches the approved ontology either way; approving stays in the app or on GitHub. Ask the person before calling it.",
   inputSchema: {
     id: external_exports.string().trim().min(1).max(100).describe("The update id (pr_\u2026) from list_ontology_updates."),
     reason: external_exports.string().trim().min(1).max(2e3).describe("Why, in the person's words, for the proposer and the record.")
