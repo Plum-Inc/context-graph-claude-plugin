@@ -19678,7 +19678,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.45.0";
+var CONTRACT_VERSION = "1.46.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -20777,7 +20777,9 @@ var ApiErrorCodeSchema = external_exports.enum([
   "RATE_LIMITED",
   "SERVICE_UNAVAILABLE",
   /** The person has not linked Google with the calendar scope (contract 1.43.0). */
-  "CALENDAR_NOT_CONNECTED"
+  "CALENDAR_NOT_CONNECTED",
+  /** A document save started from a version that someone else has since replaced (contract 1.46.0). */
+  "STALE_VERSION"
 ]);
 var ApiErrorSchema = external_exports.strictObject({
   error: external_exports.strictObject({
@@ -24597,7 +24599,12 @@ var UpsertDocumentRequestSchema = DocumentSchema.omit({
   createdAt: true,
   updatedAt: true,
   deletedAt: true
-});
+}).extend({ baseUpdatedAt: TimestampSchema.nullable().optional() });
+var DocumentDestinationSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.strictObject({ kind: external_exports.literal("mine") }),
+  external_exports.strictObject({ kind: external_exports.literal("workspace"), workspaceId: IdSchema })
+]);
+var MoveDocumentRequestSchema = external_exports.strictObject({ to: DocumentDestinationSchema });
 var ListDocumentsQuerySchema = external_exports.strictObject({
   cursor: external_exports.string().min(1).max(1024).optional(),
   limit: external_exports.coerce.number().int().min(1).max(100).optional()
@@ -24796,6 +24803,26 @@ var MeetingDetailSchema = external_exports.strictObject({
   panels: external_exports.array(DocumentPanelSchema)
 });
 var SummaryRequestedResponseSchema = external_exports.strictObject({ status: external_exports.literal("queued") });
+var SpaceIdSchema = external_exports.union([external_exports.literal("mine"), IdSchema]);
+var SpaceItemsQuerySchema = external_exports.strictObject({
+  cursor: external_exports.string().min(1).max(1024).optional(),
+  limit: external_exports.coerce.number().int().min(1).max(100).optional()
+});
+var SpaceItemSchema = external_exports.strictObject({
+  document: DocumentSchema.omit({ notesMarkdown: true }),
+  /** Whether the caller owns the document; in 'mine', one they do not own was shared with them. */
+  owned: external_exports.boolean(),
+  meeting: external_exports.strictObject({
+    id: IdSchema,
+    state: MeetingStateSchema,
+    startedAt: TimestampSchema.nullable(),
+    endedAt: TimestampSchema.nullable()
+  }).nullable()
+});
+var SpaceItemsResponseSchema = external_exports.strictObject({
+  items: external_exports.array(SpaceItemSchema),
+  nextCursor: external_exports.string().nullable()
+});
 
 // src/buildInfo.ts
 import fs from "node:fs";
@@ -25184,14 +25211,11 @@ function createApiClient(platform2, pluginVersion, options = {}) {
 }
 
 // src/lineage.ts
-var LINEAGE_RULE = [
-  "Lineage rule for answers about this business: every statement names its label and its source.",
-  "- The label is confirmed, inferred or OPEN, as the ontology file carries it; never upgrade one.",
-  "- An ontology file is cited as path:line (get_ontology_file numbers its lines; exec_bash grep -n gives them too).",
-  "- A Granola meeting is cited by its title, date and note id, naming who said it.",
-  "- Imported records are cited by the query or view that produced the number.",
-  "- A statement with none of these is said to be unsourced, in that word, or left out.",
-  "The approved ontology is the record; a meeting note is informal and dated. When a note disagrees with a file, quote the file line and the note side by side and offer /plum:improve to propose the change, rather than overruling the file in the answer."
+var SOURCES_CONTEXT = [
+  "About this business's sources:",
+  "- The approved ontology is the record. Its statements are labelled confirmed, inferred or OPEN: an inferred one is not settled, an OPEN one is unknown, and only a person confirms one.",
+  "- A meeting note is informal and dated, and can be newer than the ontology. Notes are machine transcribed, so names of people, companies and tools can be misheard. When a note disagrees with a file, /plum:improve proposes the change.",
+  "- The ids in files and notes (clm_, src_, not_), commits and line numbers are for tracing a statement when someone asks where it comes from."
 ].join("\n");
 
 // src/pluginRoot.ts
@@ -25523,7 +25547,7 @@ function defaultSpawnUpdate() {
 }
 function sessionContext(messages, workspaces = null) {
   const banner = messages[0] ?? "";
-  if (banner.includes("Connected to")) return [banner, workspaceContext(workspaces), LINEAGE_RULE].join("\n");
+  if (banner.includes("Connected to")) return [banner, workspaceContext(workspaces), SOURCES_CONTEXT].join("\n");
   if (banner.includes("Open this link"))
     return `${banner}
 The link is valid for ten minutes. Once the person approves it in the browser, the plugin's tools connect on their next call: no restart and no command. If it expired, ${platform.loginHint} makes a new one. Never invent a different link.`;

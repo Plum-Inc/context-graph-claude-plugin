@@ -12,17 +12,17 @@ This skill reads. It never proposes a change: what the call teaches goes back th
 
 ## Output
 
-The user wants the result, not the work. Do not narrate what you are about to do, which tool you are calling, or what you are checking; never write "Let me", "I'll", "First I'll" or a summary of your reasoning. Run the steps silently and answer with the brief only, in the shape under "Write the brief": every line about the business carries its label and its file (for example "Ask first: 1. How is the enterprise plan priced? (OPEN, strategy/pricing.md:12) · ask the CFO; she is on the call."), a section the files say nothing about says "unknown" and names the file that should hold it, and nothing is added that the files do not say. Never state as fact what the files label inferred or unknown. When something fails, say what failed and the one command that fixes it, nothing else.
+The user wants the result, not the work. Do not narrate what you are about to do, which tool you are calling, or what you are checking; never write "Let me", "I'll", "First I'll" or a summary of your reasoning. Run the steps silently and answer with the brief only, in the shape under "Write the brief": a line that is inferred says so, a section the files say nothing about says "unknown", and nothing is added that the files do not say. Never state as fact what the files label inferred or unknown. When something fails, say what failed and the one command that fixes it, nothing else.
 
-## Lineage
+## Sources
 
-Every statement about the business in the brief names its label and its source, so a wrong line can be traced and corrected where it was written:
+The brief is read by a person before a call, so it carries no file paths, line numbers, commits or source ids; those are given when someone asks where a line comes from (`exec_bash` with `grep -n` finds the line, and its cited `sources/<id>.md` says what backs it).
 
-- An ontology file is cited as `path:line`. `get_ontology_file` numbers its lines (the numbers are not part of the file); `exec_bash` with `grep -n` gives the number for one phrase.
-- The label is the file's: confirmed, inferred or `OPEN`. Never upgrade one in the brief, and never state as fact what a file labels inferred.
-- What backs a file line is its cited ids: `sources/<id>.md` says what kind of source it was, who provided it and its authority. A line whose source is a web page (`connector: web`) carries the page's fetched date: "(inferred, market/overview.md:8; website, fetched 2026-10-11)".
-- A meeting note is cited by its title, date and who said it, and is informal: the file is the approved record. When a note disagrees with a file, the brief shows the file line and the note side by side under "Since the files" and names `/plum:improve ingest` as the way to propose the change; it never overrules the file.
-- A statement none of these back is left out.
+- The label is the file's: confirmed, inferred or `OPEN`. Never upgrade one, and never state as fact what a file labels inferred.
+- A line whose only source is a web page carries the page's fetched date: "(website, fetched 2026-10-11)".
+- A meeting note is informal and dated: the file is the approved record. When a note disagrees with a file, the brief shows both under "Since the files" and names `/plum:improve ingest` as the way to propose the change; it never overrules the file.
+- Meeting notes are machine transcribed. A name that does not fit what the files say is likely misheard; use the name the files use.
+- A statement nothing backs is left out.
 
 ## Tool access
 
@@ -64,33 +64,33 @@ A line whose only source is a web page is shown with its fetched date ("website,
 
 ### 5. Write the brief
 
-One page, about 60 lines; when it runs long, drop the least useful lines first and the sources never. This shape, in this order:
+One page, about 60 lines; when it runs long, drop the least useful lines first. This shape, in this order:
 
 ```
 # Brief: <company> · <focus, or "next call"> · <today's date>
 From <n> ontology files (as of <latest as_of>) and <m> meeting notes (latest <date>).
 
 ## Ask first
-1. <question in the file's words> (OPEN, <path:line>) · ask <who the file names>; <attendee> is on the call
-2. <section the files leave unknown, as the framework's question> (unknown; <file that should hold it>)
+1. <question in the file's words> · ask <who the file names>; <attendee> is on the call
+2. <section the files leave unknown, as the framework's question>
 
 ## Since the files
-- <what the note says> ("<note title>", <date>, <who said it>) vs <file line> (<label>, <path:line>) → /plum:improve ingest
+- <what the note says> (<note title>, <date>, <who said it>) vs what the file says → /plum:improve ingest
 
 ## What we know
 ### Business model · how do they make money?
-- <statement> (<label>, <path:line>)
+- <statement>, with "(inferred)" when the file labels it so
 ### Revenue model · how do they price?
-unknown; strategy/pricing.md should hold it
+unknown
 …one heading per section, all ten, in the framework's order…
 
 ## People on the call
-- <name>, <title> (<label>, <path:line>) · last met <date> ("<note title>")
+- <name>, <title> · last met <date> (<note title>)
 ```
 
 - **Ask first** holds every `OPEN` line that touches the focus, then one question for each section the files leave unknown, in the framework's own words. Order: questions someone on the call can answer first, then the framework's order. At most ten; when more were left out, say how many and that `/plum:learn questions` lists them all.
 - **Since the files** appears only when a note adds to or disagrees with a file; leave the heading out when it would be empty.
-- **What we know** has all ten sections every time, in the framework's order, each heading carrying the framework's question; one to three lines per section; a section with nothing says "unknown" and names the file that should hold it. No line in it comes from a note.
+- **What we know** has all ten sections every time, in the framework's order, each heading carrying the framework's question; one to three lines per section; a section with nothing says "unknown". No line in it comes from a note.
 - **People on the call** comes from the org chart files and the notes' attendees; a title the files do not give stays "title unknown".
 - No narration, no closing summary, no advice beyond the questions. End with the Ontology page link from `pageLink.js --page ontology`.
 

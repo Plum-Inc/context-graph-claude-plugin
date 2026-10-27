@@ -12,19 +12,17 @@ This skill reads. It never proposes a change: that is `/plum:improve` (the ontol
 
 ## Output
 
-The user wants the result, not the work. Do not narrate what you are about to do, which tool you are calling, or what you are checking; never write "Let me", "I'll", "First I'll" or a summary of your reasoning. Run the steps silently and answer with the outcome only: a short answer whose every statement carries its label and its file (for example "Agencies are the main channel (confirmed, gtm/inbound.md:14)."), a fenced file or diff when a step calls for one, or a single question through `AskUserQuestion`. Never state as fact what the files label inferred or unknown, and never add what the files do not say: when they are silent, say so and name the file that should hold it. When something fails, say what failed and the one command that fixes it, nothing else.
+The user wants the result, not the work. Do not narrate what you are about to do, which tool you are calling, or what you are checking; never write "Let me", "I'll", "First I'll" or a summary of your reasoning. Run the steps silently and answer with the outcome only: a short answer in plain language, a fenced file or diff when a step calls for one, or a single question through `AskUserQuestion`. Never state as fact what the files label inferred or unknown, and never add what the files do not say: when they are silent, say so. When something fails, say what failed and the one command that fixes it, nothing else.
 
-## Lineage
+## Sources
 
-Every statement about the business in an answer names its label and its source, so a wrong answer can be traced and corrected where it was written:
+The answer is for a person, so it reads as plain language: no file paths, line numbers, commits or `clm_`, `src_` and `not_` ids unless the person asks where something comes from. Those ids are how a statement is traced when they do:
 
-- An ontology file is cited as `path:line`. `get_ontology_file` numbers its lines (the numbers are not part of the file); `exec_bash` with `grep -n` gives the number for one phrase.
-- What backs a file line is its cited ids: `sources/<id>.md` says what kind of source it was, who provided it and its authority; a `clm_` id is a claim discovery took from a source; a meeting note is read with `get_granola_note` and cited by its title, date and note id, naming who said it.
-- The label is the file's: confirmed, inferred or `OPEN`. Never upgrade one in an answer, and never state as fact what a file labels inferred.
-- A statement none of these back is said to be unsourced, in that word, or left out.
-- When a meeting note disagrees with a file, show the file line and the note's line side by side; the file is the approved record and the note is informal and dated, so the disagreement is a `/plum:improve` proposal, not a correction made in the answer.
-
-The session-start hook states the short form of this rule to the model once per session, so a question asked outside this skill answers the same way.
+- A file line is found with `exec_bash` and `grep -n`, and given as `path:line`.
+- What backs a file line is its cited ids: `sources/<id>.md` says what kind of source it was, who provided it and its authority; a `clm_` id is a claim discovery took from a source; a meeting note is read with `get_granola_note` and named by its title, date and who said it.
+- A label is the file's: confirmed, inferred or `OPEN`. Never upgrade one, and say plainly when something is inferred or unknown rather than tagging it.
+- When a meeting note disagrees with a file, say so: the file is the approved record and the note is informal and dated, so the disagreement is a `/plum:improve` proposal, not a correction made in the answer.
+- Meeting notes are machine transcribed. A name that does not fit what the files say (a tool, a person, a client spelled another way) is likely misheard; use the name the files use.
 
 ## Workspace
 
@@ -68,13 +66,13 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 
 ## Search
 
-1. Call `mcp__plugin_plum_Plum__search_ontology` with the words the user said (folder READMEs list synonyms, so a README hit points at the owning folder). For an exact phrase, or to see every line, call `exec_bash` with `grep -rn "<phrase>" .`. Relay the matches as `path:line` with the line, best match first, and name the owning file in one sentence.
+1. Call `mcp__plugin_plum_Plum__search_ontology` with the words the user said (folder READMEs list synonyms, so a README hit points at the owning folder). For an exact phrase, or to see every line, call `exec_bash` with `grep -rn "<phrase>" .`. Relay the matches, best match first, and name the owning file in one sentence.
 
 ## Explain
 
 1. Read `AGENT.md`'s navigation for the files that own the topic; read each whole with `get_ontology_file`; call `search_ontology` for the topic's words to catch files the navigation misses.
-2. Answer from the files only. Every statement carries its label and `path:line`: confirmed, then inferred, then what is `OPEN`. When the user asks what backs a statement, name its cited sources (`sources/<id>.md` gives the kind of source, who provided it and its authority; a meeting note is read with `get_granola_note` when the file cites one). When two files disagree, show both lines and say which `AGENT.md` routes to.
-3. When the files do not answer, say so in one line, name the file that should hold the answer, and point at `/plum:improve answer` (to settle it from what the user knows) or `/plum:improve` (to add it from a source).
+2. Answer from the files only: what is confirmed, then what is inferred, then what is still `OPEN`. When the user asks what backs a statement, name its cited sources (`sources/<id>.md` gives the kind of source, who provided it and its authority; a meeting note is read with `get_granola_note` when the file cites one). When two files disagree, say what each says and which one `AGENT.md` routes to.
+3. When the files do not answer, say so in one line and point at `/plum:improve answer` (to settle it from what the user knows) or `/plum:improve` (to add it from a source).
 
 ## Questions
 

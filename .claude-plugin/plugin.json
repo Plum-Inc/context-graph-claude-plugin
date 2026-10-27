@@ -1,7 +1,7 @@
 {
   "name": "plum",
   "description": "Start plum's discovery agent, learn from the ontology repository it proposes, improve it through proposals, and grow the playbook's skills, context and workflows from Claude Code.",
-  "version": "0.8.25",
+  "version": "0.8.26",
   "author": {
     "name": "plum"
   },

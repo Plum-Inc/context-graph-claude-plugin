@@ -19680,7 +19680,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.45.0";
+var CONTRACT_VERSION = "1.46.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -20779,7 +20779,9 @@ var ApiErrorCodeSchema = external_exports.enum([
   "RATE_LIMITED",
   "SERVICE_UNAVAILABLE",
   /** The person has not linked Google with the calendar scope (contract 1.43.0). */
-  "CALENDAR_NOT_CONNECTED"
+  "CALENDAR_NOT_CONNECTED",
+  /** A document save started from a version that someone else has since replaced (contract 1.46.0). */
+  "STALE_VERSION"
 ]);
 var ApiErrorSchema = external_exports.strictObject({
   error: external_exports.strictObject({
@@ -24599,7 +24601,12 @@ var UpsertDocumentRequestSchema = DocumentSchema.omit({
   createdAt: true,
   updatedAt: true,
   deletedAt: true
-});
+}).extend({ baseUpdatedAt: TimestampSchema.nullable().optional() });
+var DocumentDestinationSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.strictObject({ kind: external_exports.literal("mine") }),
+  external_exports.strictObject({ kind: external_exports.literal("workspace"), workspaceId: IdSchema })
+]);
+var MoveDocumentRequestSchema = external_exports.strictObject({ to: DocumentDestinationSchema });
 var ListDocumentsQuerySchema = external_exports.strictObject({
   cursor: external_exports.string().min(1).max(1024).optional(),
   limit: external_exports.coerce.number().int().min(1).max(100).optional()
@@ -24798,6 +24805,26 @@ var MeetingDetailSchema = external_exports.strictObject({
   panels: external_exports.array(DocumentPanelSchema)
 });
 var SummaryRequestedResponseSchema = external_exports.strictObject({ status: external_exports.literal("queued") });
+var SpaceIdSchema = external_exports.union([external_exports.literal("mine"), IdSchema]);
+var SpaceItemsQuerySchema = external_exports.strictObject({
+  cursor: external_exports.string().min(1).max(1024).optional(),
+  limit: external_exports.coerce.number().int().min(1).max(100).optional()
+});
+var SpaceItemSchema = external_exports.strictObject({
+  document: DocumentSchema.omit({ notesMarkdown: true }),
+  /** Whether the caller owns the document; in 'mine', one they do not own was shared with them. */
+  owned: external_exports.boolean(),
+  meeting: external_exports.strictObject({
+    id: IdSchema,
+    state: MeetingStateSchema,
+    startedAt: TimestampSchema.nullable(),
+    endedAt: TimestampSchema.nullable()
+  }).nullable()
+});
+var SpaceItemsResponseSchema = external_exports.strictObject({
+  items: external_exports.array(SpaceItemSchema),
+  nextCursor: external_exports.string().nullable()
+});
 
 // src/config.ts
 import fs from "node:fs";

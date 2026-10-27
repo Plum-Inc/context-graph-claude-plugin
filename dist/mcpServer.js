@@ -28508,7 +28508,7 @@ var StdioServerTransport = class {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.45.0";
+var CONTRACT_VERSION = "1.46.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -29607,7 +29607,9 @@ var ApiErrorCodeSchema = external_exports.enum([
   "RATE_LIMITED",
   "SERVICE_UNAVAILABLE",
   /** The person has not linked Google with the calendar scope (contract 1.43.0). */
-  "CALENDAR_NOT_CONNECTED"
+  "CALENDAR_NOT_CONNECTED",
+  /** A document save started from a version that someone else has since replaced (contract 1.46.0). */
+  "STALE_VERSION"
 ]);
 var ApiErrorSchema = external_exports.strictObject({
   error: external_exports.strictObject({
@@ -34030,7 +34032,12 @@ var UpsertDocumentRequestSchema = DocumentSchema.omit({
   createdAt: true,
   updatedAt: true,
   deletedAt: true
-});
+}).extend({ baseUpdatedAt: TimestampSchema.nullable().optional() });
+var DocumentDestinationSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.strictObject({ kind: external_exports.literal("mine") }),
+  external_exports.strictObject({ kind: external_exports.literal("workspace"), workspaceId: IdSchema })
+]);
+var MoveDocumentRequestSchema = external_exports.strictObject({ to: DocumentDestinationSchema });
 var ListDocumentsQuerySchema = external_exports.strictObject({
   cursor: external_exports.string().min(1).max(1024).optional(),
   limit: external_exports.coerce.number().int().min(1).max(100).optional()
@@ -34229,6 +34236,26 @@ var MeetingDetailSchema = external_exports.strictObject({
   panels: external_exports.array(DocumentPanelSchema)
 });
 var SummaryRequestedResponseSchema = external_exports.strictObject({ status: external_exports.literal("queued") });
+var SpaceIdSchema = external_exports.union([external_exports.literal("mine"), IdSchema]);
+var SpaceItemsQuerySchema = external_exports.strictObject({
+  cursor: external_exports.string().min(1).max(1024).optional(),
+  limit: external_exports.coerce.number().int().min(1).max(100).optional()
+});
+var SpaceItemSchema = external_exports.strictObject({
+  document: DocumentSchema.omit({ notesMarkdown: true }),
+  /** Whether the caller owns the document; in 'mine', one they do not own was shared with them. */
+  owned: external_exports.boolean(),
+  meeting: external_exports.strictObject({
+    id: IdSchema,
+    state: MeetingStateSchema,
+    startedAt: TimestampSchema.nullable(),
+    endedAt: TimestampSchema.nullable()
+  }).nullable()
+});
+var SpaceItemsResponseSchema = external_exports.strictObject({
+  items: external_exports.array(SpaceItemSchema),
+  nextCursor: external_exports.string().nullable()
+});
 
 // src/config.ts
 import fs from "node:fs";
@@ -43878,14 +43905,11 @@ function createDiscoveryHandlers(client, parse3) {
 }
 
 // src/lineage.ts
-var LINEAGE_RULE = [
-  "Lineage rule for answers about this business: every statement names its label and its source.",
-  "- The label is confirmed, inferred or OPEN, as the ontology file carries it; never upgrade one.",
-  "- An ontology file is cited as path:line (get_ontology_file numbers its lines; exec_bash grep -n gives them too).",
-  "- A Granola meeting is cited by its title, date and note id, naming who said it.",
-  "- Imported records are cited by the query or view that produced the number.",
-  "- A statement with none of these is said to be unsourced, in that word, or left out.",
-  "The approved ontology is the record; a meeting note is informal and dated. When a note disagrees with a file, quote the file line and the note side by side and offer /plum:improve to propose the change, rather than overruling the file in the answer."
+var SOURCES_CONTEXT = [
+  "About this business's sources:",
+  "- The approved ontology is the record. Its statements are labelled confirmed, inferred or OPEN: an inferred one is not settled, an OPEN one is unknown, and only a person confirms one.",
+  "- A meeting note is informal and dated, and can be newer than the ontology. Notes are machine transcribed, so names of people, companies and tools can be misheard. When a note disagrees with a file, /plum:improve proposes the change.",
+  "- The ids in files and notes (clm_, src_, not_), commits and line numbers are for tracing a statement when someone asks where it comes from."
 ].join("\n");
 function numberLines(text4) {
   const lines = text4.replace(/\r\n/g, "\n").split("\n");
@@ -43893,10 +43917,8 @@ function numberLines(text4) {
   const width = String(lines.length).length;
   return lines.map((line, index) => `${String(index + 1).padStart(width)}	${line}`).join("\n");
 }
-var NUMBERED_FILE_NOTE = "Lines are numbered for citing as path:line; the numbers are not part of the file. Send the file back without them.";
-function noteCitation(note) {
-  return `Cite this note as "${note.title ?? "untitled"}" (${note.meetingAt.slice(0, 10)}, ${note.noteId}), naming who said it. It is informal and dated: the ontology files are the approved record.`;
-}
+var NUMBERED_FILE_NOTE = "Lines are numbered; the numbers are not part of the file. Send the file back without them.";
+var NOTE_CONTEXT = "Informal, dated and machine transcribed, so names can be misheard. The ontology files are the approved record.";
 
 // src/pending.ts
 import fs3 from "node:fs";
@@ -44878,7 +44900,7 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
           `${result.hits.length} files mention "${query}":`,
           ...result.hits.map((hit) => `- ${hit.path} (${hit.title})
   ${hit.excerpt.replace(/\n/g, "\n  ")}`),
-          'get_ontology_file reads a whole file with its lines numbered; cite a statement as path:line (exec_bash grep -n "<phrase>" . gives the number for one phrase).'
+          "get_ontology_file reads a whole file."
         ].join("\n"),
         result
       );
@@ -45094,7 +45116,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
           `${note.title ?? "(untitled)"} \xB7 ${when2(note.meetingAt)} \xB7 ${note.noteId}`,
           `Attendees: ${people || "none listed"}`,
           ...note.webUrl ? [`In Granola: ${note.webUrl}`] : [],
-          noteCitation(note),
+          NOTE_CONTEXT,
           "",
           note.summary || "(Granola has no summary for this meeting.)",
           ...note.transcript ? ["", "Transcript:", ...note.transcript.map((line) => `${line.speaker ?? "Speaker"}: ${line.text}`)] : ["", "Ask again with transcript: true for the full transcript."]
