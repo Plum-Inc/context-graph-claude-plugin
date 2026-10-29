@@ -1118,7 +1118,7 @@ var require_util = __commonJS({
     }
     exports.schemaRefOrVal = schemaRefOrVal;
     function unescapeFragment(str) {
-      return unescapeJsonPointer2(decodeURIComponent(str));
+      return unescapeJsonPointer(decodeURIComponent(str));
     }
     exports.unescapeFragment = unescapeFragment;
     function escapeFragment(str) {
@@ -1131,10 +1131,10 @@ var require_util = __commonJS({
       return str.replace(/~/g, "~0").replace(/\//g, "~1");
     }
     exports.escapeJsonPointer = escapeJsonPointer;
-    function unescapeJsonPointer2(str) {
+    function unescapeJsonPointer(str) {
       return str.replace(/~1/g, "/").replace(/~0/g, "~");
     }
-    exports.unescapeJsonPointer = unescapeJsonPointer2;
+    exports.unescapeJsonPointer = unescapeJsonPointer;
     function eachItem(xs, f) {
       if (Array.isArray(xs)) {
         for (const x of xs)
@@ -9453,8 +9453,8 @@ var $ZodCheckMaxSize = /* @__PURE__ */ $constructor("$ZodCheckMaxSize", (inst, d
   (_a3 = inst._zod.def).when ?? (_a3.when = _whenHasSize);
   inst._zod.check = (payload) => {
     const input2 = payload.value;
-    const size2 = input2.size;
-    if (size2 <= def.maximum)
+    const size = input2.size;
+    if (size <= def.maximum)
       return;
     payload.issues.push({
       origin: getSizableOrigin(input2),
@@ -9473,8 +9473,8 @@ var $ZodCheckMinSize = /* @__PURE__ */ $constructor("$ZodCheckMinSize", (inst, d
   (_a3 = inst._zod.def).when ?? (_a3.when = _whenHasSize);
   inst._zod.check = (payload) => {
     const input2 = payload.value;
-    const size2 = input2.size;
-    if (size2 >= def.minimum)
+    const size = input2.size;
+    if (size >= def.minimum)
       return;
     payload.issues.push({
       origin: getSizableOrigin(input2),
@@ -9493,10 +9493,10 @@ var $ZodCheckSizeEquals = /* @__PURE__ */ $constructor("$ZodCheckSizeEquals", (i
   (_a3 = inst._zod.def).when ?? (_a3.when = _whenHasSize);
   inst._zod.check = (payload) => {
     const input2 = payload.value;
-    const size2 = input2.size;
-    if (size2 === def.size)
+    const size = input2.size;
+    if (size === def.size)
       return;
-    const tooBig = size2 > def.size;
+    const tooBig = size > def.size;
     payload.issues.push({
       origin: getSizableOrigin(input2),
       ...tooBig ? { code: "too_big", maximum: def.size } : { code: "too_small", minimum: def.size },
@@ -12897,8 +12897,8 @@ var error3 = () => {
         const sizing = getSizing(issue2.origin);
         if (sizing) {
           const maxValue = Number(issue2.maximum);
-          const unit2 = getBelarusianPlural(maxValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `\u0417\u0430\u043D\u0430\u0434\u0442\u0430 \u0432\u044F\u043B\u0456\u043A\u0456: \u0447\u0430\u043A\u0430\u043B\u0430\u0441\u044F, \u0448\u0442\u043E ${issue2.origin ?? "\u0437\u043D\u0430\u0447\u044D\u043D\u043D\u0435"} \u043F\u0430\u0432\u0456\u043D\u043D\u0430 ${sizing.verb} ${adj}${issue2.maximum.toString()} ${unit2}`;
+          const unit = getBelarusianPlural(maxValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
+          return `\u0417\u0430\u043D\u0430\u0434\u0442\u0430 \u0432\u044F\u043B\u0456\u043A\u0456: \u0447\u0430\u043A\u0430\u043B\u0430\u0441\u044F, \u0448\u0442\u043E ${issue2.origin ?? "\u0437\u043D\u0430\u0447\u044D\u043D\u043D\u0435"} \u043F\u0430\u0432\u0456\u043D\u043D\u0430 ${sizing.verb} ${adj}${issue2.maximum.toString()} ${unit}`;
         }
         return `\u0417\u0430\u043D\u0430\u0434\u0442\u0430 \u0432\u044F\u043B\u0456\u043A\u0456: \u0447\u0430\u043A\u0430\u043B\u0430\u0441\u044F, \u0448\u0442\u043E ${issue2.origin ?? "\u0437\u043D\u0430\u0447\u044D\u043D\u043D\u0435"} \u043F\u0430\u0432\u0456\u043D\u043D\u0430 \u0431\u044B\u0446\u044C ${adj}${issue2.maximum.toString()}`;
       }
@@ -12907,8 +12907,8 @@ var error3 = () => {
         const sizing = getSizing(issue2.origin);
         if (sizing) {
           const minValue = Number(issue2.minimum);
-          const unit2 = getBelarusianPlural(minValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `\u0417\u0430\u043D\u0430\u0434\u0442\u0430 \u043C\u0430\u043B\u044B: \u0447\u0430\u043A\u0430\u043B\u0430\u0441\u044F, \u0448\u0442\u043E ${issue2.origin} \u043F\u0430\u0432\u0456\u043D\u043D\u0430 ${sizing.verb} ${adj}${issue2.minimum.toString()} ${unit2}`;
+          const unit = getBelarusianPlural(minValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
+          return `\u0417\u0430\u043D\u0430\u0434\u0442\u0430 \u043C\u0430\u043B\u044B: \u0447\u0430\u043A\u0430\u043B\u0430\u0441\u044F, \u0448\u0442\u043E ${issue2.origin} \u043F\u0430\u0432\u0456\u043D\u043D\u0430 ${sizing.verb} ${adj}${issue2.minimum.toString()} ${unit}`;
         }
         return `\u0417\u0430\u043D\u0430\u0434\u0442\u0430 \u043C\u0430\u043B\u044B: \u0447\u0430\u043A\u0430\u043B\u0430\u0441\u044F, \u0448\u0442\u043E ${issue2.origin} \u043F\u0430\u0432\u0456\u043D\u043D\u0430 \u0431\u044B\u0446\u044C ${adj}${issue2.minimum.toString()}`;
       }
@@ -15535,8 +15535,8 @@ var error24 = () => {
         const sizing = getSizing(issue2.origin);
         if (sizing) {
           const maxValue = Number(issue2.maximum);
-          const unit2 = getArmenianPlural(maxValue, sizing.unit.one, sizing.unit.many);
-          return `\u0549\u0561\u0583\u0561\u0566\u0561\u0576\u0581 \u0574\u0565\u056E \u0561\u0580\u056A\u0565\u0584\u2024 \u057D\u057A\u0561\u057D\u057E\u0578\u0582\u0574 \u0567, \u0578\u0580 ${withDefiniteArticle(issue2.origin ?? "\u0561\u0580\u056A\u0565\u0584")} \u056F\u0578\u0582\u0576\u0565\u0576\u0561 ${adj}${issue2.maximum.toString()} ${unit2}`;
+          const unit = getArmenianPlural(maxValue, sizing.unit.one, sizing.unit.many);
+          return `\u0549\u0561\u0583\u0561\u0566\u0561\u0576\u0581 \u0574\u0565\u056E \u0561\u0580\u056A\u0565\u0584\u2024 \u057D\u057A\u0561\u057D\u057E\u0578\u0582\u0574 \u0567, \u0578\u0580 ${withDefiniteArticle(issue2.origin ?? "\u0561\u0580\u056A\u0565\u0584")} \u056F\u0578\u0582\u0576\u0565\u0576\u0561 ${adj}${issue2.maximum.toString()} ${unit}`;
         }
         return `\u0549\u0561\u0583\u0561\u0566\u0561\u0576\u0581 \u0574\u0565\u056E \u0561\u0580\u056A\u0565\u0584\u2024 \u057D\u057A\u0561\u057D\u057E\u0578\u0582\u0574 \u0567, \u0578\u0580 ${withDefiniteArticle(issue2.origin ?? "\u0561\u0580\u056A\u0565\u0584")} \u056C\u056B\u0576\u056B ${adj}${issue2.maximum.toString()}`;
       }
@@ -15545,8 +15545,8 @@ var error24 = () => {
         const sizing = getSizing(issue2.origin);
         if (sizing) {
           const minValue = Number(issue2.minimum);
-          const unit2 = getArmenianPlural(minValue, sizing.unit.one, sizing.unit.many);
-          return `\u0549\u0561\u0583\u0561\u0566\u0561\u0576\u0581 \u0583\u0578\u0584\u0580 \u0561\u0580\u056A\u0565\u0584\u2024 \u057D\u057A\u0561\u057D\u057E\u0578\u0582\u0574 \u0567, \u0578\u0580 ${withDefiniteArticle(issue2.origin)} \u056F\u0578\u0582\u0576\u0565\u0576\u0561 ${adj}${issue2.minimum.toString()} ${unit2}`;
+          const unit = getArmenianPlural(minValue, sizing.unit.one, sizing.unit.many);
+          return `\u0549\u0561\u0583\u0561\u0566\u0561\u0576\u0581 \u0583\u0578\u0584\u0580 \u0561\u0580\u056A\u0565\u0584\u2024 \u057D\u057A\u0561\u057D\u057E\u0578\u0582\u0574 \u0567, \u0578\u0580 ${withDefiniteArticle(issue2.origin)} \u056F\u0578\u0582\u0576\u0565\u0576\u0561 ${adj}${issue2.minimum.toString()} ${unit}`;
         }
         return `\u0549\u0561\u0583\u0561\u0566\u0561\u0576\u0581 \u0583\u0578\u0584\u0580 \u0561\u0580\u056A\u0565\u0584\u2024 \u057D\u057A\u0561\u057D\u057E\u0578\u0582\u0574 \u0567, \u0578\u0580 ${withDefiniteArticle(issue2.origin)} \u056C\u056B\u0576\u056B ${adj}${issue2.minimum.toString()}`;
       }
@@ -16460,18 +16460,18 @@ var error32 = () => {
         const adj = issue2.inclusive ? "\uC774\uD558" : "\uBBF8\uB9CC";
         const suffix = adj === "\uBBF8\uB9CC" ? "\uC774\uC5B4\uC57C \uD569\uB2C8\uB2E4" : "\uC5EC\uC57C \uD569\uB2C8\uB2E4";
         const sizing = getSizing(issue2.origin);
-        const unit2 = sizing?.unit ?? "\uC694\uC18C";
+        const unit = sizing?.unit ?? "\uC694\uC18C";
         if (sizing)
-          return `${issue2.origin ?? "\uAC12"}\uC774 \uB108\uBB34 \uD07D\uB2C8\uB2E4: ${issue2.maximum.toString()}${unit2} ${adj}${suffix}`;
+          return `${issue2.origin ?? "\uAC12"}\uC774 \uB108\uBB34 \uD07D\uB2C8\uB2E4: ${issue2.maximum.toString()}${unit} ${adj}${suffix}`;
         return `${issue2.origin ?? "\uAC12"}\uC774 \uB108\uBB34 \uD07D\uB2C8\uB2E4: ${issue2.maximum.toString()} ${adj}${suffix}`;
       }
       case "too_small": {
         const adj = issue2.inclusive ? "\uC774\uC0C1" : "\uCD08\uACFC";
         const suffix = adj === "\uC774\uC0C1" ? "\uC774\uC5B4\uC57C \uD569\uB2C8\uB2E4" : "\uC5EC\uC57C \uD569\uB2C8\uB2E4";
         const sizing = getSizing(issue2.origin);
-        const unit2 = sizing?.unit ?? "\uC694\uC18C";
+        const unit = sizing?.unit ?? "\uC694\uC18C";
         if (sizing) {
-          return `${issue2.origin ?? "\uAC12"}\uC774 \uB108\uBB34 \uC791\uC2B5\uB2C8\uB2E4: ${issue2.minimum.toString()}${unit2} ${adj}${suffix}`;
+          return `${issue2.origin ?? "\uAC12"}\uC774 \uB108\uBB34 \uC791\uC2B5\uB2C8\uB2E4: ${issue2.minimum.toString()}${unit} ${adj}${suffix}`;
         }
         return `${issue2.origin ?? "\uAC12"}\uC774 \uB108\uBB34 \uC791\uC2B5\uB2C8\uB2E4: ${issue2.minimum.toString()} ${adj}${suffix}`;
       }
@@ -18284,8 +18284,8 @@ var error46 = () => {
         const sizing = getSizing(issue2.origin);
         if (sizing) {
           const maxValue = Number(issue2.maximum);
-          const unit2 = getRussianPlural(maxValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u0431\u043E\u043B\u044C\u0448\u043E\u0435 \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435: \u043E\u0436\u0438\u0434\u0430\u043B\u043E\u0441\u044C, \u0447\u0442\u043E ${issue2.origin ?? "\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435"} \u0431\u0443\u0434\u0435\u0442 \u0438\u043C\u0435\u0442\u044C ${adj}${issue2.maximum.toString()} ${unit2}`;
+          const unit = getRussianPlural(maxValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
+          return `\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u0431\u043E\u043B\u044C\u0448\u043E\u0435 \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435: \u043E\u0436\u0438\u0434\u0430\u043B\u043E\u0441\u044C, \u0447\u0442\u043E ${issue2.origin ?? "\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435"} \u0431\u0443\u0434\u0435\u0442 \u0438\u043C\u0435\u0442\u044C ${adj}${issue2.maximum.toString()} ${unit}`;
         }
         return `\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u0431\u043E\u043B\u044C\u0448\u043E\u0435 \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435: \u043E\u0436\u0438\u0434\u0430\u043B\u043E\u0441\u044C, \u0447\u0442\u043E ${issue2.origin ?? "\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435"} \u0431\u0443\u0434\u0435\u0442 ${adj}${issue2.maximum.toString()}`;
       }
@@ -18294,8 +18294,8 @@ var error46 = () => {
         const sizing = getSizing(issue2.origin);
         if (sizing) {
           const minValue = Number(issue2.minimum);
-          const unit2 = getRussianPlural(minValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u043E\u0435 \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435: \u043E\u0436\u0438\u0434\u0430\u043B\u043E\u0441\u044C, \u0447\u0442\u043E ${issue2.origin} \u0431\u0443\u0434\u0435\u0442 \u0438\u043C\u0435\u0442\u044C ${adj}${issue2.minimum.toString()} ${unit2}`;
+          const unit = getRussianPlural(minValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
+          return `\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u043E\u0435 \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435: \u043E\u0436\u0438\u0434\u0430\u043B\u043E\u0441\u044C, \u0447\u0442\u043E ${issue2.origin} \u0431\u0443\u0434\u0435\u0442 \u0438\u043C\u0435\u0442\u044C ${adj}${issue2.minimum.toString()} ${unit}`;
         }
         return `\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u043E\u0435 \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435: \u043E\u0436\u0438\u0434\u0430\u043B\u043E\u0441\u044C, \u0447\u0442\u043E ${issue2.origin} \u0431\u0443\u0434\u0435\u0442 ${adj}${issue2.minimum.toString()}`;
       }
@@ -22272,11 +22272,11 @@ function _minSize(minimum, params) {
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _size(size2, params) {
+function _size(size, params) {
   return new $ZodCheckSizeEquals({
     check: "size_equals",
     ...normalizeParams(params),
-    size: size2
+    size
   });
 }
 // @__NO_SIDE_EFFECTS__
@@ -25525,8 +25525,8 @@ var ZodFile = /* @__PURE__ */ $constructor("ZodFile", (inst, def) => {
   $ZodFile.init(inst, def);
   ZodType.init(inst, def);
   inst._zod.processJSONSchema = (ctx, json2, params) => fileProcessor(inst, ctx, json2, params);
-  inst.min = (size2, params) => inst.check(_minSize(size2, params));
-  inst.max = (size2, params) => inst.check(_maxSize(size2, params));
+  inst.min = (size, params) => inst.check(_minSize(size, params));
+  inst.max = (size, params) => inst.check(_maxSize(size, params));
   inst.mime = (types, params) => inst.check(_mime(Array.isArray(types) ? types : [types], params));
 });
 function file(params) {
@@ -28508,7 +28508,7 @@ var StdioServerTransport = class {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.49.0";
+var CONTRACT_VERSION = "1.50.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -29874,13 +29874,13 @@ function locate(lines) {
           end = cursor;
           break;
         }
-      const labels2 = /* @__PURE__ */ new Map();
+      const labels = /* @__PURE__ */ new Map();
       const properties = {};
       const prose = [];
       for (let cursor = index + 1; cursor < end; cursor++) {
         const label = fenced[cursor] ? null : parseLabeledLine(lines[cursor]);
-        if (label && !labels2.has(label.key)) {
-          labels2.set(label.key, lines[cursor]);
+        if (label && !labels.has(label.key)) {
+          labels.set(label.key, lines[cursor]);
           properties[label.key] = label.value;
         } else prose.push(lines[cursor]);
       }
@@ -29891,7 +29891,7 @@ function locate(lines) {
         properties,
         start: index,
         end,
-        labels: labels2
+        labels
       });
     }
   }
@@ -29915,10 +29915,10 @@ function splice(lines, start, count, next) {
 function updateEntry(markdown, section, name, change) {
   const lines = rows(markdown);
   const entry = findEntry(lines, section, name);
-  const labels2 = new Map(entry.labels);
+  const labels = new Map(entry.labels);
   for (const [key, value] of Object.entries(change.properties ?? {})) {
-    if (value.trim() === "") labels2.delete(key.toLowerCase());
-    else labels2.set(key.toLowerCase(), labelLine(key, value));
+    if (value.trim() === "") labels.delete(key.toLowerCase());
+    else labels.set(key.toLowerCase(), labelLine(key, value));
   }
   const prose = (change.prose ?? entry.prose).trim();
   const heading = (change.name ?? entry.name).replace(/[\r\n]+/g, " ").trim();
@@ -29929,7 +29929,7 @@ function updateEntry(markdown, section, name, change) {
   return splice(lines, entry.start, entry.end - entry.start, [
     `### ${heading}`,
     ...prose ? [prose] : [],
-    ...labels2.values(),
+    ...labels.values(),
     ""
   ]);
 }
@@ -30061,2397 +30061,6 @@ var ContextPreviewSchema = external_exports.looseObject({
   markdown: external_exports.string(),
   staleAnswers: external_exports.boolean()
 });
-
-// ../../node_modules/.bun/@json-render+core@0.20.0/node_modules/@json-render/core/dist/chunk-7V7ZCHEJ.mjs
-var DynamicValueSchema = external_exports.union([
-  external_exports.string(),
-  external_exports.number(),
-  external_exports.boolean(),
-  external_exports.null(),
-  external_exports.object({ $state: external_exports.string() })
-]);
-var DynamicStringSchema = external_exports.union([
-  external_exports.string(),
-  external_exports.object({ $state: external_exports.string() })
-]);
-var DynamicNumberSchema = external_exports.union([
-  external_exports.number(),
-  external_exports.object({ $state: external_exports.string() })
-]);
-var DynamicBooleanSchema = external_exports.union([
-  external_exports.boolean(),
-  external_exports.object({ $state: external_exports.string() })
-]);
-function unescapeJsonPointer(token) {
-  return token.replace(/~1/g, "/").replace(/~0/g, "~");
-}
-function parseJsonPointer(path9) {
-  const raw = path9.startsWith("/") ? path9.slice(1).split("/") : path9.split("/");
-  return raw.map(unescapeJsonPointer);
-}
-function getByPath(obj, path9) {
-  if (!path9 || path9 === "/") {
-    return obj;
-  }
-  const segments = parseJsonPointer(path9);
-  let current = obj;
-  for (const segment of segments) {
-    if (current === null || current === void 0) {
-      return void 0;
-    }
-    if (Array.isArray(current)) {
-      const index = parseInt(segment, 10);
-      current = current[index];
-    } else if (typeof current === "object") {
-      current = current[segment];
-    } else {
-      return void 0;
-    }
-  }
-  return current;
-}
-function resolveRepeatStatePath(statePath, repeatBasePath) {
-  if (typeof statePath === "string") {
-    return statePath;
-  }
-  if (repeatBasePath == null) {
-    return void 0;
-  }
-  if (statePath.$item === "" || statePath.$item === "/") {
-    return repeatBasePath;
-  }
-  return joinStatePath(repeatBasePath, statePath.$item);
-}
-function resolveRepeatItemStatePath(statePath, index) {
-  return joinStatePath(statePath, String(index));
-}
-function joinStatePath(basePath, childPath) {
-  const child = childPath.startsWith("/") ? childPath.slice(1) : childPath;
-  if (basePath === "" || basePath === "/") {
-    return `/${child}`;
-  }
-  return `${basePath}/${child}`;
-}
-var SPEC_DATA_PART = "spec";
-var SPEC_DATA_PART_TYPE = `data-${SPEC_DATA_PART}`;
-
-// ../../node_modules/.bun/@json-render+core@0.20.0/node_modules/@json-render/core/dist/index.mjs
-var numericOrStateRef = external_exports.union([
-  external_exports.number(),
-  external_exports.object({ $state: external_exports.string() })
-]);
-var comparisonOps = {
-  eq: external_exports.unknown().optional(),
-  neq: external_exports.unknown().optional(),
-  gt: numericOrStateRef.optional(),
-  gte: numericOrStateRef.optional(),
-  lt: numericOrStateRef.optional(),
-  lte: numericOrStateRef.optional(),
-  not: external_exports.literal(true).optional()
-};
-var StateConditionSchema = external_exports.object({
-  $state: external_exports.string(),
-  ...comparisonOps
-});
-var ItemConditionSchema = external_exports.object({
-  $item: external_exports.string(),
-  ...comparisonOps
-});
-var IndexConditionSchema = external_exports.object({
-  $index: external_exports.literal(true),
-  ...comparisonOps
-});
-var SingleConditionSchema = external_exports.union([
-  StateConditionSchema,
-  ItemConditionSchema,
-  IndexConditionSchema
-]);
-var VisibilityConditionSchema = external_exports.lazy(
-  () => external_exports.union([
-    external_exports.boolean(),
-    SingleConditionSchema,
-    external_exports.array(SingleConditionSchema),
-    external_exports.object({ $and: external_exports.array(VisibilityConditionSchema) }),
-    external_exports.object({ $or: external_exports.array(VisibilityConditionSchema) })
-  ])
-);
-var StrictSingleConditionSchema = external_exports.union([
-  external_exports.strictObject({ $state: external_exports.string(), ...comparisonOps }),
-  external_exports.strictObject({ $item: external_exports.string(), ...comparisonOps }),
-  external_exports.strictObject({ $index: external_exports.literal(true), ...comparisonOps })
-]);
-var VisibilityConditionStrictSchema = external_exports.lazy(
-  () => external_exports.union([
-    external_exports.boolean(),
-    StrictSingleConditionSchema,
-    external_exports.array(StrictSingleConditionSchema),
-    external_exports.strictObject({ $and: external_exports.array(VisibilityConditionStrictSchema) }),
-    external_exports.strictObject({ $or: external_exports.array(VisibilityConditionStrictSchema) })
-  ])
-);
-var ActionConfirmSchema = external_exports.object({
-  title: external_exports.string(),
-  message: external_exports.string(),
-  confirmLabel: external_exports.string().optional(),
-  cancelLabel: external_exports.string().optional(),
-  variant: external_exports.enum(["default", "danger"]).optional()
-});
-var ActionOnSuccessSchema = external_exports.union([
-  external_exports.object({ navigate: external_exports.string() }),
-  external_exports.object({ set: external_exports.record(external_exports.string(), external_exports.unknown()) }),
-  external_exports.object({
-    action: external_exports.string(),
-    params: external_exports.record(external_exports.string(), DynamicValueSchema).optional()
-  })
-]);
-var ActionOnErrorSchema = external_exports.union([
-  external_exports.object({ set: external_exports.record(external_exports.string(), external_exports.unknown()) }),
-  external_exports.object({
-    action: external_exports.string(),
-    params: external_exports.record(external_exports.string(), DynamicValueSchema).optional()
-  })
-]);
-var ActionBindingSchema = external_exports.object({
-  action: external_exports.string(),
-  params: external_exports.record(external_exports.string(), DynamicValueSchema).optional(),
-  confirm: ActionConfirmSchema.optional(),
-  onSuccess: ActionOnSuccessSchema.optional(),
-  onError: ActionOnErrorSchema.optional(),
-  preventDefault: external_exports.boolean().optional()
-});
-var ValidationCheckSchema = external_exports.object({
-  type: external_exports.string(),
-  args: external_exports.record(external_exports.string(), DynamicValueSchema).optional(),
-  message: external_exports.string()
-});
-var ValidationConfigSchema = external_exports.object({
-  checks: external_exports.array(ValidationCheckSchema).optional(),
-  validateOn: external_exports.enum(["change", "blur", "submit"]).optional(),
-  enabled: VisibilityConditionSchema.optional()
-});
-function validateSpec(spec, options = {}) {
-  const { checkOrphans = false } = options;
-  const issues = [];
-  if (!spec.root) {
-    issues.push({
-      severity: "error",
-      message: "Spec has no root element defined.",
-      code: "missing_root"
-    });
-    return { valid: false, issues };
-  }
-  if (!spec.elements[spec.root]) {
-    issues.push({
-      severity: "error",
-      message: `Root element "${spec.root}" not found in elements map.`,
-      code: "root_not_found"
-    });
-  }
-  if (Object.keys(spec.elements).length === 0) {
-    issues.push({
-      severity: "error",
-      message: "Spec has no elements.",
-      code: "empty_spec"
-    });
-    return { valid: false, issues };
-  }
-  for (const [key, element] of Object.entries(spec.elements)) {
-    if (element.children) {
-      for (const childKey of element.children) {
-        if (!spec.elements[childKey]) {
-          issues.push({
-            severity: "error",
-            message: `Element "${key}" references child "${childKey}" which does not exist in the elements map.`,
-            elementKey: key,
-            code: "missing_child"
-          });
-        }
-      }
-    }
-    if (element.slots) {
-      for (const [slotName, childKeys] of Object.entries(element.slots)) {
-        for (const childKey of childKeys) {
-          if (!spec.elements[childKey]) {
-            issues.push({
-              severity: "error",
-              message: `Element "${key}" references child "${childKey}" in slot "${slotName}" which does not exist in the elements map.`,
-              elementKey: key,
-              code: "missing_child"
-            });
-          }
-        }
-      }
-    }
-    if (element.repeat !== void 0) {
-      if (!element.children || element.children.length === 0) {
-        issues.push({
-          severity: "error",
-          message: `Element "${key}" has "repeat" but no children. The repeated template must be a child element: add a child that renders one item (it may read fields with {"$item": "field"}).`,
-          elementKey: key,
-          code: "repeat_without_children"
-        });
-      }
-    }
-    if (element.visible !== void 0 && !VisibilityConditionStrictSchema.safeParse(element.visible).success) {
-      issues.push({
-        severity: "error",
-        message: `Element "${key}" has an invalid "visible" condition: ${JSON.stringify(element.visible)}. Valid forms: true, false, {"$state":"/path","eq":value}, {"$item":"field","eq":value}, {"$index":true,"eq":n}, an array of those (AND), or {"$and":[...]} / {"$or":[...]}. Use exactly one of $state, $item, or $index per condition object.`,
-        elementKey: key,
-        code: "invalid_visible"
-      });
-    }
-    const props = element.props;
-    if (props && "visible" in props && props.visible !== void 0) {
-      issues.push({
-        severity: "error",
-        message: `Element "${key}" has "visible" inside "props". It should be a top-level field on the element (sibling of type/props/children).`,
-        elementKey: key,
-        code: "visible_in_props"
-      });
-    }
-    if (props && "on" in props && props.on !== void 0) {
-      issues.push({
-        severity: "error",
-        message: `Element "${key}" has "on" inside "props". It should be a top-level field on the element (sibling of type/props/children).`,
-        elementKey: key,
-        code: "on_in_props"
-      });
-    }
-    if (props && "repeat" in props && props.repeat !== void 0) {
-      issues.push({
-        severity: "error",
-        message: `Element "${key}" has "repeat" inside "props". It should be a top-level field on the element (sibling of type/props/children).`,
-        elementKey: key,
-        code: "repeat_in_props"
-      });
-    }
-    if (props && "watch" in props && props.watch !== void 0) {
-      issues.push({
-        severity: "error",
-        message: `Element "${key}" has "watch" inside "props". It should be a top-level field on the element (sibling of type/props/children).`,
-        elementKey: key,
-        code: "watch_in_props"
-      });
-    }
-  }
-  const repeatValidatedKeys = /* @__PURE__ */ new Set();
-  const repeatValidatedContexts = /* @__PURE__ */ new Set();
-  const validateRepeatPaths = (key, repeatBasePath, sampleAvailable, ancestors) => {
-    if (ancestors.has(key)) return;
-    const element = spec.elements[key];
-    if (!element) return;
-    repeatValidatedKeys.add(key);
-    const contextKey = `${key}\0${repeatBasePath ?? ""}\0${sampleAvailable}`;
-    if (repeatValidatedContexts.has(contextKey)) return;
-    repeatValidatedContexts.add(contextKey);
-    let childRepeatBasePath = repeatBasePath;
-    let childSampleAvailable = sampleAvailable;
-    if (element.repeat !== void 0) {
-      const statePath = resolveRepeatStatePath(
-        element.repeat.statePath,
-        repeatBasePath
-      );
-      const displayPath = typeof element.repeat.statePath === "string" ? element.repeat.statePath : JSON.stringify(element.repeat.statePath);
-      if (statePath === void 0) {
-        issues.push({
-          severity: "error",
-          message: `Element "${key}" uses relative repeat statePath ${displayPath} outside a repeat scope.`,
-          elementKey: key,
-          code: "repeat_item_outside_scope"
-        });
-        childRepeatBasePath = void 0;
-        childSampleAvailable = false;
-      } else {
-        const canCheckSample = spec.state !== void 0 && (typeof element.repeat.statePath === "string" || sampleAvailable);
-        const value = canCheckSample ? getByPath(spec.state, statePath) : void 0;
-        if (canCheckSample && !Array.isArray(value)) {
-          issues.push({
-            severity: "error",
-            message: `Element "${key}" repeats over "${statePath}" but state${value === void 0 ? " has no value there" : ` has a ${typeof value} there`}. Repeat statePath must reference an array in state; add sample items to state at that path.`,
-            elementKey: key,
-            code: "repeat_state_mismatch"
-          });
-        }
-        childRepeatBasePath = resolveRepeatItemStatePath(statePath, 0);
-        childSampleAvailable = canCheckSample && Array.isArray(value) && value.length > 0;
-      }
-    }
-    const nextAncestors = new Set(ancestors);
-    nextAncestors.add(key);
-    for (const childKey of element.children ?? []) {
-      validateRepeatPaths(
-        childKey,
-        childRepeatBasePath,
-        childSampleAvailable,
-        nextAncestors
-      );
-    }
-    for (const childKeys of Object.values(element.slots ?? {})) {
-      for (const childKey of childKeys) {
-        validateRepeatPaths(
-          childKey,
-          repeatBasePath,
-          sampleAvailable,
-          nextAncestors
-        );
-      }
-    }
-  };
-  if (spec.elements[spec.root]) {
-    validateRepeatPaths(spec.root, void 0, true, /* @__PURE__ */ new Set());
-  }
-  for (const key of Object.keys(spec.elements)) {
-    if (!repeatValidatedKeys.has(key)) {
-      validateRepeatPaths(key, void 0, true, /* @__PURE__ */ new Set());
-    }
-  }
-  if (checkOrphans) {
-    const reachable = /* @__PURE__ */ new Set();
-    const walk = (key) => {
-      if (reachable.has(key)) return;
-      reachable.add(key);
-      const el = spec.elements[key];
-      if (el?.children) {
-        for (const childKey of el.children) {
-          if (spec.elements[childKey]) {
-            walk(childKey);
-          }
-        }
-      }
-      if (el?.slots) {
-        for (const childKeys of Object.values(el.slots)) {
-          for (const childKey of childKeys) {
-            if (spec.elements[childKey]) {
-              walk(childKey);
-            }
-          }
-        }
-      }
-    };
-    if (spec.elements[spec.root]) {
-      walk(spec.root);
-    }
-    for (const key of Object.keys(spec.elements)) {
-      if (!reachable.has(key)) {
-        issues.push({
-          severity: "warning",
-          message: `Element "${key}" is not reachable from root "${spec.root}".`,
-          elementKey: key,
-          code: "orphaned_element"
-        });
-      }
-    }
-  }
-  const hasErrors = issues.some((i) => i.severity === "error");
-  return { valid: !hasErrors, issues };
-}
-var DEFAULT_MODES = ["patch"];
-function normalizeModes(config2) {
-  if (!config2?.modes?.length) return DEFAULT_MODES;
-  return config2.modes;
-}
-function jsonPatchInstructions() {
-  return [
-    "PATCH MODE (RFC 6902 JSON Patch):",
-    "Output one JSON object per line. Each line is a patch operation.",
-    '- Add: {"op":"add","path":"/elements/new-key","value":{...}}',
-    '- Replace: {"op":"replace","path":"/elements/existing-key","value":{...}}',
-    '- Remove: {"op":"remove","path":"/elements/old-key"}',
-    "Only output patches for what needs to change."
-  ].join("\n");
-}
-function jsonMergeInstructions() {
-  return [
-    "MERGE MODE (RFC 7396 JSON Merge Patch):",
-    "Output a single JSON object on one line with __json_edit set to true.",
-    "Include only the keys that changed. Unmentioned keys are preserved.",
-    "Set a key to null to delete it.",
-    "",
-    "Example (update a title and add an element):",
-    '{"__json_edit":true,"elements":{"main":{"props":{"title":"New Title"}},"new-el":{"type":"Card","props":{},"children":[]}}}',
-    "",
-    "Example (delete an element):",
-    '{"__json_edit":true,"elements":{"old-widget":null}}'
-  ].join("\n");
-}
-function jsonDiffInstructions() {
-  return [
-    "DIFF MODE (unified diff):",
-    "Output a unified diff inside a ```diff code fence.",
-    "The diff applies against the JSON-serialized current spec.",
-    "",
-    "Example:",
-    "```diff",
-    "--- a/spec.json",
-    "+++ b/spec.json",
-    "@@ -3,1 +3,1 @@",
-    '-      "title": "Login"',
-    '+      "title": "Welcome Back"',
-    "```"
-  ].join("\n");
-}
-function yamlPatchInstructions() {
-  return [
-    "PATCH MODE (RFC 6902 JSON Patch):",
-    "Output RFC 6902 JSON Patch lines inside a ```yaml-patch code fence.",
-    "Each line is one JSON patch operation.",
-    "",
-    "Example:",
-    "```yaml-patch",
-    '{"op":"replace","path":"/elements/main/props/title","value":"New Title"}',
-    '{"op":"add","path":"/elements/new-el","value":{"type":"Card","props":{},"children":[]}}',
-    "```"
-  ].join("\n");
-}
-function yamlMergeInstructions() {
-  return [
-    "MERGE MODE (RFC 7396 JSON Merge Patch):",
-    "Output only the changed parts in a ```yaml-edit code fence.",
-    "Uses deep merge semantics: only keys you include are updated. Unmentioned elements and props are preserved.",
-    "Set a key to null to delete it.",
-    "",
-    "Example edit (update title, add a new element):",
-    "```yaml-edit",
-    "elements:",
-    "  main:",
-    "    props:",
-    "      title: Updated Title",
-    "  new-chart:",
-    "    type: Card",
-    "    props: {}",
-    "    children: []",
-    "```",
-    "",
-    "Example deletion:",
-    "```yaml-edit",
-    "elements:",
-    "  old-widget: null",
-    "```"
-  ].join("\n");
-}
-function yamlDiffInstructions() {
-  return [
-    "DIFF MODE (unified diff):",
-    "Output a unified diff inside a ```diff code fence.",
-    "The diff applies against the YAML-serialized current spec.",
-    "",
-    "Example:",
-    "```diff",
-    "--- a/spec.yaml",
-    "+++ b/spec.yaml",
-    "@@ -6,1 +6,1 @@",
-    "-      title: Login",
-    "+      title: Welcome Back",
-    "```"
-  ].join("\n");
-}
-function modeSelectionGuidance(modes) {
-  if (modes.length === 1) return "";
-  const parts = ["Choose the best edit strategy for the requested change:"];
-  if (modes.includes("patch")) {
-    parts.push("- PATCH: best for precise, targeted single-field updates");
-  }
-  if (modes.includes("merge")) {
-    parts.push(
-      "- MERGE: best for structural changes (add/remove elements, reparent children, update multiple props at once)"
-    );
-  }
-  if (modes.includes("diff")) {
-    parts.push(
-      "- DIFF: best for small text-level changes when you can see the exact lines to change"
-    );
-  }
-  return parts.join("\n");
-}
-function buildEditInstructions(config2, format) {
-  const modes = normalizeModes(config2);
-  const sections = [];
-  sections.push("EDITING EXISTING SPECS:");
-  sections.push("");
-  const guidance = modeSelectionGuidance(modes);
-  if (guidance) {
-    sections.push(guidance);
-    sections.push("");
-  }
-  for (const mode of modes) {
-    if (format === "json") {
-      switch (mode) {
-        case "patch":
-          sections.push(jsonPatchInstructions());
-          break;
-        case "merge":
-          sections.push(jsonMergeInstructions());
-          break;
-        case "diff":
-          sections.push(jsonDiffInstructions());
-          break;
-      }
-    } else {
-      switch (mode) {
-        case "patch":
-          sections.push(yamlPatchInstructions());
-          break;
-        case "merge":
-          sections.push(yamlMergeInstructions());
-          break;
-        case "diff":
-          sections.push(yamlDiffInstructions());
-          break;
-      }
-    }
-    sections.push("");
-  }
-  return sections.join("\n");
-}
-function createBuilder() {
-  return {
-    string: () => ({ kind: "string" }),
-    number: () => ({ kind: "number" }),
-    boolean: () => ({ kind: "boolean" }),
-    array: (item) => ({ kind: "array", inner: item }),
-    object: (shape) => ({ kind: "object", inner: shape }),
-    record: (value) => ({ kind: "record", inner: value }),
-    any: () => ({ kind: "any" }),
-    zod: () => ({ kind: "zod" }),
-    ref: (path9) => ({ kind: "ref", inner: path9 }),
-    propsOf: (path9) => ({ kind: "propsOf", inner: path9 }),
-    map: (entryShape) => ({ kind: "map", inner: entryShape }),
-    optional: () => ({ optional: true })
-  };
-}
-function defineSchema(builder, options) {
-  const s = createBuilder();
-  const definition = builder(s);
-  return {
-    definition,
-    promptTemplate: options?.promptTemplate,
-    defaultRules: options?.defaultRules,
-    builtInActions: options?.builtInActions,
-    createCatalog(catalog) {
-      return createCatalogFromSchema(this, catalog);
-    }
-  };
-}
-function createCatalogFromSchema(schema, catalogData) {
-  const components = catalogData.components;
-  const actions = catalogData.actions;
-  const componentNames = components ? Object.keys(components) : [];
-  const actionNames = actions ? Object.keys(actions) : [];
-  const zodSchema = buildZodSchemaFromDefinition(
-    schema.definition,
-    catalogData
-  );
-  return {
-    schema,
-    data: catalogData,
-    componentNames,
-    actionNames,
-    prompt(options = {}) {
-      return generatePrompt(this, options);
-    },
-    jsonSchema(options = {}) {
-      return zodToJsonSchema(zodSchema, options.strict ?? false);
-    },
-    validate(spec) {
-      const result = zodSchema.safeParse(spec);
-      if (result.success) {
-        return {
-          success: true,
-          data: result.data
-        };
-      }
-      return { success: false, error: result.error };
-    },
-    zodSchema() {
-      return zodSchema;
-    },
-    get _specType() {
-      throw new Error("_specType is only for type inference");
-    }
-  };
-}
-function buildZodSchemaFromDefinition(definition, catalogData) {
-  return buildZodType(definition.spec, catalogData);
-}
-function buildZodType(schemaType, catalogData) {
-  switch (schemaType.kind) {
-    case "string":
-      return external_exports.string();
-    case "number":
-      return external_exports.number();
-    case "boolean":
-      return external_exports.boolean();
-    case "any":
-      return external_exports.any();
-    case "array": {
-      const inner = buildZodType(schemaType.inner, catalogData);
-      return external_exports.array(inner);
-    }
-    case "object": {
-      const shape = schemaType.inner;
-      const zodShape = {};
-      for (const [key, value] of Object.entries(shape)) {
-        let zodType = buildZodType(value, catalogData);
-        if (value.optional) {
-          zodType = zodType.optional();
-        }
-        zodShape[key] = zodType;
-      }
-      return external_exports.object(zodShape);
-    }
-    case "record": {
-      const inner = buildZodType(schemaType.inner, catalogData);
-      return external_exports.record(external_exports.string(), inner);
-    }
-    case "ref": {
-      const path9 = schemaType.inner;
-      const keys = getKeysFromPath(path9, catalogData);
-      if (keys.length === 0) {
-        return external_exports.string();
-      }
-      if (keys.length === 1) {
-        return external_exports.literal(keys[0]);
-      }
-      return external_exports.enum(keys);
-    }
-    case "propsOf": {
-      const path9 = schemaType.inner;
-      const propsSchemas = getPropsFromPath(path9, catalogData);
-      if (propsSchemas.length === 0) {
-        return external_exports.record(external_exports.string(), external_exports.unknown());
-      }
-      if (propsSchemas.length === 1) {
-        return propsSchemas[0];
-      }
-      return external_exports.record(external_exports.string(), external_exports.unknown());
-    }
-    default:
-      return external_exports.unknown();
-  }
-}
-function getKeysFromPath(path9, catalogData) {
-  const parts = path9.split(".");
-  let current = { catalog: catalogData };
-  for (const part of parts) {
-    if (current && typeof current === "object") {
-      current = current[part];
-    } else {
-      return [];
-    }
-  }
-  if (current && typeof current === "object") {
-    return Object.keys(current);
-  }
-  return [];
-}
-function getPropsFromPath(path9, catalogData) {
-  const parts = path9.split(".");
-  let current = { catalog: catalogData };
-  for (const part of parts) {
-    if (current && typeof current === "object") {
-      current = current[part];
-    } else {
-      return [];
-    }
-  }
-  if (current && typeof current === "object") {
-    return Object.values(current).map((entry) => entry.props).filter((props) => props !== void 0);
-  }
-  return [];
-}
-function generatePrompt(catalog, options) {
-  if (catalog.schema.promptTemplate) {
-    const context = {
-      catalog: catalog.data,
-      componentNames: catalog.componentNames,
-      actionNames: catalog.actionNames,
-      options,
-      formatZodType
-    };
-    return catalog.schema.promptTemplate(context);
-  }
-  const {
-    system = "You are a UI generator that outputs JSON.",
-    customRules = [],
-    mode: rawMode = "standalone"
-  } = options;
-  const mode = rawMode === "chat" ? (console.warn(
-    '[json-render] mode "chat" is deprecated, use "inline" instead'
-  ), "inline") : rawMode === "generate" ? (console.warn(
-    '[json-render] mode "generate" is deprecated, use "standalone" instead'
-  ), "standalone") : rawMode;
-  const lines = [];
-  lines.push(system);
-  lines.push("");
-  if (mode === "inline") {
-    lines.push("OUTPUT FORMAT (text + JSONL, RFC 6902 JSON Patch):");
-    lines.push(
-      "You respond conversationally. When generating UI, first write a brief explanation (1-3 sentences), then output JSONL patch lines wrapped in a ```spec code fence."
-    );
-    lines.push(
-      "The JSONL lines use RFC 6902 JSON Patch operations to build a UI tree. Always wrap them in a ```spec fence block:"
-    );
-    lines.push("  ```spec");
-    lines.push('  {"op":"add","path":"/root","value":"main"}');
-    lines.push(
-      '  {"op":"add","path":"/elements/main","value":{"type":"Card","props":{"title":"Hello"},"children":[]}}'
-    );
-    lines.push("  ```");
-    lines.push(
-      "If the user's message does not require a UI (e.g. a greeting or clarifying question), respond with text only \u2014 no JSONL."
-    );
-  } else {
-    lines.push("OUTPUT FORMAT (JSONL, RFC 6902 JSON Patch):");
-    lines.push(
-      "Output JSONL (one JSON object per line) using RFC 6902 JSON Patch operations to build a UI tree."
-    );
-  }
-  lines.push(
-    "Each line is a JSON patch operation (add, remove, replace). Start with /root, then stream /elements and /state patches interleaved so the UI fills in progressively as it streams."
-  );
-  lines.push("");
-  lines.push("Example output (each line is a separate JSON object):");
-  lines.push("");
-  const allComponents = catalog.data.components;
-  const specDefinition = catalog.schema.definition.spec;
-  const specShape = specDefinition.kind === "object" ? specDefinition.inner : void 0;
-  const elementsDefinition = specShape?.elements;
-  const elementDefinition = elementsDefinition?.kind === "record" ? elementsDefinition.inner : void 0;
-  const elementShape = elementDefinition?.kind === "object" ? elementDefinition.inner : void 0;
-  const supportsNamedSlots = elementShape?.slots !== void 0;
-  const cn = catalog.componentNames;
-  const comp1 = cn[0] || "Component";
-  const comp2 = cn.length > 1 ? cn[1] : comp1;
-  const comp1Def = allComponents?.[comp1];
-  const comp2Def = allComponents?.[comp2];
-  const comp1Props = comp1Def ? getExampleProps(comp1Def) : {};
-  const comp2Props = comp2Def ? getExampleProps(comp2Def) : {};
-  const dynamicPropName = comp2Def?.props ? findFirstStringProp(comp2Def.props) : null;
-  const dynamicProps = dynamicPropName ? { ...comp2Props, [dynamicPropName]: { $item: "title" } } : comp2Props;
-  const exampleOutput = [
-    JSON.stringify({ op: "add", path: "/root", value: "main" }),
-    JSON.stringify({
-      op: "add",
-      path: "/elements/main",
-      value: {
-        type: comp1,
-        props: comp1Props,
-        children: ["child-1", "list"]
-      }
-    }),
-    JSON.stringify({
-      op: "add",
-      path: "/elements/child-1",
-      value: { type: comp2, props: comp2Props, children: [] }
-    }),
-    JSON.stringify({
-      op: "add",
-      path: "/elements/list",
-      value: {
-        type: comp1,
-        props: comp1Props,
-        repeat: { statePath: "/items", key: "id" },
-        children: ["item"]
-      }
-    }),
-    JSON.stringify({
-      op: "add",
-      path: "/elements/item",
-      value: { type: comp2, props: dynamicProps, children: [] }
-    }),
-    JSON.stringify({ op: "add", path: "/state/items", value: [] }),
-    JSON.stringify({
-      op: "add",
-      path: "/state/items/0",
-      value: { id: "1", title: "First Item" }
-    }),
-    JSON.stringify({
-      op: "add",
-      path: "/state/items/1",
-      value: { id: "2", title: "Second Item" }
-    })
-  ].join("\n");
-  lines.push(`${exampleOutput}
-
-Note: state patches appear right after the elements that use them, so the UI fills in as it streams. ONLY use component types from the AVAILABLE COMPONENTS list below.`);
-  lines.push("");
-  lines.push("INITIAL STATE:");
-  lines.push(
-    "Specs include a /state field to seed the state model. Components with { $bindState } or { $bindItem } read from and write to this state, and $state expressions read from it."
-  );
-  lines.push(
-    "CRITICAL: You MUST include state patches whenever your UI displays data via $state, $bindState, $bindItem, $item, or $index expressions, or uses repeat to iterate over arrays. Without state, these references resolve to nothing and repeat lists render zero items."
-  );
-  lines.push(
-    "Output state patches right after the elements that reference them, so the UI fills in progressively as it streams."
-  );
-  lines.push(
-    "Stream state progressively - output one patch per array item instead of one giant blob:"
-  );
-  lines.push(
-    '  For arrays: {"op":"add","path":"/state/posts/0","value":{"id":"1","title":"First Post",...}} then /state/posts/1, /state/posts/2, etc.'
-  );
-  lines.push(
-    '  For scalars: {"op":"add","path":"/state/newTodoText","value":""}'
-  );
-  lines.push(
-    '  Initialize the array first if needed: {"op":"add","path":"/state/posts","value":[]}'
-  );
-  lines.push(
-    'When content comes from the state model, use { "$state": "/some/path" } dynamic props to display it instead of hardcoding the same value in both state and props. The state model is the single source of truth.'
-  );
-  lines.push(
-    "Include realistic sample data in state. For blogs: 3-4 posts with titles, excerpts, authors, dates. For product lists: 3-5 items with names, prices, descriptions. Never leave arrays empty."
-  );
-  lines.push("");
-  lines.push("DYNAMIC LISTS (repeat field):");
-  lines.push(
-    'Any element can have a top-level "repeat" field to render its children once per item in a state array: { "repeat": { "statePath": "/arrayPath", "key": "id" } }.'
-  );
-  lines.push(
-    'The element itself renders once (as the container), and its children are expanded once per array item. "statePath" is the state array path. "key" is an optional field name on each item for stable React keys.'
-  );
-  lines.push(
-    'For nested lists, an inner repeat can read an array from the enclosing item with { "statePath": { "$item": "field" } }. This form is valid only inside another repeat. Use an empty field to repeat over the enclosing item itself.'
-  );
-  lines.push(
-    `Example: ${JSON.stringify({ type: comp1, props: comp1Props, repeat: { statePath: "/todos", key: "id" }, children: ["todo-item"] })}`
-  );
-  lines.push(
-    'Inside children of a repeated element, use { "$item": "field" } to read a field from the current item, and { "$index": true } to get the current array index. For two-way binding to an item field use { "$bindItem": "completed" } on the appropriate prop.'
-  );
-  lines.push(
-    "ALWAYS use the repeat field for lists backed by state arrays. NEVER hardcode individual elements for each array item."
-  );
-  lines.push(
-    'IMPORTANT: "repeat" is a top-level field on the element (sibling of type/props/children), NOT inside props.'
-  );
-  lines.push("");
-  lines.push("ARRAY STATE ACTIONS:");
-  lines.push(
-    'Use action "pushState" to append items to arrays. Params: { statePath: "/arrayPath", value: { ...item }, clearStatePath: "/inputPath" }.'
-  );
-  lines.push(
-    'Values inside pushState can contain { "$state": "/statePath" } references to read current state (e.g. the text from an input field).'
-  );
-  lines.push(
-    'Use "$id" inside a pushState value to auto-generate a unique ID.'
-  );
-  lines.push(
-    'Example: on: { "press": { "action": "pushState", "params": { "statePath": "/todos", "value": { "id": "$id", "title": { "$state": "/newTodoText" }, "completed": false }, "clearStatePath": "/newTodoText" } } }'
-  );
-  lines.push(
-    `Use action "removeState" to remove items from arrays by index. Params: { statePath: "/arrayPath", index: N }. Inside a repeated element's children, use { "$index": true } for the current item index. Action params support the same expressions as props: { "$item": "field" } resolves to the absolute state path, { "$index": true } resolves to the index number, and { "$state": "/path" } reads a value from state.`
-  );
-  lines.push(
-    "For lists where users can add/remove items (todos, carts, etc.), use pushState and removeState instead of hardcoding with setState."
-  );
-  lines.push("");
-  lines.push(
-    'IMPORTANT: State paths use RFC 6901 JSON Pointer syntax (e.g. "/todos/0/title"). Do NOT use JavaScript-style dot notation (e.g. "/todos.length" is WRONG). To generate unique IDs for new items, use "$id" instead of trying to read array length.'
-  );
-  lines.push("");
-  const components = allComponents;
-  if (components) {
-    lines.push(`AVAILABLE COMPONENTS (${catalog.componentNames.length}):`);
-    lines.push("");
-    for (const [name, def] of Object.entries(components)) {
-      const propsStr = def.props ? formatZodType(def.props) : "{}";
-      const slotNames = def.slots ?? [];
-      const namedSlotNames = slotNames.filter((slot) => slot !== "default");
-      const acceptsChildren = slotNames.includes("default");
-      const slotsStr = supportsNamedSlots ? [
-        acceptsChildren ? "accepts children" : "",
-        namedSlotNames.length > 0 ? `slots: ${namedSlotNames.join(", ")}` : ""
-      ].filter(Boolean).join("; ") : slotNames.length > 0 ? "accepts children" : "";
-      const slotsSuffix = slotsStr ? ` [${slotsStr}]` : "";
-      const eventsStr = def.events && def.events.length > 0 ? ` [events: ${def.events.join(", ")}]` : "";
-      const descStr = def.description ? ` - ${def.description}` : "";
-      lines.push(`- ${name}: ${propsStr}${descStr}${slotsSuffix}${eventsStr}`);
-    }
-    lines.push("");
-  }
-  const actions = catalog.data.actions;
-  const builtInActions = catalog.schema.builtInActions ?? [];
-  const hasCustomActions = actions && catalog.actionNames.length > 0;
-  const hasBuiltInActions = builtInActions.length > 0;
-  if (hasCustomActions || hasBuiltInActions) {
-    lines.push("AVAILABLE ACTIONS:");
-    lines.push("");
-    for (const action2 of builtInActions) {
-      lines.push(`- ${action2.name}: ${action2.description} [built-in]`);
-    }
-    if (hasCustomActions) {
-      for (const [name, def] of Object.entries(actions)) {
-        lines.push(`- ${name}${def.description ? `: ${def.description}` : ""}`);
-      }
-    }
-    lines.push("");
-  }
-  lines.push("EVENTS (the `on` field):");
-  lines.push(
-    "Elements can have an optional `on` field to bind events to actions. The `on` field is a top-level field on the element (sibling of type/props/children), NOT inside props."
-  );
-  lines.push(
-    'Each key in `on` is an event name (from the component\'s supported events), and the value is an action binding: `{ "action": "<actionName>", "params": { ... } }`.'
-  );
-  lines.push("");
-  lines.push("Example:");
-  lines.push(
-    `  ${JSON.stringify({ type: comp1, props: comp1Props, on: { press: { action: "setState", params: { statePath: "/saved", value: true } } }, children: [] })}`
-  );
-  lines.push("");
-  lines.push(
-    'Action params can use dynamic references to read from state: { "$state": "/statePath" }.'
-  );
-  lines.push(
-    "IMPORTANT: Do NOT put action/actionParams inside props. Always use the `on` field for event bindings."
-  );
-  lines.push("");
-  lines.push("VISIBILITY CONDITIONS:");
-  lines.push(
-    "Elements can have an optional `visible` field to conditionally show/hide based on state. IMPORTANT: `visible` is a top-level field on the element object (sibling of type/props/children), NOT inside props."
-  );
-  lines.push(
-    `Correct: ${JSON.stringify({ type: comp1, props: comp1Props, visible: { $state: "/activeTab", eq: "home" }, children: ["..."] })}`
-  );
-  lines.push(
-    '- `{ "$state": "/path" }` - visible when state at path is truthy'
-  );
-  lines.push(
-    '- `{ "$state": "/path", "not": true }` - visible when state at path is falsy'
-  );
-  lines.push(
-    '- `{ "$state": "/path", "eq": "value" }` - visible when state equals value'
-  );
-  lines.push(
-    '- `{ "$state": "/path", "neq": "value" }` - visible when state does not equal value'
-  );
-  lines.push(
-    '- `{ "$state": "/path", "gt": N }` / `gte` / `lt` / `lte` - numeric comparisons'
-  );
-  lines.push(
-    "- Use ONE operator per condition (eq, neq, gt, gte, lt, lte). Do not combine multiple operators."
-  );
-  lines.push('- Any condition can add `"not": true` to invert its result');
-  lines.push(
-    "- `[condition, condition]` - all conditions must be true (implicit AND)"
-  );
-  lines.push(
-    '- `{ "$and": [condition, condition] }` - explicit AND (use when nesting inside $or)'
-  );
-  lines.push(
-    '- `{ "$or": [condition, condition] }` - at least one must be true (OR)'
-  );
-  lines.push("- `true` / `false` - always visible/hidden");
-  lines.push("");
-  lines.push(
-    "Use a component with on.press bound to setState to update state and drive visibility."
-  );
-  lines.push(
-    `Example: A ${comp1} with on: { "press": { "action": "setState", "params": { "statePath": "/activeTab", "value": "home" } } } sets state, then a container with visible: { "$state": "/activeTab", "eq": "home" } shows only when that tab is active.`
-  );
-  lines.push("");
-  lines.push(
-    'For tab patterns where the first/default tab should be visible when no tab is selected yet, use $or to handle both cases: visible: { "$or": [{ "$state": "/activeTab", "eq": "home" }, { "$state": "/activeTab", "not": true }] }. This ensures the first tab is visible both when explicitly selected AND when /activeTab is not yet set.'
-  );
-  lines.push("");
-  lines.push("DYNAMIC PROPS:");
-  lines.push(
-    "Any prop value can be a dynamic expression that resolves based on state. Three forms are supported:"
-  );
-  lines.push("");
-  lines.push(
-    '1. Read-only state: `{ "$state": "/statePath" }` - resolves to the value at that state path (one-way read).'
-  );
-  lines.push(
-    '   Example: `"color": { "$state": "/theme/primary" }` reads the color from state.'
-  );
-  lines.push("");
-  lines.push(
-    '2. Two-way binding: `{ "$bindState": "/statePath" }` - resolves to the value at the state path AND enables write-back. Use on form input props (value, checked, pressed, etc.).'
-  );
-  lines.push(
-    '   Example: `"value": { "$bindState": "/form/email" }` binds the input value to /form/email.'
-  );
-  lines.push(
-    '   Inside repeat scopes: `"checked": { "$bindItem": "completed" }` binds to the current item\'s completed field.'
-  );
-  lines.push("");
-  lines.push(
-    '3. Conditional: `{ "$cond": <condition>, "$then": <value>, "$else": <value> }` - evaluates the condition (same syntax as visibility conditions) and picks the matching value.'
-  );
-  lines.push(
-    '   Example: `"color": { "$cond": { "$state": "/activeTab", "eq": "home" }, "$then": "#007AFF", "$else": "#8E8E93" }`'
-  );
-  lines.push("");
-  lines.push(
-    "Use $bindState for form inputs (text fields, checkboxes, selects, sliders, etc.) and $state for read-only data display. Inside repeat scopes, use $bindItem for form inputs bound to the current item. Use dynamic props instead of duplicating elements with opposing visible conditions when only prop values differ."
-  );
-  lines.push("");
-  lines.push(
-    '4. Template: `{ "$template": "Hello, ${/name}!" }` - interpolates references in the string. Absolute paths like `${/path}` resolve against the state model. Bare names like `${field}` resolve against the current repeat item first, then fall back to the state model at `/<field>`.'
-  );
-  lines.push(
-    '   Example: `"label": { "$template": "Items: ${/cart/count} | Total: ${/cart/total}" }` renders "Items: 3 | Total: 42.00" when /cart/count is 3 and /cart/total is 42.00. Inside a repeat, `{ "$template": "${name} - ${email}" }` reads name and email from each item.'
-  );
-  lines.push("");
-  const catalogFunctions = catalog.data.functions;
-  if (catalogFunctions && Object.keys(catalogFunctions).length > 0) {
-    lines.push(
-      '5. Computed: `{ "$computed": "<functionName>", "args": { "key": <expression> } }` - calls a registered function with resolved args and returns the result.'
-    );
-    lines.push(
-      '   Example: `"value": { "$computed": "fullName", "args": { "first": { "$state": "/form/firstName" }, "last": { "$state": "/form/lastName" } } }`'
-    );
-    lines.push("   Available functions:");
-    for (const name of Object.keys(
-      catalogFunctions
-    )) {
-      lines.push(`   - ${name}`);
-    }
-    lines.push("");
-  }
-  const directives = options.directives;
-  if (directives && directives.length > 0) {
-    lines.push("CUSTOM DYNAMIC VALUES:");
-    lines.push("");
-    for (const d of directives) {
-      const desc = d.description ? ` (${d.description})` : "";
-      lines.push(`- ${d.name}${desc}: ${formatZodType(d.schema)}`);
-    }
-    lines.push("");
-    lines.push(
-      "Directives compose: any value field can contain another directive or a $state expression, resolved inside-out."
-    );
-    lines.push("");
-  }
-  const hasChecksComponents = allComponents ? Object.entries(allComponents).some(([, def]) => {
-    if (!def.props) return false;
-    const formatted = formatZodType(def.props);
-    return formatted.includes("checks");
-  }) : false;
-  if (hasChecksComponents) {
-    lines.push("VALIDATION:");
-    lines.push(
-      "Form components that accept a `checks` prop support client-side validation."
-    );
-    lines.push(
-      'Each check is an object: { "type": "<name>", "message": "...", "args": { ... } }'
-    );
-    lines.push("");
-    lines.push("Built-in validation types:");
-    lines.push("  - required \u2014 value must be non-empty");
-    lines.push("  - email \u2014 valid email format");
-    lines.push('  - minLength \u2014 minimum string length (args: { "min": N })');
-    lines.push('  - maxLength \u2014 maximum string length (args: { "max": N })');
-    lines.push('  - pattern \u2014 match a regex (args: { "pattern": "regex" })');
-    lines.push('  - min \u2014 minimum numeric value (args: { "min": N })');
-    lines.push('  - max \u2014 maximum numeric value (args: { "max": N })');
-    lines.push("  - numeric \u2014 value must be a number");
-    lines.push("  - url \u2014 valid URL format");
-    lines.push(
-      '  - matches \u2014 must equal another field (args: { "other": { "$state": "/path" } })'
-    );
-    lines.push(
-      '  - equalTo \u2014 alias for matches (args: { "other": { "$state": "/path" } })'
-    );
-    lines.push(
-      '  - lessThan \u2014 value must be less than another field (args: { "other": { "$state": "/path" } })'
-    );
-    lines.push(
-      '  - greaterThan \u2014 value must be greater than another field (args: { "other": { "$state": "/path" } })'
-    );
-    lines.push(
-      '  - requiredIf \u2014 required only when another field is truthy (args: { "field": { "$state": "/path" } })'
-    );
-    lines.push("");
-    lines.push("Example:");
-    lines.push(
-      '  "checks": [{ "type": "required", "message": "Email is required" }, { "type": "email", "message": "Invalid email" }]'
-    );
-    lines.push("");
-    lines.push(
-      "IMPORTANT: When using checks, the component must also have a { $bindState } or { $bindItem } on its value/checked prop for two-way binding."
-    );
-    lines.push(
-      "Always include validation checks on form inputs for a good user experience (e.g. required, email, minLength)."
-    );
-    lines.push("");
-  }
-  if (hasCustomActions || hasBuiltInActions) {
-    lines.push("STATE WATCHERS:");
-    lines.push(
-      "Elements can have an optional `watch` field to react to state changes and trigger actions. The `watch` field is a top-level field on the element (sibling of type/props/children), NOT inside props."
-    );
-    lines.push(
-      "Maps state paths (JSON Pointers) to action bindings. When the value at a watched path changes, the bound actions fire automatically."
-    );
-    lines.push("");
-    lines.push(
-      "Example (cascading select \u2014 country changes trigger city loading):"
-    );
-    lines.push(
-      `  ${JSON.stringify({ type: "Select", props: { value: { $bindState: "/form/country" }, options: ["US", "Canada", "UK"] }, watch: { "/form/country": { action: "loadCities", params: { country: { $state: "/form/country" } } } }, children: [] })}`
-    );
-    lines.push("");
-    lines.push(
-      "Use `watch` for cascading dependencies where changing one field should trigger side effects (loading data, resetting dependent fields, computing derived values)."
-    );
-    lines.push(
-      "IMPORTANT: `watch` is a top-level field on the element (sibling of type/props/children), NOT inside props. Watchers only fire when the value changes, not on initial render."
-    );
-    lines.push("");
-  }
-  const editModes = options.editModes;
-  if (editModes && editModes.length > 0) {
-    lines.push(buildEditInstructions({ modes: editModes }, "json"));
-  }
-  lines.push("RULES:");
-  const baseRules = mode === "inline" ? [
-    "When generating UI, wrap all JSONL patches in a ```spec code fence - one JSON object per line inside the fence",
-    "Write a brief conversational response before any JSONL output",
-    'First set root: {"op":"add","path":"/root","value":"<root-key>"}',
-    'Then add each element: {"op":"add","path":"/elements/<key>","value":{...}}',
-    "Output /state patches right after the elements that use them, one per array item for progressive loading. REQUIRED whenever using $state, $bindState, $bindItem, $item, $index, or repeat.",
-    "ONLY use components listed above",
-    "Each element value needs: type, props, children (array of child keys)",
-    "Use unique keys for the element map entries (e.g., 'header', 'metric-1', 'chart-revenue')"
-  ] : [
-    "Output ONLY JSONL patches - one JSON object per line, no markdown, no code fences",
-    'First set root: {"op":"add","path":"/root","value":"<root-key>"}',
-    'Then add each element: {"op":"add","path":"/elements/<key>","value":{...}}',
-    "Output /state patches right after the elements that use them, one per array item for progressive loading. REQUIRED whenever using $state, $bindState, $bindItem, $item, $index, or repeat.",
-    "ONLY use components listed above",
-    "Each element value needs: type, props, children (array of child keys)",
-    "Use unique keys for the element map entries (e.g., 'header', 'metric-1', 'chart-revenue')"
-  ];
-  const schemaRules = catalog.schema.defaultRules ?? [];
-  const allRules = [...baseRules, ...schemaRules, ...customRules];
-  allRules.forEach((rule, i) => {
-    lines.push(`${i + 1}. ${rule}`);
-  });
-  return lines.join("\n");
-}
-function getExampleProps(def) {
-  if (def.example && Object.keys(def.example).length > 0) {
-    return def.example;
-  }
-  if (def.props) {
-    return generateExamplePropsFromZod(def.props);
-  }
-  return {};
-}
-function generateExamplePropsFromZod(schema) {
-  if (!schema || !schema._def) return {};
-  const def = schema._def;
-  const typeName = getZodTypeName(schema);
-  if (typeName !== "ZodObject" && typeName !== "object") return {};
-  const shape = typeof def.shape === "function" ? def.shape() : def.shape;
-  if (!shape) return {};
-  const result = {};
-  for (const [key, value] of Object.entries(shape)) {
-    const innerTypeName = getZodTypeName(value);
-    if (innerTypeName === "ZodOptional" || innerTypeName === "optional" || innerTypeName === "ZodNullable" || innerTypeName === "nullable") {
-      continue;
-    }
-    result[key] = generateExampleValue(value);
-  }
-  return result;
-}
-function generateExampleValue(schema) {
-  if (!schema || !schema._def) return "...";
-  const def = schema._def;
-  const typeName = getZodTypeName(schema);
-  switch (typeName) {
-    case "ZodString":
-    case "string":
-      return "example";
-    case "ZodNumber":
-    case "number":
-      return 0;
-    case "ZodBoolean":
-    case "boolean":
-      return true;
-    case "ZodLiteral":
-    case "literal":
-      return def.value;
-    case "ZodEnum":
-    case "enum": {
-      if (Array.isArray(def.values) && def.values.length > 0)
-        return def.values[0];
-      if (def.entries && typeof def.entries === "object") {
-        const values = Object.values(def.entries);
-        return values.length > 0 ? values[0] : "example";
-      }
-      return "example";
-    }
-    case "ZodOptional":
-    case "optional":
-    case "ZodNullable":
-    case "nullable":
-    case "ZodDefault":
-    case "default": {
-      const inner = def.innerType ?? def.wrapped;
-      return inner ? generateExampleValue(inner) : null;
-    }
-    case "ZodArray":
-    case "array":
-      return [];
-    case "ZodObject":
-    case "object":
-      return generateExamplePropsFromZod(schema);
-    case "ZodUnion":
-    case "union": {
-      const options = def.options;
-      return options && options.length > 0 ? generateExampleValue(options[0]) : "...";
-    }
-    default:
-      return "...";
-  }
-}
-function findFirstStringProp(schema) {
-  if (!schema || !schema._def) return null;
-  const def = schema._def;
-  const typeName = getZodTypeName(schema);
-  if (typeName !== "ZodObject" && typeName !== "object") return null;
-  const shape = typeof def.shape === "function" ? def.shape() : def.shape;
-  if (!shape) return null;
-  for (const [key, value] of Object.entries(shape)) {
-    const innerTypeName = getZodTypeName(value);
-    if (innerTypeName === "ZodOptional" || innerTypeName === "optional" || innerTypeName === "ZodNullable" || innerTypeName === "nullable") {
-      continue;
-    }
-    if (innerTypeName === "ZodString" || innerTypeName === "string") {
-      return key;
-    }
-  }
-  return null;
-}
-function getZodTypeName(schema) {
-  if (!schema || !schema._def) return "";
-  const def = schema._def;
-  return def.typeName ?? def.type ?? "";
-}
-function formatZodType(schema) {
-  if (!schema || !schema._def) return "unknown";
-  const def = schema._def;
-  const typeName = getZodTypeName(schema);
-  switch (typeName) {
-    case "ZodString":
-    case "string":
-      return "string";
-    case "ZodNumber":
-    case "number":
-      return "number";
-    case "ZodBoolean":
-    case "boolean":
-      return "boolean";
-    case "ZodLiteral":
-    case "literal": {
-      const litValues = def.values;
-      const litValue = litValues?.[0] ?? def.value;
-      return JSON.stringify(litValue);
-    }
-    case "ZodEnum":
-    case "enum": {
-      let values;
-      if (Array.isArray(def.values)) {
-        values = def.values;
-      } else if (def.entries && typeof def.entries === "object") {
-        values = Object.values(def.entries);
-      } else {
-        return "enum";
-      }
-      return values.map((v) => `"${v}"`).join(" | ");
-    }
-    case "ZodArray":
-    case "array": {
-      const inner = typeof def.element === "object" ? def.element : typeof def.type === "object" ? def.type : void 0;
-      return inner ? `Array<${formatZodType(inner)}>` : "Array<unknown>";
-    }
-    case "ZodObject":
-    case "object": {
-      const shape = typeof def.shape === "function" ? def.shape() : def.shape;
-      if (!shape) return "object";
-      const props = Object.entries(shape).map(([key, value]) => {
-        const innerTypeName = getZodTypeName(value);
-        const isOptional = innerTypeName === "ZodOptional" || innerTypeName === "ZodNullable" || innerTypeName === "optional" || innerTypeName === "nullable";
-        return `${key}${isOptional ? "?" : ""}: ${formatZodType(value)}`;
-      }).join(", ");
-      return `{ ${props} }`;
-    }
-    case "ZodOptional":
-    case "optional":
-    case "ZodNullable":
-    case "nullable": {
-      const inner = def.innerType ?? def.wrapped;
-      return inner ? formatZodType(inner) : "unknown";
-    }
-    case "ZodUnion":
-    case "union": {
-      const options = def.options;
-      return options ? options.map((opt) => formatZodType(opt)).join(" | ") : "unknown";
-    }
-    case "ZodRecord":
-    case "record": {
-      const keyType = def.keyType ?? void 0;
-      const valueType = def.valueType ?? def.element ?? void 0;
-      const keyStr = keyType ? formatZodType(keyType) : "string";
-      const valueStr = valueType ? formatZodType(valueType) : "unknown";
-      return `Record<${keyStr}, ${valueStr}>`;
-    }
-    case "ZodDefault":
-    case "default": {
-      const inner = def.innerType ?? def.wrapped;
-      return inner ? formatZodType(inner) : "unknown";
-    }
-    default:
-      return "unknown";
-  }
-}
-function zodTypeName(def) {
-  if (typeof def.type === "string") return def.type;
-  if (typeof def.typeName === "string") return def.typeName;
-  return "";
-}
-function normalizeTypeName(raw) {
-  if (raw.startsWith("Zod")) {
-    return raw.slice(3).toLowerCase();
-  }
-  return raw.toLowerCase();
-}
-function zodToJsonSchema(schema, strict = false) {
-  const def = schema._def;
-  const kind = normalizeTypeName(zodTypeName(def));
-  switch (kind) {
-    case "string":
-      return { type: "string" };
-    case "number":
-      return { type: "number" };
-    case "boolean":
-      return { type: "boolean" };
-    case "literal": {
-      const values = def.values;
-      const value = values ? values[0] : def.value;
-      return { const: value };
-    }
-    case "enum": {
-      const entries = def.entries;
-      const values = entries ? Object.values(entries) : def.values;
-      return { enum: values ?? [] };
-    }
-    case "array": {
-      const inner = def.element ?? def.type;
-      return {
-        type: "array",
-        items: inner ? zodToJsonSchema(inner, strict) : {}
-      };
-    }
-    case "object": {
-      const rawShape2 = def.shape;
-      const shape = typeof rawShape2 === "function" ? rawShape2() : rawShape2;
-      if (!shape) {
-        if (strict) {
-          return {
-            type: "object",
-            properties: {},
-            required: [],
-            additionalProperties: false
-          };
-        }
-        return { type: "object" };
-      }
-      const properties = {};
-      const required2 = [];
-      for (const [key, value] of Object.entries(shape)) {
-        const innerDef = value._def;
-        const innerKind = normalizeTypeName(zodTypeName(innerDef));
-        const isOptional = innerKind === "optional" || innerKind === "nullable";
-        if (strict) {
-          required2.push(key);
-          if (isOptional) {
-            const unwrapped = zodToJsonSchema(value, strict);
-            properties[key] = { anyOf: [unwrapped, { type: "null" }] };
-          } else {
-            properties[key] = zodToJsonSchema(value, strict);
-          }
-        } else {
-          properties[key] = zodToJsonSchema(value);
-          if (!isOptional) {
-            required2.push(key);
-          }
-        }
-      }
-      return {
-        type: "object",
-        properties,
-        required: required2.length > 0 ? required2 : void 0,
-        additionalProperties: false
-      };
-    }
-    case "record": {
-      const valueType = def.valueType;
-      if (strict) {
-        return {
-          type: "object",
-          properties: {},
-          required: [],
-          additionalProperties: false
-        };
-      }
-      return {
-        type: "object",
-        additionalProperties: valueType ? zodToJsonSchema(valueType) : true
-      };
-    }
-    case "optional":
-    case "nullable": {
-      const inner = def.innerType;
-      return inner ? zodToJsonSchema(inner, strict) : {};
-    }
-    case "union": {
-      const options = def.options;
-      return options ? { anyOf: options.map((o) => zodToJsonSchema(o, strict)) } : {};
-    }
-    case "any":
-    case "unknown":
-      if (strict) {
-        return {
-          type: "object",
-          properties: {},
-          required: [],
-          additionalProperties: false
-        };
-      }
-      return {};
-    default:
-      return {};
-  }
-}
-function defineCatalog(schema, catalog) {
-  return schema.createCatalog(catalog);
-}
-
-// ../../packages/shared/src/views/catalog.ts
-var VIEW_SPEC_MAX_LENGTH = 1e6;
-var ViewValueSchema = external_exports.union([external_exports.string(), external_exports.number(), external_exports.boolean(), external_exports.null()]);
-var ViewTableSchema = external_exports.object({
-  columns: external_exports.array(external_exports.string().min(1).max(200)).min(1).max(12).describe('Column headers, e.g. ["StageName","count","sum:Amount"].'),
-  rows: external_exports.array(external_exports.array(ViewValueSchema)).max(2e3).describe("One array per row, values in column order. Copy the aggregate result as is.")
-}).describe("A data table: the JSON block aggregate_records returns, or rows from export_records.");
-var VIEW_COLUMN_FORMATS = ["text", "number", "percent", "currency", "link"];
-var column = (what) => external_exports.string().min(1).describe(`Header in data.columns of ${what}.`);
-var optionalColumn = (what) => external_exports.string().nullable().describe(`Header in data.columns of ${what}, or null.`);
-var title = external_exports.string().nullable().describe("Short title above the chart, or null.");
-var unit = external_exports.string().nullable().describe(
-  'Unit written after values, such as "USD", "opportunities" or "%", or null when the source states none. Never invent a currency.'
-);
-var sampleTable = {
-  columns: ["StageName", "count", "sum:Amount"],
-  rows: [
-    ["Closed Won", 90, 11783485],
-    ["Closed Lost", 217, 33440754],
-    ["Prospecting", 41, 4430914]
-  ]
-};
-var palette = (fallback) => external_exports.enum(["single", "category", "signed", "sequential"]).nullish().describe(
-  `How colour is assigned: single (one hue for every mark), category (a hue per category, folding past eight into "Other"), signed (one hue for what adds, red for what takes away), sequential (light to dark by value). Omit for ${fallback}.`
-);
-var emphasis = external_exports.array(external_exports.string().min(1).max(200)).max(12).nullish().describe(
-  "Category values drawn at full strength while the rest fade back, so the chart carries the point the caption makes. Omit to draw every mark equally."
-);
-var size = external_exports.enum(["small", "medium", "full"]).nullish().describe(
-  "How much width the chart asks for when it shares a Row: small (a third), medium (a half), full. Omit for full."
-);
-var annotations = external_exports.array(
-  external_exports.object({
-    value: external_exports.number().describe("Where the line sits on the value axis."),
-    label: external_exports.string().min(1).max(60).describe('What the line means, e.g. "Target" or "Average deal".')
-  })
-).max(4).nullish().describe("Reference lines across the value axis, each labelled: a target, an average, a threshold. Omit for none.");
-var labels = external_exports.enum(["none", "value", "share", "both"]).nullish().describe(
-  "What is written on the marks themselves: value (the number), share (its percentage of the whole, or of the step before it in a funnel), both, or none to leave the marks bare and let the table carry the numbers. Omit for value, which is what a chart read without hovering needs."
-);
-var tooltip = external_exports.enum(["auto", "detailed", "off"]).nullish().describe(
-  "What hovering a mark reveals: auto (its category and value), detailed (every measure the data holds for that row, not only the one drawn), or off. Omit for auto."
-);
-var overlay = external_exports.string().nullish().describe(
-  "A second column from the same data drawn behind the marks for comparison: an amount behind a count, last year behind this year, a target behind actuals. Null for none. It is drawn in a muted tone and always named in the legend, so the drawn measure stays the one the caption argues about."
-);
-var VIEW_COMPONENTS = {
-  Page: {
-    props: external_exports.object({
-      title: external_exports.string().min(1).max(120).describe("The question answered, in words."),
-      subtitle: external_exports.string().nullable().describe("One line under the title, or null."),
-      density: external_exports.enum(["comfortable", "compact"]).nullish().describe(
-        "How much air between the parts: comfortable for one chart, compact when the page stacks several. Omit for comfortable."
-      )
-    }),
-    slots: ["default"],
-    description: "The root of every view: a heading, then its children stacked top to bottom. Use exactly one, as the root.",
-    example: { title: "How closed-won revenue builds up by industry", subtitle: null }
-  },
-  Caption: {
-    props: external_exports.object({ text: external_exports.string().min(1).max(2e3) }),
-    slots: [],
-    description: "Provenance under the heading: type and record count, the where clause in words, the definition applied, snapshot date, coverage, and whether counts are exact. Every view has one.",
-    example: {
-      text: 'Opportunity records where StageName = "Closed Won" (90 of 520). Snapshot of 2026-09-15, coverage complete, counts exact.'
-    }
-  },
-  Note: {
-    props: external_exports.object({
-      text: external_exports.string().min(1).max(2e3),
-      tone: external_exports.enum(["muted", "warning"]).nullable().describe("warning for assumptions or inexact counts, else null.")
-    }),
-    slots: [],
-    description: "A short paragraph: an assumption that was made, a caveat, or how to read the chart.",
-    example: { text: "Opportunities whose account has no industry are shown on their own row.", tone: null }
-  },
-  Callout: {
-    props: external_exports.object({
-      text: external_exports.string().min(1).max(2e3),
-      tone: external_exports.enum(["info", "success", "warning", "danger"]).describe(
-        "What kind of thing this is: info for context, success for a target met, warning for an assumption or a caveat, danger for something wrong with the data."
-      ),
-      title: external_exports.string().max(120).nullable().describe("A few words of heading, or null.")
-    }),
-    slots: [],
-    description: "The one thing the reader should take away, set apart from the prose so it is not skipped. At most one or two per page: a page of callouts is a page of nothing.",
-    example: {
-      text: "Conversion out of Negotiation fell by half this quarter, on 14 opportunities.",
-      tone: "warning",
-      title: "Worth looking at"
-    }
-  },
-  Quote: {
-    props: external_exports.object({
-      text: external_exports.string().min(1).max(2e3).describe("The words themselves, as they were written."),
-      attribution: external_exports.string().max(200).nullable().describe(
-        'Who said or wrote it, or where it came from, e.g. "Customer definition, ontology v7". Null when it would add nothing.'
-      )
-    }),
-    slots: [],
-    description: "Words from somewhere else quoted verbatim: a definition from the ontology, a line of the context document, an answer someone gave. Never paraphrase inside one.",
-    example: {
-      text: "An account with at least one closed-won opportunity in the last 12 months.",
-      attribution: "Customer, ontology v7"
-    }
-  },
-  Toggle: {
-    props: external_exports.object({
-      summary: external_exports.string().min(1).max(160).describe("The line always visible, naming what is folded away."),
-      open: external_exports.boolean().nullish().describe("Start open. Omit for closed, which is the point of a Toggle.")
-    }),
-    slots: ["default"],
-    description: 'Detail folded behind one line: the full table under a summary chart, the rows behind an "Other" bucket, the working behind a number. Keeps a crowded page readable without dropping anything.',
-    example: { summary: "Every stage, including the ones with no opportunities", open: null }
-  },
-  Checklist: {
-    props: external_exports.object({
-      items: external_exports.array(
-        external_exports.object({
-          label: external_exports.string().min(1).max(200),
-          done: external_exports.boolean().describe("Whether this one holds today."),
-          note: external_exports.string().max(200).nullable().describe('What decided it, e.g. "3 of 40 accounts", or null.')
-        })
-      ).min(1).max(20)
-    }),
-    slots: [],
-    description: "A list of conditions with whether each one holds: data quality checks, the parts of a definition, what a workflow still needs. Not a to-do list for the reader.",
-    example: {
-      items: [
-        { label: "Every opportunity has a close date", done: true, note: "520 of 520" },
-        { label: "Every account has an industry", done: false, note: "88 of 140 missing" }
-      ]
-    }
-  },
-  Badges: {
-    props: external_exports.object({
-      items: external_exports.array(
-        external_exports.object({
-          label: external_exports.string().min(1).max(60),
-          tone: external_exports.enum(["neutral", "info", "success", "warning", "danger"]).nullable().describe("What the badge says about the thing, or null for neutral.")
-        })
-      ).min(1).max(12)
-    }),
-    slots: [],
-    description: "A row of short labels: which sources a number came from, which filters are on, which stages are counted. Use for facts that fit in two words each.",
-    example: {
-      items: [
-        { label: "Salesforce", tone: "neutral" },
-        { label: "Snapshot 2026-09-15", tone: "neutral" },
-        { label: "Counts exact", tone: "success" }
-      ]
-    }
-  },
-  Row: {
-    props: external_exports.object({
-      weights: external_exports.array(external_exports.number().positive().max(12)).max(6).nullish().describe(
-        "Relative widths of the children, one number each, e.g. [2,1] for a chart twice the width of the table beside it. Omit for equal widths."
-      ),
-      align: external_exports.enum(["stretch", "top"]).nullish().describe(
-        "How children of different heights line up: stretch (equal height, the default) or top, for a tile beside a tall chart."
-      )
-    }),
-    slots: ["default"],
-    description: "Lays its children side by side, wrapping on narrow screens. Use for a row of Kpi tiles or two charts that belong together.",
-    example: { weights: [2, 1] }
-  },
-  Section: {
-    props: external_exports.object({
-      title: external_exports.string().min(1).max(120).describe("What this part of the page answers."),
-      subtitle: external_exports.string().nullable().describe("One line under the heading, or null."),
-      eyebrow: external_exports.string().min(1).max(60).nullish().describe(
-        'A few words above the heading naming where this part sits in the argument, e.g. "The target list" or "Step 2". Omit for none.'
-      ),
-      collapsed: external_exports.boolean().nullish().describe(
-        "true starts it folded away, for detail a reader opens only when they want it; false offers the fold but starts open. Omit for open. In an artifact only a section that sets it can fold."
-      )
-    }),
-    slots: ["default"],
-    description: "A titled group of panels with its own heading and breathing room. Use it once a page carries more than one question, so the reader sees three short sections instead of nine stacked charts.",
-    example: {
-      title: "Where the pipeline leaks",
-      subtitle: "Stage by stage, this quarter",
-      eyebrow: "Pipeline",
-      collapsed: null
-    }
-  },
-  Divider: {
-    props: external_exports.object({
-      label: external_exports.string().max(80).nullable().describe("A few words naming what follows, or null for a plain rule.")
-    }),
-    slots: [],
-    description: "A horizontal rule between parts of a page. Prefer a Section when the parts have names; use this for a single clean break.",
-    example: { label: null }
-  },
-  Kpi: {
-    props: external_exports.object({
-      label: external_exports.string().min(1).max(80),
-      value: external_exports.union([external_exports.string(), external_exports.number()]),
-      unit,
-      note: external_exports.string().nullable().describe('What is behind the number, e.g. "90 opportunities", or null.'),
-      headline: external_exports.boolean().nullish().describe(
-        "true for the one number a section turns on, drawn at display size without a tile around it. At most one per section. Omit for a tile."
-      )
-    }),
-    slots: [],
-    description: "One headline number with its label. Put several in a Row for a KPI strip. Not a chart with one bar.",
-    example: { label: "Closed-won amount", value: 11783485, unit: null, note: "90 opportunities", headline: null }
-  },
-  Trend: {
-    props: external_exports.object({
-      label: external_exports.string().min(1).max(80),
-      value: external_exports.number(),
-      previous: external_exports.number().describe("The same measure over the period before, so the change can be drawn and named."),
-      unit,
-      periodLabel: external_exports.string().max(60).nullable().describe('What it is compared with, e.g. "last quarter", or null.'),
-      goodDirection: external_exports.enum(["up", "down", "neutral"]).nullish().describe("Which way is good for this measure, so a fall in churn does not read as bad news. Omit for up."),
-      size
-    }),
-    slots: [],
-    description: 'One number with the change from the period before it, drawn as an arrow and a percentage. Use instead of Kpi whenever the reader would ask "compared with what?".',
-    example: {
-      label: "Closed-won amount",
-      value: 11783485,
-      previous: 9240110,
-      unit: null,
-      periodLabel: "last quarter",
-      goodDirection: "up",
-      size: null
-    }
-  },
-  Progress: {
-    props: external_exports.object({
-      label: external_exports.string().min(1).max(80),
-      value: external_exports.number(),
-      target: external_exports.number().positive().describe("What counts as complete: a quota, a goal, a total to cover."),
-      unit,
-      note: external_exports.string().nullable().describe('What is behind it, e.g. "90 of 140 accounts", or null.'),
-      size
-    }),
-    slots: [],
-    description: "How far a number has come toward a target, as a filled bar with the share written on it. For quota, coverage, completeness; not for a value with no target.",
-    example: {
-      label: "Bookings against quota",
-      value: 11783485,
-      target: 15e6,
-      unit: null,
-      note: "Q3, 90 opportunities",
-      size: null
-    }
-  },
-  Gauge: {
-    props: external_exports.object({
-      label: external_exports.string().min(1).max(80),
-      value: external_exports.number(),
-      min: external_exports.number(),
-      max: external_exports.number(),
-      bands: external_exports.array(
-        external_exports.object({
-          upTo: external_exports.number().describe("Upper edge of this band on the scale."),
-          label: external_exports.string().min(1).max(40),
-          tone: external_exports.enum(["good", "fair", "poor"])
-        })
-      ).max(4).nullish().describe('Named ranges the value falls into, e.g. under 30 days "good". Omit for a plain scale.'),
-      unit,
-      size
-    }),
-    slots: [],
-    description: "One value on a named scale, for a measure a reader judges rather than compares: days to close, health, utilisation. Never for money or counts, which belong on a bar.",
-    example: {
-      label: "Median days to close",
-      value: 34,
-      min: 0,
-      max: 90,
-      bands: [
-        { upTo: 30, label: "Fast", tone: "good" },
-        { upTo: 60, label: "Typical", tone: "fair" },
-        { upTo: 90, label: "Slow", tone: "poor" }
-      ],
-      unit: "days",
-      size: null
-    }
-  },
-  Sparkline: {
-    props: external_exports.object({
-      label: external_exports.string().min(1).max(80),
-      data: ViewTableSchema,
-      x: column("the ordered axis, usually a date bucket"),
-      value: column("the numeric value"),
-      unit,
-      note: external_exports.string().nullable().describe("What is behind the line, or null."),
-      size
-    }),
-    slots: [],
-    description: "The shape of one series, small and unlabelled, beside a number rather than in place of a chart. Use in a Row of tiles where a full LineChart would not fit.",
-    example: {
-      label: "Bookings",
-      data: {
-        columns: ["CloseDate:month", "sum:Amount"],
-        rows: [
-          ["2026-05-01", 820431],
-          ["2026-06-01", 1390239],
-          ["2026-07-01", 2104880]
-        ]
-      },
-      x: "CloseDate:month",
-      value: "sum:Amount",
-      unit: null,
-      note: "Last 3 months",
-      size: "small"
-    }
-  },
-  Cards: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      heading: column("the line naming each card"),
-      body: optionalColumn("a line of detail under the heading"),
-      badge: optionalColumn("a short label in the corner, e.g. a stage or an owner"),
-      value: optionalColumn("a number shown large on the card"),
-      unit,
-      size
-    }),
-    slots: [],
-    description: "One small card per row: a gallery of accounts, deals or people, each with a name, a number and a label. Use when the reader is looking for particular records rather than reading a distribution; a DataTable is better once there are more than about a dozen.",
-    example: {
-      title: "Largest open opportunities",
-      data: {
-        columns: ["Name", "StageName", "Amount", "AccountId.Name"],
-        rows: [["Acme renewal", "Negotiation", 24e4, "Acme"]]
-      },
-      heading: "Name",
-      body: "AccountId.Name",
-      badge: "StageName",
-      value: "Amount",
-      unit: null,
-      size: null
-    }
-  },
-  BarChart: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      category: column("the category on the axis"),
-      value: column("the numeric value drawn as bar length"),
-      series: optionalColumn("a second category that splits each bar into stacked segments"),
-      sort: external_exports.enum(["value", "category", "none"]).nullable().describe("Order of the bars: by value (largest first), by category, or as the rows come. Null means value."),
-      unit,
-      orientation: external_exports.enum(["horizontal", "vertical"]).nullish().describe(
-        "Which way the bars run: horizontal reads long category names and many bars; vertical (columns) suits short labels, a time order, or a shape the reader expects to stand up. Omit for horizontal."
-      ),
-      palette: palette("single, or a hue per series when series is set"),
-      emphasis,
-      size,
-      annotations,
-      labels,
-      tooltip,
-      overlay
-    }),
-    slots: [],
-    description: 'Bars, sorted and direct-labelled: compare categories, or share of a whole when series stacks them. Horizontal by default; orientation "vertical" draws columns. More than about 8 bars: fold the tail into "Other" first.',
-    example: {
-      title: "Opportunities by stage",
-      data: sampleTable,
-      category: "StageName",
-      value: "count",
-      series: null,
-      sort: "value",
-      unit: "opportunities",
-      orientation: "vertical",
-      palette: "category",
-      emphasis: ["Closed Won"],
-      size: null,
-      annotations: [{ value: 100, label: "Quarterly target" }],
-      labels: "value",
-      tooltip: "detailed",
-      overlay: "sum:Amount"
-    }
-  },
-  LineChart: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      x: column("the ordered x axis, usually a date bucket such as CloseDate:month"),
-      y: column("the numeric value"),
-      series: optionalColumn("a category that gives one line per value (at most four)"),
-      unit,
-      emphasis,
-      size,
-      annotations,
-      labels,
-      tooltip,
-      overlay
-    }),
-    slots: [],
-    description: "A trend over an ordered axis; one line per series with a legend. Never two y axes: use two charts.",
-    example: {
-      title: "Bookings per quarter",
-      data: {
-        columns: ["CloseDate:quarter", "sum:Amount"],
-        rows: [
-          ["2026-01-01", 1390239],
-          ["2026-04-01", 4608898],
-          ["2026-07-01", 12955576]
-        ]
-      },
-      x: "CloseDate:quarter",
-      y: "sum:Amount",
-      series: null,
-      unit: null
-    }
-  },
-  Waterfall: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      category: column("each contributor"),
-      value: column("its signed contribution"),
-      totalLabel: external_exports.string().nullable().describe('Label of the closing total bar, or null for "Total".'),
-      unit,
-      palette: palette("signed, which is what a bridge usually wants"),
-      emphasis,
-      size,
-      labels,
-      tooltip
-    }),
-    slots: [],
-    description: "How a total is built up or bridged: one floating bar per contributor from the running total before it to the running total after it, then a total bar. Attribution, revenue bridges, what added and what took away.",
-    example: {
-      title: "Closed-won amount by industry",
-      data: {
-        columns: ["AccountId.Industry", "sum:Amount"],
-        rows: [
-          ["Finance", 2312731],
-          ["Banking", 1911207],
-          ["Technology", 1758867]
-        ]
-      },
-      category: "AccountId.Industry",
-      value: "sum:Amount",
-      totalLabel: "Total closed-won",
-      unit: null
-    }
-  },
-  Funnel: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      stage: column("the stage"),
-      value: column("the count or amount at that stage"),
-      order: external_exports.array(external_exports.string()).nullable().describe("Stage names in process order (from the picklist), or null to keep the row order."),
-      unit,
-      form: external_exports.enum(["bars", "taper"]).nullish().describe(
-        "bars (the default) draws each stage as a bar sized by its value, so the drop between stages is measured by eye. taper draws the stages as one narrowing shape, numbered as steps, with each value written large on its step: for a short argument of filters (every brand, then the ones that qualify, then the ones that fit) where the reader follows the numbers rather than compares bar lengths. Taper ignores overlay."
-      ),
-      palette: palette("single, so the eye follows the drop and not the colour"),
-      emphasis,
-      size,
-      labels,
-      tooltip,
-      overlay
-    }),
-    slots: [],
-    description: 'Progression through ordered stages, each step carrying its own value and the conversion from the step before it. Order by the process, never by size. `labels` decides what is written on the steps themselves and `overlay` draws a second measure behind them, so one funnel can show both the count and the amount at each stage. `form` "taper" turns it into the numbered narrowing shape a target-list argument reads as. Only for cohorts that pass through the stages, where each step counts records that also reached the one before it: a snapshot of how many records sit in each stage today is not one, and drawing it here produces conversions above 100% that mean nothing. Use a BarChart with sort "none" and the stages in process order for a snapshot.',
-    example: {
-      title: "Pipeline by stage",
-      data: sampleTable,
-      stage: "StageName",
-      value: "count",
-      order: ["Prospecting", "Closed Won", "Closed Lost"],
-      unit: "opportunities",
-      labels: "both",
-      overlay: "sum:Amount",
-      tooltip: "detailed"
-    }
-  },
-  Heatmap: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      row: column("the row dimension"),
-      col: column("the column dimension"),
-      value: column("the numeric cell value"),
-      unit,
-      size
-    }),
-    slots: [],
-    description: "A grid of two dimensions, one hue light to dark by value: for example month by stage from a two-way grouping.",
-    example: {
-      title: "Closed deals by quarter and stage",
-      data: {
-        columns: ["CloseDate:quarter", "StageName", "count"],
-        rows: [
-          ["2026-01-01", "Closed Won", 8],
-          ["2026-01-01", "Closed Lost", 12]
-        ]
-      },
-      row: "StageName",
-      col: "CloseDate:quarter",
-      value: "count",
-      unit: null
-    }
-  },
-  Scatter: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      x: column("the numeric x value"),
-      y: column("the numeric y value"),
-      label: optionalColumn("the point label shown on hover"),
-      series: optionalColumn("a category colouring the points (at most three values)"),
-      xUnit: unit,
-      yUnit: unit,
-      size,
-      annotations
-    }),
-    slots: [],
-    description: "Relates two measures per record, from exported rows. Fewer than about 2,000 points.",
-    example: {
-      title: "Amount against days open",
-      data: { columns: ["label", "Amount", "daysOpen"], rows: [["Acme renewal", 12e4, 45]] },
-      x: "daysOpen",
-      y: "Amount",
-      label: "label",
-      series: null,
-      xUnit: "days",
-      yUnit: null
-    }
-  },
-  Histogram: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      value: column("the numeric value to bin"),
-      bins: external_exports.number().int().min(2).max(60).nullable().describe("Number of equal-width bins, or null for about 12."),
-      unit,
-      palette: palette("single"),
-      size,
-      annotations
-    }),
-    slots: [],
-    description: "The distribution of one numeric column from exported rows, binned in the app.",
-    example: {
-      title: "Deal sizes",
-      data: { columns: ["Amount"], rows: [[12e4], [15e3], [43e3]] },
-      value: "Amount",
-      bins: null,
-      unit: null
-    }
-  },
-  Flow: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      source: column("the left-hand category"),
-      target: column("the right-hand category"),
-      value: column("the numeric weight of the link"),
-      unit,
-      size
-    }),
-    slots: [],
-    description: "A flow between two dimensions (sankey): each row is a link from a source category to a target category with a weight, from a two-way grouping.",
-    example: {
-      title: "Lead source to stage",
-      data: {
-        columns: ["LeadSource", "StageName", "count"],
-        rows: [
-          ["Web", "Closed Won", 12],
-          ["Web", "Closed Lost", 30]
-        ]
-      },
-      source: "LeadSource",
-      target: "StageName",
-      value: "count",
-      unit: "opportunities"
-    }
-  },
-  Steps: {
-    props: external_exports.object({
-      title,
-      items: external_exports.array(
-        external_exports.object({
-          label: external_exports.string().min(1).max(120).describe("The step, as a short verb phrase."),
-          owner: external_exports.string().max(80).nullable().describe("Who does it: a role or a team, or null."),
-          detail: external_exports.string().max(400).nullable().describe("What happens, what it takes and what it hands on, or null."),
-          status: external_exports.enum(["done", "current", "next"]).nullable().describe("Where the work stands at this step, or null when the diagram describes the process itself.")
-        })
-      ).min(2).max(16),
-      orientation: external_exports.enum(["vertical", "horizontal"]).nullish().describe("vertical (the default) for steps with detail; horizontal for a short sequence read at a glance.")
-    }),
-    slots: [],
-    description: "A workflow as ordered steps, each with who does it: how a deal moves from lead to invoice, how a request is approved. Not data: for a flow of volumes between categories use Flow.",
-    example: {
-      title: "How a renewal is approved",
-      items: [
-        { label: "Flag the renewal", owner: "Account manager", detail: "90 days before the end date.", status: null },
-        { label: "Price it", owner: "Revenue operations", detail: null, status: null },
-        { label: "Sign off", owner: "Finance", detail: "Above 20% discount only.", status: null }
-      ],
-      orientation: null
-    }
-  },
-  PieChart: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      category: column("each slice"),
-      value: column("the slice size, which must be a part of one whole"),
-      donut: external_exports.boolean().nullish().describe("Leave the middle open and write the total in it. Omit for a filled circle."),
-      unit,
-      labels,
-      tooltip,
-      emphasis,
-      size
-    }),
-    slots: [],
-    description: 'Parts of one whole as slices of a circle. Only when the parts really do sum to a meaningful total, the reader wants the shares rather than the values, and there are at most about six slices: fold the rest into "Other" first. A circle is harder to compare across than a bar, so every slice is direct-labelled and a DataTable goes underneath. For ranking categories, or for anything that does not add up to a whole, use a BarChart instead.',
-    example: {
-      title: "Share of closed-won amount by lead source",
-      data: {
-        columns: ["LeadSource", "sum:Amount"],
-        rows: [
-          ["Web", 4210331],
-          ["Partner", 3120887],
-          ["Outbound", 2402110],
-          ["Other", 2050157]
-        ]
-      },
-      category: "LeadSource",
-      value: "sum:Amount",
-      donut: true,
-      unit: null,
-      labels: "both",
-      tooltip: "auto",
-      emphasis: null,
-      size: null
-    }
-  },
-  DataTable: {
-    props: external_exports.object({
-      title,
-      data: ViewTableSchema,
-      totals: external_exports.array(ViewValueSchema).nullable().describe("A totals row aligned with the columns (null for grouping columns), or null."),
-      unit,
-      size,
-      formats: external_exports.array(
-        external_exports.object({
-          column: external_exports.string().min(1).max(200).describe("Header in data.columns this format applies to."),
-          as: external_exports.enum(VIEW_COLUMN_FORMATS).nullish().describe(
-            "How the values read: text, number, percent (values already in percent, e.g. 12.5), currency (needs `currency`), or link (a web address or bare domain, opened in a new tab). Omit to keep the default for the column."
-          ),
-          currency: external_exports.string().regex(/^[A-Z]{3}$/).nullish().describe(
-            'ISO code with as "currency", e.g. "USD", only when the source states it. Large amounts are written short, e.g. $47.9M.'
-          ),
-          linkText: external_exports.string().min(1).max(40).nullish().describe('Words a link shows instead of its address, e.g. "Source". Omit to show the address.'),
-          detail: external_exports.string().min(1).max(200).nullish().describe(
-            'Header of another column written small under this one, e.g. "Spend basis" under a spend column. That column is then not drawn on its own.'
-          )
-        })
-      ).max(12).nullish().describe("Per-column formats, one entry per column that needs one. Omit for the defaults."),
-      search: external_exports.boolean().nullish().describe("true for a search box over the rows, for a list a reader hunts through. Omit for none."),
-      download: external_exports.boolean().nullish().describe("true to let the reader download the rows as CSV. Omit for none.")
-    }),
-    slots: [],
-    description: 'The numbers themselves, sortable by any column, with an optional totals row. Put one under every chart so every value can be read. `formats` writes money, percentages and links the way a reader expects, and folds a qualifier such as "modeled" under the value it qualifies.',
-    example: {
-      title: null,
-      data: sampleTable,
-      totals: [null, 348, 49655153],
-      unit: null,
-      formats: [{ column: "sum:Amount", as: "currency", currency: "USD", linkText: null, detail: null }],
-      search: null,
-      download: null
-    }
-  },
-  Rubric: {
-    props: external_exports.object({
-      title,
-      criteria: external_exports.array(external_exports.string().min(1).max(60)).min(1).max(6).describe('The conditions, in the order the levels add them, e.g. ["100+ franchisees","Multi-brand parent"].'),
-      levels: external_exports.array(
-        external_exports.object({
-          label: external_exports.string().min(1).max(40).describe('The level, e.g. "Level 2".'),
-          met: external_exports.array(external_exports.string().min(1).max(60)).max(6).describe("The criteria this level meets, named exactly as in criteria."),
-          count: external_exports.number().nullable().describe("How many records sit at this level, or null."),
-          kept: external_exports.boolean().nullable().describe(
-            "Whether this level passes the step the rubric explains, or null when nothing is kept or dropped."
-          ),
-          note: external_exports.string().max(80).nullable().describe('A few words for a level that meets no criterion, e.g. "Under 100 franchisees", or null.')
-        })
-      ).min(2).max(8),
-      unit
-    }),
-    slots: [],
-    description: "A scoring rule drawn as a grid: one row per level, one column per criterion, each criterion a level meets filled in and named, with how many records sit at each level and whether the level is kept. For explaining how a tier or score was assigned. Not for numbers across two dimensions: use Heatmap.",
-    example: {
-      title: "How the complexity level is scored",
-      criteria: ["100+ franchisees", "Multi-brand parent", "In the US and Canada"],
-      levels: [
-        { label: "Level 0", met: [], count: 389, kept: false, note: "Under 100 franchisees" },
-        { label: "Level 1", met: ["100+ franchisees"], count: 400, kept: false, note: null },
-        { label: "Level 2", met: ["100+ franchisees", "Multi-brand parent"], count: 124, kept: true, note: null }
-      ],
-      unit: "brands"
-    }
-  },
-  Segments: {
-    props: external_exports.object({
-      state: external_exports.string().regex(/^[a-z][a-zA-Z0-9]{0,39}$/).describe('A short name for the choice, e.g. "region". Elements name it in `visible` as "/region".'),
-      label: external_exports.string().min(1).max(60).describe('What the reader is choosing, e.g. "Region".'),
-      options: external_exports.array(
-        external_exports.object({
-          value: external_exports.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/).describe('A slug, e.g. "us".'),
-          label: external_exports.string().min(1).max(40).describe('What the reader sees, e.g. "United States".')
-        })
-      ).min(2).max(6)
-    }),
-    slots: [],
-    description: 'A switch between a few versions of the same part of a page, such as North America, the United States and Canada. The first option is chosen when the page opens. Each version is its own element carrying `visible: { "$state": "/region", "eq": "us" }` (or `{ "$or": [...] }` of those) with that option\'s numbers: nothing is filtered in the browser, so every number on every version comes from a tool result.',
-    example: {
-      state: "region",
-      label: "Region",
-      options: [
-        { value: "all", label: "North America" },
-        { value: "us", label: "United States" },
-        { value: "ca", label: "Canada" }
-      ]
-    }
-  }
-};
-var viewSchema = defineSchema((s) => ({
-  spec: s.object({
-    root: s.string(),
-    elements: s.record(
-      s.object({
-        type: s.ref("catalog.components"),
-        props: s.propsOf("catalog.components"),
-        children: s.array(s.string()),
-        slots: { ...s.record(s.array(s.string())), ...s.optional() },
-        visible: { ...s.any(), ...s.optional() },
-        repeat: { ...s.any(), ...s.optional() }
-      })
-    )
-  }),
-  catalog: s.object({
-    components: s.map({ props: s.zod(), slots: s.array(s.string()), description: s.string(), example: s.any() }),
-    actions: s.map({ params: s.zod(), description: s.string() })
-  })
-}));
-var viewCatalog = defineCatalog(viewSchema, { components: VIEW_COMPONENTS, actions: {} });
-var VIEW_COMPONENT_NAMES = Object.keys(VIEW_COMPONENTS);
-var COLUMN_PROPS = [
-  "category",
-  "value",
-  "series",
-  "x",
-  "y",
-  "stage",
-  "row",
-  "col",
-  "source",
-  "target",
-  "overlay",
-  "heading",
-  "body",
-  "badge"
-];
-var LABEL_IS_COLUMN = /* @__PURE__ */ new Set(["Scatter"]);
-function validateViewSpec(input2) {
-  const text4 = JSON.stringify(input2);
-  if (typeof text4 !== "string" || text4.length > VIEW_SPEC_MAX_LENGTH)
-    return { ok: false, issues: [`The spec must be JSON of at most ${VIEW_SPEC_MAX_LENGTH} characters.`] };
-  const parsed = viewCatalog.validate(input2);
-  const issues = [];
-  const shape = input2;
-  const usable = typeof shape === "object" && shape !== null && typeof shape.root === "string" && typeof shape.elements === "object" && shape.elements !== null && !Array.isArray(shape.elements);
-  if (!parsed.success || !parsed.data) {
-    for (const issue2 of parsed.error?.issues ?? []) {
-      const path9 = issue2.path.map(String);
-      if (usable && path9[0] === "elements" && (path9[2] === "props" || path9[2] === "type")) continue;
-      issues.push(`${path9.join(".") || "spec"}: ${issue2.message}`);
-    }
-    if (!usable) return { ok: false, issues: issues.slice(0, 20) };
-  }
-  const spec = parsed.data ?? input2;
-  if (!issues.length) {
-    const structural = validateSpec(spec);
-    for (const issue2 of structural.issues)
-      if (issue2.severity === "error") issues.push(`${issue2.elementKey ? `${issue2.elementKey}: ` : ""}${issue2.message}`);
-  }
-  const elements = spec.elements;
-  const root = elements[spec.root];
-  if (!root) issues.push(`root "${spec.root}" is not an element key`);
-  else if (root.type !== "Page") issues.push(`The root element must be a Page, not ${root.type}`);
-  const referenced = /* @__PURE__ */ new Set([spec.root]);
-  const choices = /* @__PURE__ */ new Map();
-  const conditioned = [];
-  for (const [key, element] of Object.entries(elements)) {
-    if (typeof element !== "object" || element === null) {
-      issues.push(`${key}: must be an element object`);
-      continue;
-    }
-    const slotChildren = element.slots && typeof element.slots === "object" ? Object.values(element.slots).filter(Array.isArray).flat() : [];
-    const children = [...Array.isArray(element.children) ? element.children : [], ...slotChildren].filter(
-      (child) => typeof child === "string"
-    );
-    for (const child of children) {
-      if (!elements[child]) issues.push(`${key}: child "${child}" is not an element key`);
-      else if (referenced.has(child)) issues.push(`${key}: child "${child}" is used more than once`);
-      referenced.add(child);
-    }
-    const definition = Object.hasOwn(VIEW_COMPONENTS, element.type) ? VIEW_COMPONENTS[element.type] : void 0;
-    if (!definition) {
-      issues.push(`${key}: unknown component ${String(element.type)}; use one of ${VIEW_COMPONENT_NAMES.join(", ")}`);
-      continue;
-    }
-    if (definition.slots.length === 0 && children.length) issues.push(`${key}: ${element.type} takes no children`);
-    if (key !== spec.root && element.type === "Page") issues.push(`${key}: only the root may be a Page`);
-    if (element.visible !== void 0) {
-      if (key === spec.root) issues.push(`${key}: the Page is always shown, so it takes no "visible"`);
-      else conditioned.push([key, element.visible]);
-    }
-    const props = definition.props.safeParse(element.props);
-    if (!props.success) {
-      for (const issue2 of props.error.issues.slice(0, 5))
-        issues.push(`${key}: ${element.type}.${issue2.path.join(".") || "props"}: ${issue2.message}`);
-      continue;
-    }
-    if (element.type === "Segments") {
-      const { state, options } = element.props;
-      const values = new Set(options.map((option) => option.value));
-      if (choices.has(state)) issues.push(`${key}: another Segments already sets "${state}"`);
-      if (values.size !== options.length) issues.push(`${key}: Segments option values must be distinct`);
-      choices.set(state, values);
-    }
-    if (element.type === "Rubric") {
-      const { criteria, levels } = element.props;
-      if (new Set(criteria).size !== criteria.length) issues.push(`${key}: Rubric criteria must be distinct`);
-      for (const level of levels)
-        for (const name of level.met)
-          if (!criteria.includes(name))
-            issues.push(
-              `${key}: level "${level.label}" meets "${name}", which is not in criteria (${criteria.join(", ")})`
-            );
-    }
-    if (element.type === "DataTable") {
-      const { data: table, formats } = element.props;
-      const seen = /* @__PURE__ */ new Set();
-      for (const format of formats ?? []) {
-        if (!table.columns.includes(format.column))
-          issues.push(`${key}: formats names column "${format.column}", which is not in data.columns`);
-        if (seen.has(format.column)) issues.push(`${key}: formats names column "${format.column}" twice`);
-        seen.add(format.column);
-        if (format.detail && (!table.columns.includes(format.detail) || format.detail === format.column))
-          issues.push(`${key}: formats.detail "${format.detail}" must be another column in data.columns`);
-        if (format.as === "currency" && !format.currency)
-          issues.push(`${key}: column "${format.column}" is formatted as currency without a currency code`);
-      }
-    }
-    const data = element.props.data;
-    if (data) {
-      const named = LABEL_IS_COLUMN.has(element.type) ? [...COLUMN_PROPS, "label"] : COLUMN_PROPS;
-      for (const prop of named) {
-        const name = element.props[prop];
-        if (typeof name === "string" && !data.columns.includes(name))
-          issues.push(
-            `${key}: ${prop} names column "${name}", which is not in data.columns (${data.columns.join(", ")})`
-          );
-      }
-      for (const [index, row] of data.rows.entries())
-        if (row.length !== data.columns.length) {
-          issues.push(`${key}: data.rows[${index}] has ${row.length} values for ${data.columns.length} columns`);
-          break;
-        }
-    }
-  }
-  for (const [key, condition] of conditioned) issues.push(...visibilityIssues(key, condition, choices));
-  for (const key of Object.keys(elements))
-    if (!referenced.has(key)) issues.push(`${key} is not reachable from the root`);
-  return issues.length ? { ok: false, issues: issues.slice(0, 20) } : { ok: true, spec };
-}
-function visibilityIssues(key, condition, choices) {
-  const usage = `${key}: visible must be { "$state": "/<Segments state>", "eq": "<option value>" } or { "$or": [those] }`;
-  if (typeof condition !== "object" || condition === null || Array.isArray(condition)) return [usage];
-  const record2 = condition;
-  if ("$or" in record2) {
-    const branches = record2.$or;
-    if (Object.keys(record2).length !== 1 || !Array.isArray(branches) || branches.length < 1) return [usage];
-    return branches.flatMap(
-      (branch) => typeof branch === "object" && branch !== null && !("$or" in branch) ? visibilityIssues(key, branch, choices) : [usage]
-    );
-  }
-  const keys = Object.keys(record2).sort().join(",");
-  if (keys !== "$state,eq" || typeof record2.$state !== "string" || typeof record2.eq !== "string") return [usage];
-  const state = record2.$state.replace(/^\//, "");
-  const values = choices.get(state);
-  if (!values) return [`${key}: visible reads "${record2.$state}", which no Segments element sets`];
-  if (!values.has(record2.eq))
-    return [`${key}: visible expects "${record2.eq}", which is not an option of "${state}" (${[...values].join(", ")})`];
-  return [];
-}
-function viewCatalogPrompt() {
-  return viewCatalog.prompt({
-    system: "You compose views of business data for the plum app. A view is a flat tree of catalog components whose root is a Page.",
-    customRules: [
-      "Every view: one Page as root, a Caption right after the heading naming the type, record count, where clause, definition applied, snapshot date, coverage and exactness, then the chart(s), then a DataTable of the same numbers.",
-      'Charts take `data` as { columns, rows }: paste the JSON block aggregate_records returned; name columns by their headers (e.g. "sum:Amount").',
-      "Pick the form by the reader's job: Kpi for one number and Trend when it needs comparing with the period before, Progress against a target, Gauge for a value that is judged rather than compared, Sparkline beside a tile, BarChart to compare or (with series) share of a whole, PieChart only for parts of one whole with at most six slices, Waterfall for how a total builds up or is attributed, Funnel for ordered stages with drop-off, LineChart for a trend, Heatmap for a two-way grid, Flow for a flow between two dimensions, Scatter and Histogram over exported rows, Cards to look at particular records, DataTable to look values up.",
-      'Never two y axes, and never more than about 8 categories (6 slices) without folding the tail into "Other" using the totals. A pie is the exception, not the default: reach for a BarChart unless the parts genuinely sum to one whole and the reader wants shares.',
-      'Every chart takes `labels` (what is written on the marks), `tooltip` (what hovering reveals) and, where it fits, `overlay` (a second column drawn behind the marks for comparison). Marks carry their numbers by default; set labels to "none" only when the chart is dense enough that written numbers would collide, and put a DataTable or a Toggle with one under it when you do.',
-      "Presentation props (labels, tooltip, overlay, orientation, palette, emphasis, size, weights, align, density, annotations) are optional and say what the chart means, never how it looks: there is no colour, pixel, class or style anywhere in a spec. Reach for them when the question asks (vertical bars, colour per category, the amount behind the count) or when the point needs them (emphasis on the categories the caption argues about, an annotation line for a target), and omit them otherwise.",
-      'Give a crowded page structure rather than more charts: Section groups panels under a heading, Row with weights puts two panels side by side, Toggle folds detail behind one line, and Page density "compact" tightens a page that stacks several. A page with more than about six panels wants sections; a chart with more than about twelve categories wants a fold into "Other", a Toggle holding the full table, or a horizontal form that has room for the names.',
-      "Callout carries the one thing the reader should take away (at most one or two a page), Quote reproduces words from the ontology or the document verbatim, Checklist states conditions and whether each holds, Badges label the facts behind the numbers. None of them invent anything: every word in one comes from a tool result or the person.",
-      "Use the unit the source states; otherwise leave unit null. Never invent a currency.",
-      'Element keys are short slugs such as "page", "caption", "chart", "table".',
-      "A plum spec is one JSON object { root, elements }, never JSONL patches, and it holds no state, no sample data, no `repeat`, no `on`, and no $state, $bindState, $item, $cond or $template inside props: ignore the generic guidance on those above. Every value is written out from a tool result. The one dynamic part is `visible` on an element, naming an option of a Segments switch exactly as the Segments entry describes.",
-      'Section `eyebrow` names where a part sits in the argument ("The target list", "Step 2") above its heading; Kpi `headline` draws the one number a section turns on at display size; Funnel `form` "taper" draws a short argument of filters as a numbered narrowing shape; Rubric explains how a tier or score was assigned; DataTable `formats` writes money, percentages and links properly and folds a qualifier under its value, with `search` and `download` for a list the reader works through.',
-      'In Note, Callout, Caption and Kpi notes, wrap a name the reader should catch in **double asterisks** to set it in bold, e.g. "For example: **Shell Oil Products US** is Level 3". Nothing else in the text is markup.'
-    ]
-  });
-}
 
 // ../../packages/shared/src/discovery/conversation.ts
 var BusinessConversationRequestSchema = external_exports.strictObject({
@@ -33489,7 +31098,7 @@ var Duration = external_exports.string().regex(/^(?=\d)(\d+w)?(\d+d)?(\d+h)?(\d+
 function durationSeconds(value) {
   const units = { w: 604800, d: 86400, h: 3600, m: 60, s: 1 };
   let total = 0;
-  for (const [, amount, unit2] of value.matchAll(/(\d+)([wdhms])/g)) total += Number(amount) * units[unit2];
+  for (const [, amount, unit] of value.matchAll(/(\d+)([wdhms])/g)) total += Number(amount) * units[unit];
   return total;
 }
 var between = (min, max, label) => Duration.refine((value) => durationSeconds(value) >= min && durationSeconds(value) <= max, {
@@ -33774,12 +31383,24 @@ var ArtifactFactsSchema = external_exports.record(
   external_exports.string().min(1).max(40),
   external_exports.union([external_exports.string().max(1e3), external_exports.number(), external_exports.boolean(), external_exports.null()])
 );
+var ARTIFACT_HTML_MAX_CHARS = 15e5;
+var ARTIFACT_SCRIPT_HOSTS = ["https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"];
+var ARTIFACT_FRAME_POLICY = [
+  "default-src 'none'",
+  `script-src 'unsafe-inline' ${ARTIFACT_SCRIPT_HOSTS.join(" ")}`,
+  "style-src 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src https://fonts.gstatic.com data:",
+  "img-src data: blob:",
+  "connect-src 'none'",
+  "form-action 'none'"
+].join("; ");
+var ARTIFACT_PAGE_RULES = `The page is one self-contained HTML document that runs in a sandboxed frame with no network: it cannot fetch or call anything, so every number is embedded in it. Styles and scripts are inline; a script may also load from ${ARTIFACT_SCRIPT_HOSTS.map((host) => host.replace("https://", "")).join(", ")} (a chart library, pinned to an exact version), and fonts from Google Fonts. Images are data: URIs (inline SVG works too). Links open in a new tab.`;
 var ARTIFACT_RECIPIENT_MAX_CHARS = 80;
 var ArtifactDocumentSchema = external_exports.strictObject({
   title: ArtifactTitleSchema,
   caption: external_exports.string().max(2e3).default(""),
   facts: ArtifactFactsSchema.default({}),
-  spec: external_exports.record(external_exports.string(), external_exports.unknown())
+  html: external_exports.string().min(1).max(ARTIFACT_HTML_MAX_CHARS)
 });
 var HexColorSchema = external_exports.string().regex(/^#[0-9a-fA-F]{6}$/, "a colour is written #rrggbb");
 var FontStackSchema = external_exports.string().min(1).max(200).regex(/^[A-Za-z0-9 ,'"-]+$/, 'a font is a family name list such as "Source Serif 4", Georgia, serif');
@@ -33801,9 +31422,9 @@ var BrandTokensSchema = external_exports.strictObject({
     line: HexColorSchema
   }),
   fonts: external_exports.strictObject({ heading: FontStackSchema, body: FontStackSchema }),
-  /** Chart series colours in order; past the list a chart folds into "Other". */
+  /** Chart series colours in order. */
   chart: external_exports.array(HexColorSchema).min(3).max(8),
-  /** Corner radius of the page and its panels, in pixels. */
+  /** Corner radius of panels, in pixels. */
   radius: external_exports.number().int().min(0).max(24).default(10),
   /** An SVG beside the skill file, by its path relative to the skill's folder, drawn above the title. */
   logo: external_exports.strictObject({
@@ -33955,7 +31576,8 @@ var ExternalArtifactListResponseSchema = external_exports.strictObject({
 var PublicArtifactSchema = external_exports.strictObject({
   title: ArtifactTitleSchema,
   caption: external_exports.string(),
-  spec: external_exports.record(external_exports.string(), external_exports.unknown()),
+  /** The page (1.50.0). */
+  html: external_exports.string(),
   /** Who the link was made for, shown on the page (1.38.0). */
   recipient: external_exports.string().nullable().default(null),
   brand: external_exports.strictObject({ tokens: BrandTokensSchema, logo: ArtifactBrandSchema.shape.logo }).nullable(),
@@ -33965,9 +31587,8 @@ var PublicArtifactSchema = external_exports.strictObject({
 var ArtifactPublicationPreviewSchema = external_exports.strictObject({
   revision: external_exports.number().int().positive(),
   payload: PublicArtifactSchema,
-  /** Components on the page, and data rows inside them, including rows a reader only sees by opening a fold. */
-  elements: external_exports.number().int().nonnegative(),
-  rows: external_exports.number().int().nonnegative()
+  /** The size of the page's HTML in characters, everything a reader can get at, shown or not (1.50.0). */
+  characters: external_exports.number().int().nonnegative()
 });
 var ARTIFACT_GENERATION_STATUSES = ["pending", "running", "ready", "failed", "applied", "discarded"];
 var ArtifactGenerationStatusSchema = external_exports.enum(ARTIFACT_GENERATION_STATUSES);
@@ -37831,8 +35452,8 @@ var ZodSet2 = class _ZodSet extends ZodType2 {
       maxSize: { value: maxSize, message: errorUtil.toString(message) }
     });
   }
-  size(size2, message) {
-    return this.min(size2, message).max(size2, message);
+  size(size, message) {
+    return this.min(size, message).max(size, message);
   }
   nonempty(message) {
     return this.min(1, message);
@@ -40031,7 +37652,7 @@ var addMeta = (def, refs2, jsonSchema) => {
 };
 
 // ../../node_modules/.bun/zod-to-json-schema@3.25.2+fff7ddf946fac095/node_modules/zod-to-json-schema/dist/esm/zodToJsonSchema.js
-var zodToJsonSchema2 = (schema, options) => {
+var zodToJsonSchema = (schema, options) => {
   const refs2 = getRefs(options);
   let definitions = typeof options === "object" && options.definitions ? Object.entries(options.definitions).reduce((acc, [name2, schema2]) => ({
     ...acc,
@@ -40045,9 +37666,9 @@ var zodToJsonSchema2 = (schema, options) => {
     ...refs2,
     currentPath: [...refs2.basePath, refs2.definitionPath, name]
   }, false) ?? parseAnyDef(refs2);
-  const title2 = typeof options === "object" && options.name !== void 0 && options.nameStrategy === "title" ? options.name : void 0;
-  if (title2 !== void 0) {
-    main.title = title2;
+  const title = typeof options === "object" && options.name !== void 0 && options.nameStrategy === "title" ? options.name : void 0;
+  if (title !== void 0) {
+    main.title = title;
   }
   if (refs2.flags.hasReferencedOpenAiAnyType) {
     if (!definitions) {
@@ -40109,7 +37730,7 @@ function toJsonSchemaCompat(schema, opts) {
       io: opts?.pipeStrategy ?? "input"
     });
   }
-  return zodToJsonSchema2(schema, {
+  return zodToJsonSchema(schema, {
     strictUnions: opts?.strictUnions ?? true,
     pipeStrategy: opts?.pipeStrategy ?? "input"
   });
@@ -42528,10 +40149,10 @@ var McpServer = class {
       return registeredResourceTemplate;
     }
   }
-  _createRegisteredResource(name, title2, uri, metadata, readCallback) {
+  _createRegisteredResource(name, title, uri, metadata, readCallback) {
     const registeredResource = {
       name,
-      title: title2,
+      title,
       metadata,
       readCallback,
       enabled: true,
@@ -42560,10 +40181,10 @@ var McpServer = class {
     this._registeredResources[uri] = registeredResource;
     return registeredResource;
   }
-  _createRegisteredResourceTemplate(name, title2, template, metadata, readCallback) {
+  _createRegisteredResourceTemplate(name, title, template, metadata, readCallback) {
     const registeredResourceTemplate = {
       resourceTemplate: template,
-      title: title2,
+      title,
       metadata,
       readCallback,
       enabled: true,
@@ -42597,9 +40218,9 @@ var McpServer = class {
     }
     return registeredResourceTemplate;
   }
-  _createRegisteredPrompt(name, title2, description, argsSchema, callback) {
+  _createRegisteredPrompt(name, title, description, argsSchema, callback) {
     const registeredPrompt = {
-      title: title2,
+      title,
       description,
       argsSchema: argsSchema === void 0 ? void 0 : objectFromShape(argsSchema),
       callback,
@@ -42638,14 +40259,14 @@ var McpServer = class {
     }
     return registeredPrompt;
   }
-  _createRegisteredTool(name, title2, description, inputSchema, outputSchema, annotations2, execution, _meta, handler) {
+  _createRegisteredTool(name, title, description, inputSchema, outputSchema, annotations, execution, _meta, handler) {
     validateAndWarnToolName(name);
     const registeredTool = {
-      title: title2,
+      title,
       description,
       inputSchema: getZodSchemaObject(inputSchema),
       outputSchema: getZodSchemaObject(outputSchema),
-      annotations: annotations2,
+      annotations,
       execution,
       _meta,
       handler,
@@ -42696,7 +40317,7 @@ var McpServer = class {
     let description;
     let inputSchema;
     let outputSchema;
-    let annotations2;
+    let annotations;
     if (typeof rest[0] === "string") {
       description = rest.shift();
     }
@@ -42705,17 +40326,17 @@ var McpServer = class {
       if (isZodRawShapeCompat(firstArg)) {
         inputSchema = rest.shift();
         if (rest.length > 1 && typeof rest[0] === "object" && rest[0] !== null && !isZodRawShapeCompat(rest[0])) {
-          annotations2 = rest.shift();
+          annotations = rest.shift();
         }
       } else if (typeof firstArg === "object" && firstArg !== null) {
         if (Object.values(firstArg).some((v) => typeof v === "object" && v !== null)) {
           throw new Error(`Tool ${name} expected a Zod schema or ToolAnnotations, but received an unrecognized object`);
         }
-        annotations2 = rest.shift();
+        annotations = rest.shift();
       }
     }
     const callback = rest[0];
-    return this._createRegisteredTool(name, void 0, description, inputSchema, outputSchema, annotations2, { taskSupport: "forbidden" }, void 0, callback);
+    return this._createRegisteredTool(name, void 0, description, inputSchema, outputSchema, annotations, { taskSupport: "forbidden" }, void 0, callback);
   }
   /**
    * Registers a tool with a config object and callback.
@@ -42724,8 +40345,8 @@ var McpServer = class {
     if (this._registeredTools[name]) {
       throw new Error(`Tool ${name} is already registered`);
     }
-    const { title: title2, description, inputSchema, outputSchema, annotations: annotations2, _meta } = config2;
-    return this._createRegisteredTool(name, title2, description, inputSchema, outputSchema, annotations2, { taskSupport: "forbidden" }, _meta, cb);
+    const { title, description, inputSchema, outputSchema, annotations, _meta } = config2;
+    return this._createRegisteredTool(name, title, description, inputSchema, outputSchema, annotations, { taskSupport: "forbidden" }, _meta, cb);
   }
   prompt(name, ...rest) {
     if (this._registeredPrompts[name]) {
@@ -42752,8 +40373,8 @@ var McpServer = class {
     if (this._registeredPrompts[name]) {
       throw new Error(`Prompt ${name} is already registered`);
     }
-    const { title: title2, description, argsSchema } = config2;
-    const registeredPrompt = this._createRegisteredPrompt(name, title2, description, argsSchema, cb);
+    const { title, description, argsSchema } = config2;
+    const registeredPrompt = this._createRegisteredPrompt(name, title, description, argsSchema, cb);
     this.setPromptRequestHandlers();
     this.sendPromptListChanged();
     return registeredPrompt;
@@ -43283,17 +40904,14 @@ var exportRecords = {
     limit: int2(external_exports.number().min(1).max(5e3)).optional().describe("Maximum rows (default 5000).")
   }
 };
-var getViewCatalog = {
-  name: "get_view_catalog",
-  title: "Get the view catalog",
-  description: "The components an artifact may be built from: layout (Page, Row, Section, Divider), words (Caption, Note, Callout, Quote, Toggle, Checklist, Badges), numbers (Kpi, Trend, Progress, Gauge, Sparkline, Cards), charts (BarChart, LineChart, PieChart, Waterfall, Funnel, Heatmap, Scatter, Histogram, Flow, DataTable) and workflows (Steps), each with its props, an example and the rules views follow, plus the spec format create_artifact and save_artifact take. Read it once before composing an artifact: it is the whole vocabulary, and the presentation knobs every chart takes (labels, tooltip, overlay, orientation, palette, emphasis, size, annotations) are described there too.",
-  inputSchema: {}
-};
 var artifactId = external_exports.string().min(1).max(200).describe("Artifact id from list_artifacts or create_artifact.");
 var expectedRevision = int2(external_exports.number().min(1)).describe(
   "The revision you last read (get_artifact). A change made against an older one is refused, so nothing newer is overwritten."
 );
-var artifactSpec = external_exports.record(external_exports.string(), external_exports.unknown()).describe("The json-render spec { root, elements } over the view catalog (get_view_catalog), root a Page.");
+var artifactHtmlFile = external_exports.string().min(1).max(1e3).describe(
+  "Path to the .html file on this machine that holds the whole page: one self-contained document, styles and scripts inline, every number embedded. Preferred over html."
+);
+var artifactHtml = external_exports.string().min(1).max(ARTIFACT_HTML_MAX_CHARS).describe("The whole page inline, for a short one; otherwise write it to a file and pass htmlFile.");
 var listArtifacts = {
   name: "list_artifacts",
   title: "List artifacts",
@@ -43307,7 +40925,7 @@ var listArtifacts = {
 var getArtifact = {
   name: "get_artifact",
   title: "Get an artifact",
-  description: "One artifact at its latest revision (or an earlier one): the document (title, caption, facts and spec) as JSON, its owner, the brand kit it is pinned to, whether a newer brand kit is available, and its public link if published. Read it before save_artifact and pass its revision as expectedRevision.",
+  description: "One artifact at its latest revision (or an earlier one): its title, caption and facts, its owner, the brand kit it is pinned to, whether a newer brand kit is available, and its links. The page itself is written to an .html file on this machine and its path returned: edit that file and pass it to save_artifact as htmlFile, with this revision as expectedRevision.",
   inputSchema: {
     id: artifactId,
     revision: int2(external_exports.number().min(1)).optional().describe("An earlier revision to read; the latest when omitted.")
@@ -43316,19 +40934,20 @@ var getArtifact = {
 var getArtifactBrand = {
   name: "get_artifact_brand",
   title: "Get the brand kit of an artifact",
-  description: "The brand kit skill an artifact is drawn with, at the commit it is pinned to: the playbook's (or the engagement's own) guidance on voice and on how to lay out each kind of artifact, plus the colours, fonts and chart palette the app applies. Read it before composing or revising an artifact and follow its guidance; never write colours or fonts into the spec, since the app applies them.",
+  description: "The brand kit skill an artifact is drawn with, at the commit it is pinned to: the playbook's (or the engagement's own) guidance on voice and on how to lay out each kind of artifact, plus the CSS custom properties (colours, fonts, chart palette, radius, logo) the app hands the page. Read it before composing or revising an artifact, follow its guidance, and style the page with those properties rather than hard-coded colours or fonts.",
   inputSchema: { id: artifactId }
 };
 var createArtifact = {
   name: "create_artifact",
   title: "Create an artifact",
-  description: `Create an artifact the person will own and edit in the app, pinned to the current brand kit. Start it from an approved template (${ARTIFACT_TEMPLATES.join(", ")}) or from a document you composed over the view catalog. Give exactly one of template or spec. Returns the id, revision 1 and the link to the Artifacts page.`,
+  description: `Create an artifact the person will own and edit in the app, pinned to the current brand kit. Start it from an approved template (${ARTIFACT_TEMPLATES.join(", ")}) or from a page you wrote. Give exactly one of template, htmlFile or html. ${ARTIFACT_PAGE_RULES} Returns the id, revision 1 and the link to the Artifacts page.`,
   inputSchema: {
     template: external_exports.enum(ARTIFACT_TEMPLATES).optional().describe("An approved template to start from."),
-    title: external_exports.string().min(1).max(120).optional().describe("The title; required with spec, optional with a template."),
-    caption: external_exports.string().max(2e3).optional().describe("Provenance in one paragraph, drawn under the page, with spec."),
-    facts: external_exports.record(external_exports.string().min(1).max(40), external_exports.union([external_exports.string().max(1e3), external_exports.number(), external_exports.boolean(), external_exports.null()])).optional().describe("The facts the numbers rest on, with spec."),
-    spec: artifactSpec.optional()
+    title: external_exports.string().min(1).max(120).optional().describe("The title; required with a page, optional with a template."),
+    caption: external_exports.string().max(2e3).optional().describe("Provenance in one paragraph, shown under the page, with a page."),
+    facts: external_exports.record(external_exports.string().min(1).max(40), external_exports.union([external_exports.string().max(1e3), external_exports.number(), external_exports.boolean(), external_exports.null()])).optional().describe("The facts the numbers rest on, with a page."),
+    htmlFile: artifactHtmlFile.optional(),
+    html: artifactHtml.optional()
   }
 };
 var addArtifactLink = {
@@ -43343,14 +40962,15 @@ var addArtifactLink = {
 var saveArtifact = {
   name: "save_artifact",
   title: "Save an artifact",
-  description: "Save a new revision of an artifact the person owns: the whole document, made against expectedRevision. Earlier revisions stay readable and unchanged, and every link keeps showing its own revision until publish_artifact moves it. Only the owner can save; someone else's artifact is refused. Keep element keys of the parts you keep.",
+  description: "Save a new revision of an artifact the person owns: the whole document, made against expectedRevision. Earlier revisions stay readable and unchanged, and every link keeps showing its own revision until publish_artifact moves it. Only the owner can save; someone else's artifact is refused. Give exactly one of htmlFile or html.",
   inputSchema: {
     id: artifactId,
     expectedRevision,
     title: external_exports.string().min(1).max(120),
     caption: external_exports.string().max(2e3).optional(),
     facts: external_exports.record(external_exports.string().min(1).max(40), external_exports.union([external_exports.string().max(1e3), external_exports.number(), external_exports.boolean(), external_exports.null()])).optional(),
-    spec: artifactSpec
+    htmlFile: artifactHtmlFile.optional(),
+    html: artifactHtml.optional()
   }
 };
 var publishArtifact = {
@@ -43461,7 +41081,6 @@ var ALL_TOOL_CONTRACTS = [
   searchEntities,
   aggregateRecords,
   exportRecords,
-  getViewCatalog,
   listArtifacts,
   getArtifact,
   getArtifactBrand,
@@ -43635,7 +41254,7 @@ function pageUrl(serviceUrl, page2, options = {}) {
 var appOrigin = (serviceUrl) => serviceUrl.replace(/\/$/, "");
 
 // src/diff.ts
-function unifiedDiff(before, after, labels2, context = 2) {
+function unifiedDiff(before, after, labels, context = 2) {
   const a = before.replace(/\r\n?/g, "\n").split("\n");
   const b = after.replace(/\r\n?/g, "\n").split("\n");
   const table = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
@@ -43658,8 +41277,8 @@ function unifiedDiff(before, after, labels2, context = 2) {
       j++;
     }
   }
-  if (!ops.some((op) => op.kind !== " ")) return `No differences between ${labels2.before} and ${labels2.after}.`;
-  const out = [`--- ${labels2.before}`, `+++ ${labels2.after}`];
+  if (!ops.some((op) => op.kind !== " ")) return `No differences between ${labels.before} and ${labels.after}.`;
+  const out = [`--- ${labels.before}`, `+++ ${labels.after}`];
   let cursor = 0;
   while (cursor < ops.length) {
     if (ops[cursor].kind === " ") {
@@ -44279,6 +41898,29 @@ var when2 = (iso) => iso.replace("T", " ").replace(/\.\d+Z$/, "Z");
 var FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 var REVIEW_DIFF_FILES = 10;
 var targetQuery = (target) => target === "playbook" ? { target } : {};
+function writeArtifactFile(id, revision, content) {
+  const directory = path6.join(os5.tmpdir(), "plum", "artifacts");
+  fs6.mkdirSync(directory, { recursive: true });
+  const file2 = path6.join(directory, `${id.replace(/[^A-Za-z0-9_-]/g, "_")}-r${revision}.html`);
+  fs6.writeFileSync(file2, content);
+  return file2;
+}
+function readPage(htmlFile, html) {
+  let page2 = html;
+  if (htmlFile !== void 0) {
+    try {
+      page2 = fs6.readFileSync(htmlFile, "utf8");
+    } catch {
+      return { problem: `Could not read ${htmlFile}. Write the page to that file first, or pass its absolute path.` };
+    }
+  }
+  if (!page2?.trim()) return { problem: "The page is empty. Write the whole HTML document and try again." };
+  if (page2.length > ARTIFACT_HTML_MAX_CHARS)
+    return {
+      problem: `The page is ${page2.length} characters, over the ${ARTIFACT_HTML_MAX_CHARS} limit. Embed only the rows the page shows (aggregate them first), then try again.`
+    };
+  return { html: page2 };
+}
 function artifactLine(item) {
   return `- ${item.id} \xB7 "${item.title}" \xB7 revision ${item.revision}${item.publishedRevision ? ` \xB7 public at revision ${item.publishedRevision}` : " \xB7 private"} \xB7 owner ${item.ownerSubjectId} \xB7 ${when2(item.updatedAt)}`;
 }
@@ -44723,16 +42365,6 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
         ].join("\n")
       );
     },
-    async get_view_catalog() {
-      return text3(
-        [
-          viewCatalogPrompt(),
-          "",
-          'Spec format for create_artifact and save_artifact: {"root":"page","elements":{"page":{"type":"Page","props":{\u2026},"children":["caption","chart","table"]},"caption":{"type":"Caption","props":{\u2026},"children":[]},\u2026}}.',
-          "Every chart's `data` is the JSON block aggregate_records returned ({columns, rows}); column props name headers from data.columns."
-        ].join("\n")
-      );
-    },
     async list_artifacts(args) {
       const { limit, workspaces } = args;
       if (workspaces === "others") {
@@ -44814,8 +42446,10 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
           ] : ["Not shared: no links."],
           `Pass expectedRevision ${artifact.revision} to save_artifact or publish_artifact.`,
           "",
-          "Document (JSON):",
-          JSON.stringify(shown.document),
+          `Title: ${shown.document.title}`,
+          `Caption: ${shown.document.caption || "(none)"}`,
+          `Facts: ${JSON.stringify(shown.document.facts)}`,
+          `Page: ${writeArtifactFile(artifact.id, shown.revision, shown.document.html)} (${shown.document.html.length} characters). Edit this file and pass it to save_artifact as htmlFile.`,
           "",
           `Artifacts page: ${pageUrl(client.serviceUrl, "artifacts", { artifactId: artifact.id })}`
         ].join("\n")
@@ -44829,13 +42463,13 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       );
       if (!result.brand)
         return text3(
-          "This artifact has no brand kit: the playbook has none at skills/brand-kit.md, or it did not read cleanly when the artifact was made. Compose in plain, client-ready prose; the app draws it in its own style."
+          "This artifact has no brand kit: the playbook has none at skills/brand-kit.md, or it did not read cleanly when the artifact was made. Write the page in a plain, client-ready style of its own."
         );
       const { tokens } = result.brand;
       return text3(
         [
           `Brand kit: ${tokens.name} \xB7 ${result.brand.path} at ${result.brand.commit.slice(0, 12)}.`,
-          `Applied by the app (never write these into the spec): accent ${tokens.colors.accent}, headings in ${tokens.fonts.heading}, body in ${tokens.fonts.body}, ${tokens.chart.length} chart colours${result.brand.logo ? ", a logo above the title" : ""}.`,
+          `The app hands the page these CSS custom properties; style with them rather than writing colours or fonts: --brand-accent (${tokens.colors.accent}), --brand-ink, --brand-muted, --brand-surface, --brand-background, --brand-line, --brand-font-heading (${tokens.fonts.heading}), --brand-font-body (${tokens.fonts.body}), --brand-radius, --brand-chart-1 to --brand-chart-${tokens.chart.length}${result.brand.logo ? ", and --brand-logo (a url() for a background image, e.g. above the title)" : ""}.`,
           "",
           "Guidance (the brand kit skill; follow it for voice and layout):",
           result.guidance || "(The skill has no prose beyond its tokens.)"
@@ -44843,30 +42477,26 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       );
     },
     async create_artifact(args) {
-      const { template, title: title2, caption, facts, spec } = args;
-      if ([template, spec].filter((value) => value !== void 0).length !== 1)
-        return failure3("Give exactly one of template or spec.");
+      const { template, title, caption, facts, htmlFile, html } = args;
+      if ([template, htmlFile, html].filter((value) => value !== void 0).length !== 1)
+        return failure3("Give exactly one of template, htmlFile or html.");
       let body;
-      if (spec) {
-        if (!title2) return failure3("A title is required with spec.");
-        const checked = validateViewSpec(spec);
-        if (!checked.ok)
-          return failure3(
-            `The spec does not match the view catalog. Fix these and try again:
-${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
-          );
-        body = { document: { title: title2, caption: caption ?? "", facts: facts ?? {}, spec } };
-      } else body = { template, ...title2 ? { title: title2 } : {} };
+      if (template === void 0) {
+        if (!title) return failure3("A title is required with a page.");
+        const page2 = readPage(htmlFile, html);
+        if ("problem" in page2) return failure3(page2.problem);
+        body = { document: { title, caption: caption ?? "", facts: facts ?? {}, html: page2.html } };
+      } else body = { template, ...title ? { title } : {} };
       const artifact = parse3(ArtifactDetailSchema, await client.post("/artifacts", body));
       return text3(
         `Created artifact "${artifact.title}" (${artifact.id}, revision 1)${artifact.brand.applied ? `, branded with ${artifact.brand.applied.tokens.name}` : ", unbranded"}. The person owns it and can edit it here: ${pageUrl(client.serviceUrl, "artifacts", { artifactId: artifact.id })}`
       );
     },
     async add_artifact_link(args) {
-      const { title: title2, url: url2 } = args;
+      const { title, url: url2 } = args;
       let body;
       try {
-        body = await client.post("/artifacts/external", { title: title2, url: url2 });
+        body = await client.post("/artifacts/external", { title, url: url2 });
       } catch (error62) {
         if (!(error62 instanceof ApiError) || error62.code !== "NOT_FOUND") throw error62;
         return failure3(
@@ -44879,22 +42509,19 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       );
     },
     async save_artifact(args) {
-      const { id, expectedRevision: expectedRevision2, title: title2, caption, facts, spec } = args;
-      const checked = validateViewSpec(spec);
-      if (!checked.ok)
-        return failure3(
-          `The spec does not match the view catalog. Fix these and save again:
-${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
-        );
+      const { id, expectedRevision: expectedRevision2, title, caption, facts, htmlFile, html } = args;
+      if (htmlFile === void 0 === (html === void 0)) return failure3("Give exactly one of htmlFile or html.");
+      const page2 = readPage(htmlFile, html);
+      if ("problem" in page2) return failure3(page2.problem);
       const artifact = parse3(
         ArtifactDetailSchema,
         await client.patch(`/artifacts/${encodeURIComponent(id)}`, {
           expectedRevision: expectedRevision2,
           document: {
-            title: title2,
+            title,
             caption: caption ?? "",
             facts: facts ?? {},
-            spec
+            html: page2.html
           }
         })
       );
@@ -44912,19 +42539,19 @@ ${checked.issues.map((issue2) => `- ${issue2}`).join("\n")}`
       const address = (link2) => link2.path ? `${appOrigin(client.serviceUrl)}${link2.path}` : null;
       if (recipients) {
         const lines = [];
-        let title2 = "";
+        let title = "";
         for (const recipient of recipients) {
           const artifact2 = parse3(
             ArtifactDetailSchema,
             await client.post(path9, { expectedRevision: expectedRevision2, recipient, ...extra })
           );
-          title2 = artifact2.title;
+          title = artifact2.title;
           const made = artifact2.publications.find((link2) => link2.path !== null);
           lines.push(`- ${recipient}: ${made ? address(made) : "(no address returned)"} (${made?.id ?? "no id"})`);
         }
         return text3(
           [
-            `Shared revision ${expectedRevision2} of "${title2}" with ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}${expiresInDays ? `, each link working for ${expiresInDays} days` : ""}. Send each person their own link; these addresses are shown only now:`,
+            `Shared revision ${expectedRevision2} of "${title}" with ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}${expiresInDays ? `, each link working for ${expiresInDays} days` : ""}. Send each person their own link; these addresses are shown only now:`,
             ...lines,
             "Revoke one with unpublish_artifact and its link id."
           ].join("\n")
@@ -45433,10 +43060,10 @@ function createMcpSurface(client, version2, telemetry2 = telemetryOff) {
     "ontology-file",
     new ResourceTemplate(ONTOLOGY_FILE_TEMPLATE, {
       list: async () => ({
-        resources: (await resources.listOntologyFiles()).map(({ uri, name, title: title2, description, mimeType }) => ({
+        resources: (await resources.listOntologyFiles()).map(({ uri, name, title, description, mimeType }) => ({
           uri,
           name,
-          title: title2,
+          title,
           description,
           mimeType
         }))

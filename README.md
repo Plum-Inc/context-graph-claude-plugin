@@ -57,7 +57,7 @@ Sources and identity: `list_sources`, `get_imported_model`, `search_entities`, `
 
 Records: `aggregate_records` (group and total every record of a type on the server), `export_records` (every record of a type, up to 5,000, to a JSON file on this machine).
 
-Artifacts: `get_view_catalog` (the components an artifact is built from), `list_artifacts`, `get_artifact`, `get_artifact_brand`, `create_artifact`, `save_artifact`, `publish_artifact` (one link per recipient, or move a link) and `unpublish_artifact` (revoke one link or all).
+Artifacts: `list_artifacts`, `get_artifact` (writes the page to a file to edit), `get_artifact_brand`, `create_artifact`, `save_artifact`, `publish_artifact` (one link per recipient, or move a link) and `unpublish_artifact` (revoke one link or all).
 
 MCP resources: every file of the ontology repository as `plum://ontology/<path>` (markdown), plus the newest and the published numbered ontology version.
 
