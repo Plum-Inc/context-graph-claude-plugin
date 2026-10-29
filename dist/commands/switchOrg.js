@@ -19674,7 +19674,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.47.0";
+var CONTRACT_VERSION = "1.49.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var IdSchema = external_exports.string().min(1).max(200);
@@ -24823,6 +24823,102 @@ var SpaceItemSchema = external_exports.strictObject({
 var SpaceItemsResponseSchema = external_exports.strictObject({
   items: external_exports.array(SpaceItemSchema),
   nextCursor: external_exports.string().nullable()
+});
+var SpeakerCandidateSourceSchema = external_exports.enum(["user", "platform", "mic", "llm"]);
+var SpeakerLabelSchema = external_exports.string().regex(/^(me|them)(:[1-9]\d{0,3})?$/);
+var SpeakerCandidateSchema = external_exports.strictObject({
+  source: SpeakerCandidateSourceSchema,
+  name: external_exports.string().trim().min(1).max(200),
+  email: external_exports.string().min(1).max(320).nullable(),
+  /** 0–1: the share of the label's attributed speech this name covered, or the pass's own certainty. */
+  confidence: external_exports.number().min(0).max(1)
+});
+var ResolvedSpeakerSchema = external_exports.strictObject({
+  name: external_exports.string().min(1).max(200),
+  email: external_exports.string().min(1).max(320).nullable(),
+  source: SpeakerCandidateSourceSchema
+});
+var MeetingSpeakerSchema = external_exports.strictObject({
+  speaker: SpeakerLabelSchema,
+  candidates: external_exports.array(SpeakerCandidateSchema).max(40),
+  resolved: ResolvedSpeakerSchema.nullable()
+});
+var MeetingSpeakersResponseSchema = external_exports.strictObject({ speakers: external_exports.array(MeetingSpeakerSchema) });
+var PutMeetingSpeakersRequestSchema = external_exports.strictObject({
+  meetingId: IdSchema,
+  updates: external_exports.array(
+    external_exports.strictObject({
+      speaker: SpeakerLabelSchema,
+      source: external_exports.enum(["user", "platform", "mic"]),
+      candidates: external_exports.array(SpeakerCandidateSchema.omit({ source: true })).max(10)
+    })
+  ).min(1).max(100)
+});
+var SpeakerPlatformSchema = external_exports.enum(["zoom", "teams", "meet", "slack"]);
+var SpeakerSurfaceSchema = external_exports.enum(["app", "browser"]);
+var SpeakerOsSchema = external_exports.enum(["mac", "windows"]);
+var ClassListSchema = external_exports.array(external_exports.string().trim().min(1).max(200)).min(1).max(20);
+var SpeakerSignalConfigSchema = external_exports.strictObject({
+  /** Bumped whenever a value changes, so a restart can be told apart from a no-op. */
+  revision: external_exports.number().int().nonnegative(),
+  /** How often the helper reads the meeting app. */
+  pollMs: external_exports.number().int().min(100).max(5e3),
+  /** Milliseconds the speaking marker trails the audio, per platform and OS; subtracted from each reading's time. */
+  lagMs: external_exports.record(SpeakerPlatformSchema, external_exports.record(SpeakerOsSchema, external_exports.number().int().min(0).max(5e3))),
+  selectors: external_exports.strictObject({
+    meet: external_exports.strictObject({ tileRootClasses: ClassListSchema, speakingClasses: ClassListSchema }),
+    teams: external_exports.strictObject({ speakingClasses: ClassListSchema }),
+    slack: external_exports.strictObject({ tileRootClasses: ClassListSchema, speakingClasses: ClassListSchema })
+  })
+});
+var MeetingRecordingIdSchema = external_exports.string().regex(/^rec_[0-9a-f-]{36}$/);
+var MeetingRecordingKindSchema = external_exports.enum(["video", "audio"]);
+var MeetingRecordingContentTypeSchema = external_exports.enum(["video/mp4", "audio/mp4"]);
+var MeetingRecordingStateSchema = external_exports.enum(["uploading", "ready"]);
+var MEETING_RECORDING_MAX_BYTES = 20 * 1024 ** 3;
+var MeetingRecordingSchema = external_exports.strictObject({
+  id: MeetingRecordingIdSchema,
+  meetingId: IdSchema,
+  kind: MeetingRecordingKindSchema,
+  contentType: MeetingRecordingContentTypeSchema,
+  /** Meeting time (ms since the meeting started) at which the recording starts. */
+  offsetMs: external_exports.number().int().nonnegative(),
+  durationMs: external_exports.number().int().nonnegative(),
+  sizeBytes: external_exports.number().int().positive().max(MEETING_RECORDING_MAX_BYTES),
+  state: MeetingRecordingStateSchema,
+  createdAt: TimestampSchema
+});
+var CreateMeetingRecordingRequestSchema = external_exports.strictObject({
+  recordingId: MeetingRecordingIdSchema,
+  kind: MeetingRecordingKindSchema,
+  contentType: MeetingRecordingContentTypeSchema,
+  offsetMs: external_exports.number().int().nonnegative(),
+  durationMs: external_exports.number().int().nonnegative(),
+  sizeBytes: external_exports.number().int().positive().max(MEETING_RECORDING_MAX_BYTES)
+});
+var CreateMeetingRecordingResponseSchema = external_exports.strictObject({
+  recording: MeetingRecordingSchema,
+  /** Every part but the last is exactly this many bytes; the last holds the rest. */
+  partSizeBytes: external_exports.number().int().positive(),
+  partCount: external_exports.number().int().min(1).max(1e4)
+});
+var MeetingRecordingPartUrlsRequestSchema = external_exports.strictObject({
+  partNumbers: external_exports.array(external_exports.number().int().min(1).max(1e4)).min(1).max(100)
+});
+var MeetingRecordingPartUrlsResponseSchema = external_exports.strictObject({
+  /** Each URL takes one HTTP PUT of that part's bytes and answers with an ETag header. */
+  parts: external_exports.array(external_exports.strictObject({ partNumber: external_exports.number().int().min(1), url: external_exports.string().url() })),
+  expiresAt: TimestampSchema
+});
+var CompleteMeetingRecordingRequestSchema = external_exports.strictObject({
+  parts: external_exports.array(external_exports.strictObject({ partNumber: external_exports.number().int().min(1).max(1e4), etag: external_exports.string().min(1).max(200) })).min(1).max(1e4)
+});
+var MeetingRecordingPlaybackSchema = MeetingRecordingSchema.extend({
+  /** A short-lived URL that serves the file with range requests; null while the upload is unfinished. */
+  playbackUrl: external_exports.string().url().nullable()
+});
+var MeetingRecordingsResponseSchema = external_exports.strictObject({
+  recordings: external_exports.array(MeetingRecordingPlaybackSchema)
 });
 
 // src/client.ts
