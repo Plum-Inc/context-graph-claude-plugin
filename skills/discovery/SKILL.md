@@ -58,6 +58,7 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 
 ## Ground rules
 
+- **Discovery does not run in the organization workspace.** When the banner says the plugin is in the organization workspace ("organization"), tell the user in one line to run discovery in an engagement: name the engagements from `mcp__plugin_plum_Plum__list_workspaces` and offer `/plum:setup workspace <name>` to move there, then stop before any other discovery call. The app refuses it there too.
 - **Discovery runs in the workspace the request names.** The session banner names the workspace the tools act in. When the request names another engagement or workspace of the organization ("start discovery for Dundas"), move there first with `mcp__plugin_plum_Plum__switch_workspace` and that workspace's id (from the banner, or `mcp__plugin_plum_Plum__list_workspaces`), say so in one line, and stay there; when no workspace reads the named folder, say so and stop.
 - **Discovery's questions are not the ontology's.** A clarification question is what the agent asked during a run and is answered here; an `OPEN` line in an ontology file is answered by `/plum:improve answer`. When the words fit both, say which one you are answering.
 - **Answers are the person's words.** Record what the user said, as they said it. Never answer a question from the files or from your own reading: only a person settles a meaning.

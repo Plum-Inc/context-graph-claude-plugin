@@ -2048,11 +2048,11 @@ var require_fast_deep_equal = __commonJS({
       if (a === b) return true;
       if (a && b && typeof a == "object" && typeof b == "object") {
         if (a.constructor !== b.constructor) return false;
-        var length, i, keys;
+        var length2, i, keys;
         if (Array.isArray(a)) {
-          length = a.length;
-          if (length != b.length) return false;
-          for (i = length; i-- !== 0; )
+          length2 = a.length;
+          if (length2 != b.length) return false;
+          for (i = length2; i-- !== 0; )
             if (!equal(a[i], b[i])) return false;
           return true;
         }
@@ -2060,11 +2060,11 @@ var require_fast_deep_equal = __commonJS({
         if (a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();
         if (a.toString !== Object.prototype.toString) return a.toString() === b.toString();
         keys = Object.keys(a);
-        length = keys.length;
-        if (length !== Object.keys(b).length) return false;
-        for (i = length; i-- !== 0; )
+        length2 = keys.length;
+        if (length2 !== Object.keys(b).length) return false;
+        for (i = length2; i-- !== 0; )
           if (!Object.prototype.hasOwnProperty.call(b, keys[i])) return false;
-        for (i = length; i-- !== 0; ) {
+        for (i = length2; i-- !== 0; ) {
           var key = keys[i];
           if (!equal(a[key], b[key])) return false;
         }
@@ -2220,20 +2220,20 @@ var require_resolve = __commonJS({
       return false;
     }
     function countKeys(schema) {
-      let count = 0;
+      let count2 = 0;
       for (const key in schema) {
         if (key === "$ref")
           return Infinity;
-        count++;
+        count2++;
         if (SIMPLE_INLINED.has(key))
           continue;
         if (typeof schema[key] == "object") {
-          (0, util_1.eachItem)(schema[key], (sch) => count += countKeys(sch));
+          (0, util_1.eachItem)(schema[key], (sch) => count2 += countKeys(sch));
         }
-        if (count === Infinity)
+        if (count2 === Infinity)
           return Infinity;
       }
-      return count;
+      return count2;
     }
     function getFullPath(resolver, id = "", normalize) {
       if (normalize !== false)
@@ -5068,11 +5068,11 @@ var require_ucs2length = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     function ucs2length(str) {
       const len = str.length;
-      let length = 0;
+      let length2 = 0;
       let pos = 0;
       let value;
       while (pos < len) {
-        length++;
+        length2++;
         value = str.charCodeAt(pos++);
         if (value >= 55296 && value <= 56319 && pos < len) {
           value = str.charCodeAt(pos);
@@ -5080,7 +5080,7 @@ var require_ucs2length = __commonJS({
             pos++;
         }
       }
-      return length;
+      return length2;
     }
     exports.default = ucs2length;
     ucs2length.code = 'require("ajv/dist/runtime/ucs2length").default';
@@ -5714,8 +5714,8 @@ var require_contains = __commonJS({
         cxt.result(valid, () => cxt.reset());
         function validateItemsWithCount() {
           const schValid = gen.name("_valid");
-          const count = gen.let("count", 0);
-          validateItems(schValid, () => gen.if(schValid, () => checkLimits(count)));
+          const count2 = gen.let("count", 0);
+          validateItems(schValid, () => gen.if(schValid, () => checkLimits(count2)));
         }
         function validateItems(_valid, block) {
           gen.forRange("i", 0, len, (i) => {
@@ -5728,16 +5728,16 @@ var require_contains = __commonJS({
             block();
           });
         }
-        function checkLimits(count) {
-          gen.code((0, codegen_1._)`${count}++`);
+        function checkLimits(count2) {
+          gen.code((0, codegen_1._)`${count2}++`);
           if (max === void 0) {
-            gen.if((0, codegen_1._)`${count} >= ${min}`, () => gen.assign(valid, true).break());
+            gen.if((0, codegen_1._)`${count2} >= ${min}`, () => gen.assign(valid, true).break());
           } else {
-            gen.if((0, codegen_1._)`${count} > ${max}`, () => gen.assign(valid, false).break());
+            gen.if((0, codegen_1._)`${count2} > ${max}`, () => gen.assign(valid, false).break());
             if (min === 1)
               gen.assign(valid, true);
             else
-              gen.if((0, codegen_1._)`${count} >= ${min}`, () => gen.assign(valid, true));
+              gen.if((0, codegen_1._)`${count2} >= ${min}`, () => gen.assign(valid, true));
           }
         }
       }
@@ -8033,10 +8033,10 @@ function promiseAllObject(promisesObj) {
     return resolvedObj;
   });
 }
-function randomString(length = 10) {
+function randomString(length2 = 10) {
   const chars = "abcdefghijklmnopqrstuvwxyz";
   let str = "";
-  for (let i = 0; i < length; i++) {
+  for (let i = 0; i < length2; i++) {
     str += chars[Math.floor(Math.random() * chars.length)];
   }
   return str;
@@ -8415,14 +8415,14 @@ function codePointLength(str) {
   const units = str.length;
   if (!highSurrogate.test(str))
     return units;
-  let count = units;
+  let count2 = units;
   for (let i = 0; i < units - 1; i++) {
     if ((str.charCodeAt(i) & 64512) === 55296 && (str.charCodeAt(i + 1) & 64512) === 56320) {
-      count--;
+      count2--;
       i++;
     }
   }
-  return count;
+  return count2;
 }
 function getLengthableOrigin(input2) {
   if (Array.isArray(input2))
@@ -9172,8 +9172,8 @@ var ulid = /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/;
 var xid = /^[0-9a-vA-V]{20}$/;
 var ksuid = /^[A-Za-z0-9]{27}$/;
 var nanoid = /^[a-zA-Z0-9_-]{21}$/;
-function nanoidOfLength(length) {
-  return new RegExp(`^[a-zA-Z0-9_-]{${length}}$`);
+function nanoidOfLength(length2) {
+  return new RegExp(`^[a-zA-Z0-9_-]{${length2}}$`);
 }
 var duration = /^P(?:(\d+W)|(?!.*W)(?=\d|T\d)(\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+([.,]\d+)?S)?)?)$/;
 var extendedDuration = /^[-+]?P(?!$)(?:(?:[-+]?\d+Y)|(?:[-+]?\d+[.,]\d+Y$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:(?:[-+]?\d+W)|(?:[-+]?\d+[.,]\d+W$))?(?:(?:[-+]?\d+D)|(?:[-+]?\d+[.,]\d+D$))?(?:T(?=[\d+-])(?:(?:[-+]?\d+H)|(?:[-+]?\d+[.,]\d+H$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:[-+]?\d+(?:[.,]\d+)?S)?)??$/;
@@ -9251,8 +9251,8 @@ var hex = /^[0-9a-fA-F]*$/;
 function fixedBase64(bodyLength, padding) {
   return new RegExp(`^[A-Za-z0-9+/]{${bodyLength}}${padding}$`);
 }
-function fixedBase64url(length) {
-  return new RegExp(`^[A-Za-z0-9_-]{${length}}$`);
+function fixedBase64url(length2) {
+  return new RegExp(`^[A-Za-z0-9_-]{${length2}}$`);
 }
 var md5_hex = /^[0-9a-fA-F]{32}$/;
 var md5_base64 = /* @__PURE__ */ fixedBase64(22, "==");
@@ -9515,8 +9515,8 @@ var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (ins
   inst._zod.check = (payload) => {
     const input2 = payload.value;
     const units = input2.length;
-    const length = typeof input2 === "string" && units > def.maximum ? codePointLength(input2) : units;
-    if (length <= def.maximum)
+    const length2 = typeof input2 === "string" && units > def.maximum ? codePointLength(input2) : units;
+    if (length2 <= def.maximum)
       return;
     const origin = getLengthableOrigin(input2);
     payload.issues.push({
@@ -9537,8 +9537,8 @@ var $ZodCheckMinLength = /* @__PURE__ */ $constructor("$ZodCheckMinLength", (ins
   inst._zod.check = (payload) => {
     const input2 = payload.value;
     const units = input2.length;
-    const length = typeof input2 === "string" && units >= def.minimum && units < def.minimum * 2 ? codePointLength(input2) : units;
-    if (length >= def.minimum)
+    const length2 = typeof input2 === "string" && units >= def.minimum && units < def.minimum * 2 ? codePointLength(input2) : units;
+    if (length2 >= def.minimum)
       return;
     const origin = getLengthableOrigin(input2);
     payload.issues.push({
@@ -9559,11 +9559,11 @@ var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals"
   inst._zod.check = (payload) => {
     const input2 = payload.value;
     const units = input2.length;
-    const length = typeof input2 === "string" && units >= def.length && units <= def.length * 2 ? codePointLength(input2) : units;
-    if (length === def.length)
+    const length2 = typeof input2 === "string" && units >= def.length && units <= def.length * 2 ? codePointLength(input2) : units;
+    if (length2 === def.length)
       return;
     const origin = getLengthableOrigin(input2);
-    const tooBig = length > def.length;
+    const tooBig = length2 > def.length;
     payload.issues.push({
       origin,
       ...tooBig ? { code: "too_big", maximum: def.length } : { code: "too_small", minimum: def.length },
@@ -10255,11 +10255,11 @@ var $ZodE164 = /* @__PURE__ */ $constructor("$ZodE164", (inst, def) => {
 });
 var CC_SANITIZE = /[- ]/g;
 function isLuhnAlgo(digits) {
-  let length = digits.length;
+  let length2 = digits.length;
   let bit = 1;
   let sum = 0;
-  while (length) {
-    const value = digits.charCodeAt(--length) - 48;
+  while (length2) {
+    const value = digits.charCodeAt(--length2) - 48;
     bit ^= 1;
     sum += bit ? [0, 2, 4, 6, 8, 1, 3, 5, 7, 9][value] : value;
   }
@@ -12777,8 +12777,8 @@ function az_default() {
 }
 
 // ../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/locales/be.js
-function getBelarusianPlural(count, one, few, many) {
-  const absCount = Math.abs(count);
+function getBelarusianPlural(count2, one, few, many) {
+  const absCount = Math.abs(count2);
   const lastDigit = absCount % 10;
   const lastTwoDigits = absCount % 100;
   if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
@@ -15425,8 +15425,8 @@ function hu_default() {
 }
 
 // ../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/locales/hy.js
-function getArmenianPlural(count, one, many) {
-  return Math.abs(count) === 1 ? one : many;
+function getArmenianPlural(count2, one, many) {
+  return Math.abs(count2) === 1 ? one : many;
 }
 function withDefiniteArticle(word) {
   if (!word)
@@ -18164,8 +18164,8 @@ function ro_default() {
 }
 
 // ../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/locales/ru.js
-function getRussianPlural(count, one, few, many) {
-  const absCount = Math.abs(count);
+function getRussianPlural(count2, one, few, many) {
+  const absCount = Math.abs(count2);
   const lastDigit = absCount % 10;
   const lastTwoDigits = absCount % 100;
   if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
@@ -22297,11 +22297,11 @@ function _minLength(minimum, params) {
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _length(length, params) {
+function _length(length2, params) {
   return new $ZodCheckLengthEquals({
     check: "length_equals",
     ...normalizeParams(params),
-    length
+    length: length2
   });
 }
 // @__NO_SIDE_EFFECTS__
@@ -28508,9 +28508,11 @@ var StdioServerTransport = class {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.50.0";
+var CONTRACT_VERSION = "1.65.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
+var SOURCE_SCOPES = ["organization", "workspace", "either"];
+var SourceScopeSchema = external_exports.enum(SOURCE_SCOPES);
 var IdSchema = external_exports.string().min(1).max(200);
 var TimestampSchema = external_exports.iso.datetime({ offset: true });
 var CountSchema = external_exports.number().int().nonnegative();
@@ -28676,7 +28678,16 @@ var SourceConnectionSchema = external_exports.strictObject({
   coverage: CoverageSchema,
   metadata: SourceMetadataSchema.optional(),
   /** Subject id of the person who connected this source (1.4.0). Absent on connections made before attribution existed. */
-  connectedBy: IdSchema.optional()
+  connectedBy: IdSchema.optional(),
+  /**
+   * Present when the connection belongs to the organization workspace and is listed in an engagement (1.53.0): where it
+   * lives and how many of its records were routed to this engagement. Read-only there.
+   */
+  inherited: external_exports.strictObject({
+    workspaceId: IdSchema,
+    workspaceName: external_exports.string().min(1),
+    routedCount: CountSchema
+  }).optional()
 });
 var SyncCountsSchema = external_exports.strictObject({
   records: CountSchema,
@@ -29767,6 +29778,14 @@ var WorkspaceLiveEventSchema = external_exports.discriminatedUnion("kind", [
     /** Why a note was skipped, or what failed, for the row's detail line. */
     reason: external_exports.string().max(500).nullable(),
     at: external_exports.string().min(1)
+  }),
+  /** Meeting search backfill progress: copies of the organization's calls indexed so far, of those that needed it. */
+  external_exports.strictObject({
+    kind: external_exports.literal("index"),
+    workspaceId: IdSchema,
+    done: external_exports.number().int().nonnegative(),
+    total: external_exports.number().int().nonnegative(),
+    state: external_exports.enum(["running", "complete"])
   })
 ]);
 var RealtimeTokenResponseSchema = external_exports.strictObject({
@@ -29905,8 +29924,8 @@ function findEntry(lines, section, name) {
   const nearby = entries.filter((entry) => entry.name.toLowerCase().includes(name.toLowerCase())).map((entry) => entry.name).slice(0, 5);
   throw new Error(`No ${section} entry named "${name}".${nearby.length ? ` Did you mean: ${nearby.join(", ")}?` : ""}`);
 }
-function splice(lines, start, count, next) {
-  lines.splice(start, count, ...next);
+function splice(lines, start, count2, next) {
+  lines.splice(start, count2, ...next);
   const seam = start + next.length;
   while (seam > 0 && seam < lines.length && lines[seam].trim() === "" && lines[seam - 1].trim() === "")
     lines.splice(seam, 1);
@@ -30090,6 +30109,7 @@ var WorkspaceClearedSchema = external_exports.strictObject({
   total: external_exports.number().int().nonnegative()
 });
 var WORKSPACE_NAME_MAX = 80;
+var WorkspaceKindSchema = external_exports.enum(["organization", "engagement"]);
 var WorkspaceSummarySchema = external_exports.strictObject({
   id: IdSchema,
   /** What people call it: the engagement's name. A workspace made before workspaces had names is shown as "Main". */
@@ -30100,6 +30120,7 @@ var WorkspaceSummarySchema = external_exports.strictObject({
    * a repository of its own.
    */
   engagement: external_exports.string().nullable(),
+  kind: WorkspaceKindSchema,
   /** True for the workspace the caller's session or token acts in. */
   current: external_exports.boolean(),
   createdAt: TimestampSchema
@@ -30797,6 +30818,25 @@ var PlumMetricsResponseSchema = external_exports.object({
   repositoryUrl: external_exports.string().nullable().default(null),
   ontologyWarning: external_exports.string().nullable().default(null)
 });
+var PlumMirrorSourceStatusSchema = external_exports.object({
+  connectionId: external_exports.string(),
+  provider: external_exports.enum(["salesforce", "postgres"]),
+  /** loading: a load is running; current: the latest load finished; failed: the latest load stopped, see `error`. */
+  status: external_exports.enum(["loading", "current", "failed"]),
+  /** The latest completed run, which questions read; it stays while a later load runs or after one fails. */
+  lastRunId: external_exports.string().nullable(),
+  lastLoadedAt: external_exports.string().nullable(),
+  /** When the latest load, finished or not, started. */
+  startedAt: external_exports.string().nullable(),
+  error: external_exports.string().nullable()
+});
+var PlumMirrorStatusSchema = external_exports.object({
+  dataset: external_exports.string().nullable(),
+  /** Whether this deployment loads mirrors: daily, and when someone asks. */
+  scheduled: external_exports.boolean(),
+  sources: external_exports.array(PlumMirrorSourceStatusSchema)
+});
+var PlumMirrorLoadAcceptedSchema = external_exports.object({ connectionId: external_exports.string(), queued: external_exports.literal(true) });
 var PlumMetricFileSchema = external_exports.object({
   metric: PlumMetricSummarySchema,
   path: external_exports.string(),
@@ -30836,6 +30876,29 @@ var PlumFeedbackSchema = external_exports.object({
   route: external_exports.enum(["reconciliation", "feedback_log", "review_queue"]),
   createdAt: external_exports.string()
 });
+var PlumScoreDimensionSchema = external_exports.number().int().min(0).max(2);
+var PlumProposalScoreSchema = external_exports.strictObject({
+  /** built-in: the judge read the default scoring paragraphs; playbook: it read the playbook's review-ingest-output.md. */
+  rubric: external_exports.enum(["built-in", "playbook"]),
+  /** The playbook commit the rubric came from, or 'built-in'. */
+  rubricVersion: external_exports.string().max(100),
+  /** The judge model that scored it. */
+  model: external_exports.string().max(100),
+  total: external_exports.number().min(0).max(1),
+  scores: external_exports.strictObject({
+    call: PlumScoreDimensionSchema,
+    company: PlumScoreDimensionSchema,
+    engagement: PlumScoreDimensionSchema,
+    split: PlumScoreDimensionSchema
+  }),
+  /** What the meeting established, each marked written (reached a file), task (left to the tracker) or missed. */
+  keyPoints: external_exports.array(external_exports.strictObject({ point: external_exports.string().max(500), handled: external_exports.enum(["written", "task", "missed"]) })).max(30),
+  /** Statements in the proposed files the transcript does not support. */
+  invented: external_exports.array(external_exports.string().max(500)).max(30),
+  reason: external_exports.string().max(1e3),
+  scoredAt: external_exports.string().min(1)
+});
+var PLUM_SCORE_NEEDS_WORK = 0.625;
 var PlumProposalSchema = external_exports.object({
   id: external_exports.string(),
   kind: external_exports.enum(["new_metric", "metric_change", "path", "metric_request", "definition_issue", "ontology_update"]),
@@ -30851,6 +30914,13 @@ var PlumProposalSchema = external_exports.object({
   engagement: external_exports.string().nullable().default(null),
   /** True when it changes the firm's playbook at the repository root rather than the workspace's own ontology (1.36.0). */
   playbook: external_exports.boolean().default(false),
+  /**
+   * Whether an open proposal's branch merges into main without a conflict, as the repository host reports it (1.54.0):
+   * false means approving it fails until it is brought up to date; null when it is not open or not known yet.
+   */
+  mergeable: external_exports.boolean().nullable().default(null),
+  /** The import's score on the ingest-eval dimensions (1.59.0); null when nothing scored it. */
+  score: PlumProposalScoreSchema.nullable().default(null),
   createdAt: external_exports.string()
 });
 var PlumOntologyTargetSchema = external_exports.enum(["workspace", "playbook"]);
@@ -31077,6 +31147,8 @@ var PlumOntologyExecRequestSchema = external_exports.object({
 var PlumOntologyExecResultSchema = external_exports.object({
   ontologyVersion: external_exports.string(),
   playbookVersion: external_exports.string().nullable().optional(),
+  /** The commit /engagements was read at, in the organization workspace; absent in an engagement (1.52.0). */
+  engagementsVersion: external_exports.string().nullable().optional(),
   kind: external_exports.literal("bash"),
   command: external_exports.string(),
   stdout: external_exports.string(),
@@ -31090,7 +31162,6 @@ var AUTOMATION_ACTION_KINDS = [
   "source_import",
   "discovery_reconcile",
   "ontology_draft",
-  "interview_plan",
   "slack_message"
 ];
 var AUTOMATION_RUN_STATUSES = ["waiting", "running", "completed", "skipped", "failed", "cancelled"];
@@ -31124,7 +31195,6 @@ var AutomationActionSchema = external_exports.discriminatedUnion("kind", [
   external_exports.strictObject({ kind: external_exports.literal("source_import"), connectionId: external_exports.string().min(1).max(200) }).describe("Refresh one connected source (Salesforce, Postgres, GitHub or Notion)."),
   external_exports.strictObject({ kind: external_exports.literal("discovery_reconcile") }).describe("Let discovery process any evidence that has arrived since its last pass."),
   external_exports.strictObject({ kind: external_exports.literal("ontology_draft") }).describe("Ask for a new ontology draft from the current imported data."),
-  external_exports.strictObject({ kind: external_exports.literal("interview_plan") }).describe("Route open clarification questions to the people who can answer them."),
   external_exports.strictObject({
     kind: external_exports.literal("slack_message"),
     channelId: external_exports.string().regex(/^[CG][A-Z0-9]{8,12}$/).describe('The Slack channel id, e.g. "C0123456789". It must be listed in grants.'),
@@ -31375,6 +31445,21 @@ var GranolaSearchResultSchema = external_exports.object({
       score: external_exports.number()
     })
   )
+});
+var GranolaTranscriptQuerySchema = external_exports.object({
+  from_line: external_exports.coerce.number().int().min(1).optional(),
+  to_line: external_exports.coerce.number().int().min(1).optional(),
+  max_chars: external_exports.coerce.number().int().min(500).max(32e3).optional()
+});
+var GranolaTranscriptWindowSchema = external_exports.strictObject({
+  noteId: external_exports.string(),
+  fromLine: external_exports.number().int(),
+  toLine: external_exports.number().int(),
+  lines: external_exports.array(external_exports.strictObject({ line: external_exports.number().int(), speaker: external_exports.string().nullable(), text: external_exports.string() })),
+  totalLines: external_exports.number().int().nonnegative(),
+  returned: external_exports.number().int().nonnegative(),
+  truncated: external_exports.boolean(),
+  nextFromLine: external_exports.number().int().nullable()
 });
 
 // ../../packages/shared/src/artifacts.ts
@@ -31736,6 +31821,15 @@ var UpdateDocumentPanelRequestSchema = external_exports.strictObject({
   sortOrder: external_exports.number().int().optional()
 }).refine((value) => Object.values(value).some((field) => field !== void 0), "Give at least one field to change.");
 
+// ../../packages/shared/src/prosemirror-text.ts
+function proseMirrorText(node2) {
+  if (typeof node2.text === "string") return node2.text;
+  if (node2.type === "hardBreak") return "\n";
+  const children = node2.content ?? [];
+  const inline = children.every((child) => typeof child.text === "string" || child.type === "hardBreak");
+  return children.map(proseMirrorText).join(inline ? "" : "\n");
+}
+
 // ../../packages/shared/src/calendar.ts
 var CalendarProviderSchema = external_exports.literal("google");
 var CalendarResponseStatusSchema = external_exports.enum(["needsAction", "declined", "tentative", "accepted"]);
@@ -31777,6 +31871,31 @@ var CalendarStatusResponseSchema = external_exports.strictObject({
   email: external_exports.string().min(1).max(320).nullable()
 });
 var CalendarEventsResponseSchema = external_exports.strictObject({ events: external_exports.array(CalendarEventSchema) });
+var MeetingPlacementSuggestionSchema = external_exports.strictObject({
+  workspaceId: IdSchema,
+  /** The engagement's name. */
+  name: external_exports.string().min(1).max(200)
+});
+var MeetingPlacementSchema = external_exports.strictObject({
+  id: IdSchema,
+  iCalUid: external_exports.string().min(1).max(1024),
+  start: TimestampSchema,
+  /** One engagement, or the ones that tied; the admin picks one or says it is none of them. */
+  suggestions: external_exports.array(MeetingPlacementSuggestionSchema).min(1).max(10)
+});
+var MeetingPlacementsQuerySchema = external_exports.strictObject({
+  from: TimestampSchema.optional(),
+  to: TimestampSchema.optional()
+});
+var MeetingPlacementsResponseSchema = external_exports.strictObject({ placements: external_exports.array(MeetingPlacementSchema) });
+var ConfirmMeetingPlacementRequestSchema = external_exports.strictObject({ workspaceId: IdSchema });
+var MeetingPlacementDecisionSchema = external_exports.strictObject({
+  id: IdSchema,
+  status: external_exports.enum(["confirmed", "dismissed"]),
+  workspaceId: IdSchema.nullable(),
+  /** The brief recorded for the meeting when it was confirmed. */
+  briefId: IdSchema.nullable()
+});
 
 // ../../packages/shared/src/meetings.ts
 var MeetingStateSchema = external_exports.enum(["recording", "processing", "done"]);
@@ -31785,6 +31904,142 @@ var MeetingAudioMetaSchema = external_exports.strictObject({
   sampleRate: external_exports.number().int().positive().optional(),
   channels: external_exports.number().int().min(1).max(2).optional(),
   sources: external_exports.array(MeetingAudioSourceSchema)
+});
+var STATS_DURATION_MAX_MS = 1e9;
+var STATS_COUNT_MAX = 1e6;
+var durationMs = () => external_exports.number().int().nonnegative().max(STATS_DURATION_MAX_MS);
+var count = () => external_exports.number().int().nonnegative().max(STATS_COUNT_MAX);
+var MeetingSourceStatsSchema = external_exports.strictObject({
+  /** Audio handed to the transcriber over every session of this source. */
+  audioSentMs: durationMs(),
+  /** Audio the transcriber said it received (its session heartbeat), summed over sessions. */
+  audioAckedMs: durationMs(),
+  /** Audio the transcriber reported as transcribed when each session ended. */
+  audioTranscribedMs: durationMs(),
+  /** Audio dropped before it was ever sent (the replay buffer overflowed). */
+  droppedMs: durationMs(),
+  /** Audio sent into a socket that closed before acknowledging it and not sent again. */
+  unreplayedMs: durationMs(),
+  /** Time the app knew it was offline while recording. */
+  offlineMs: durationMs(),
+  reconnects: count(),
+  sessions: count(),
+  finals: count(),
+  partials: count(),
+  bufferOverflows: count(),
+  /** Sessions the transcriber closed for sending audio too fast (close code 3007). */
+  closes3007: count(),
+  /** Handovers to a new session, by what tripped them. */
+  stalls: external_exports.strictObject({ unsentAudio: count(), noHeartbeat: count(), noAck: count() }),
+  /** The most bytes seen waiting in the socket's send buffer. */
+  maxBufferedAmount: external_exports.number().int().nonnegative().max(1e9)
+});
+var MeetingStopReasonSchema = external_exports.enum([
+  "person",
+  "slept",
+  "quit",
+  "failed",
+  "call-left",
+  "everyone-left",
+  "calendar-ended",
+  "silence"
+]);
+var MeetingStatsSchema = external_exports.strictObject({
+  /** The app's clock when it counted; compared with the server's for skew, never trusted for liveness. */
+  at: TimestampSchema,
+  sources: external_exports.strictObject({ me: MeetingSourceStatsSchema.optional(), them: MeetingSourceStatsSchema.optional() }),
+  /** Only in the stop body: why the app stopped. */
+  stopReason: MeetingStopReasonSchema.optional(),
+  /** Time the machine spent asleep while the meeting was recording. */
+  sleptMs: durationMs().optional()
+});
+var MeetingHeartbeatRequestSchema = MeetingStatsSchema.extend({ meetingId: IdSchema });
+var StopMeetingRequestSchema = external_exports.strictObject({ stats: MeetingStatsSchema.optional() });
+var MeetingEndedBySchema = external_exports.enum(["client", "sweep"]);
+var CallEngagementMethodSchema = external_exports.enum(["calendar", "decision", "name", "admin"]);
+var CallEngagementStatusSchema = external_exports.enum(["predicted", "confirmed", "removed"]);
+var CallEngagementSchema = external_exports.strictObject({
+  workspaceId: IdSchema,
+  name: external_exports.string(),
+  method: CallEngagementMethodSchema,
+  status: CallEngagementStatusSchema
+});
+var CallCopySchema = external_exports.strictObject({
+  id: IdSchema,
+  origin: external_exports.enum(["plum", "granola"]),
+  /** The meeting's current workspace for a Plum copy; the importing workspace for a note. Null when it is gone. */
+  workspaceId: IdSchema.nullable(),
+  meetingId: IdSchema.nullable()
+});
+var CallSchema = external_exports.strictObject({
+  id: IdSchema,
+  title: external_exports.string(),
+  startedAt: TimestampSchema.nullable(),
+  endedAt: TimestampSchema.nullable(),
+  copies: external_exports.array(CallCopySchema),
+  engagements: external_exports.array(CallEngagementSchema)
+});
+var SetCallEngagementsRequestSchema = external_exports.strictObject({ workspaceIds: external_exports.array(IdSchema).max(20) });
+var MeetingSearchOriginSchema = external_exports.enum(["plum", "granola"]);
+var MeetingSearchHitSchema = external_exports.strictObject({
+  callId: IdSchema,
+  origin: MeetingSearchOriginSchema,
+  /** The Plum meeting, for a Plum hit. */
+  meetingId: IdSchema.nullable(),
+  /** The Granola note id, for a Granola hit. */
+  noteId: external_exports.string().nullable(),
+  /** The call has another copy (a Granola note of a Plum recording) whose hit was folded into this one. */
+  otherCopy: external_exports.boolean(),
+  workspaceId: IdSchema,
+  /** The engagement's name, or null for a workspace that is not an engagement. */
+  engagement: external_exports.string().nullable(),
+  /** The meeting is in the caller's My notes, not shared with its workspace. */
+  private: external_exports.boolean(),
+  title: external_exports.string(),
+  meetingAt: TimestampSchema.nullable(),
+  /** Milliseconds into a Plum recording. */
+  startMs: external_exports.number().int().nullable(),
+  endMs: external_exports.number().int().nullable(),
+  /** Lines of a Granola transcript, 1-based. */
+  startLine: external_exports.number().int().nullable(),
+  endLine: external_exports.number().int().nullable(),
+  speakers: external_exports.array(external_exports.string()),
+  /** `Name: text` lines, with matched words between `**`. */
+  text: external_exports.string(),
+  foundBy: external_exports.array(external_exports.enum(["words", "meaning"])).min(1),
+  /** Cosine distance from the question, when found by meaning. */
+  distance: external_exports.number().nullable(),
+  rank: external_exports.number().int().positive()
+});
+var MeetingSearchRequestSchema = external_exports.strictObject({
+  question: external_exports.string().trim().min(1).max(1e3),
+  from: TimestampSchema.optional(),
+  to: TimestampSchema.optional(),
+  callIds: external_exports.array(IdSchema).max(50).optional(),
+  speaker: external_exports.string().trim().min(1).max(200).optional(),
+  origin: MeetingSearchOriginSchema.optional(),
+  /** Another workspace of the organization (admins only). */
+  workspaceId: IdSchema.optional(),
+  /** Every workspace of the organization (admins only). */
+  allWorkspaces: external_exports.boolean().default(false),
+  includePrivate: external_exports.boolean().default(false),
+  limit: external_exports.number().int().min(1).max(20).default(10),
+  maxChars: external_exports.number().int().min(1e3).max(32e3).default(8e3),
+  cursor: external_exports.string().min(1).max(100).optional()
+});
+var MeetingSearchResultSchema = external_exports.strictObject({
+  question: external_exports.string(),
+  /** `lexical_only` when there is no embedding model or the question could not be embedded. */
+  mode: external_exports.enum(["hybrid", "lexical_only"]),
+  /** The workspace ids searched. */
+  searched: external_exports.array(IdSchema),
+  /** Hits after one per call and adjacent windows merged, across every page. */
+  candidates: external_exports.number().int().nonnegative(),
+  returned: external_exports.number().int().nonnegative(),
+  hits: external_exports.array(MeetingSearchHitSchema),
+  /** A hit was held back by `limit` or `maxChars`; `nextCursor` reads on. */
+  truncated: external_exports.boolean(),
+  nextCursor: external_exports.string().nullable()
 });
 var MeetingSchema = external_exports.strictObject({
   id: IdSchema,
@@ -31798,8 +32053,20 @@ var MeetingSchema = external_exports.strictObject({
   sourceRecordId: IdSchema.nullable(),
   /** The calendar event the meeting was started from (a snapshot taken at start), or null. Calendar text is data. */
   calendarEvent: MeetingCalendarEventSchema.nullable(),
+  /** When the app last reported it was recording (server clock); null before the first heartbeat. */
+  lastSeenAt: TimestampSchema.nullable(),
+  /** The stats the app last sent, overwritten by each heartbeat and by the stop; null when it never sent any. */
+  stats: MeetingStatsSchema.nullable(),
+  /** Null while recording. */
+  endedBy: MeetingEndedBySchema.nullable(),
   createdAt: TimestampSchema,
-  updatedAt: TimestampSchema
+  updatedAt: TimestampSchema,
+  /** The meeting's call (1.63.0); present on a start that recorded one, and on a read of a meeting that has one (1.65.0). */
+  callId: IdSchema.nullable().optional(),
+  /** The call's engagements after the start's calendar prediction (1.63.0), or as they stand on a read (1.65.0). */
+  engagements: external_exports.array(CallEngagementSchema).optional(),
+  /** Engagement workspace ids an open placement suggests for an event the brief job could not place (1.63.0). */
+  suggestions: external_exports.array(IdSchema).optional()
 });
 var TranscriptChunkSchema = external_exports.strictObject({
   /** Generated by the desktop app, so a chunk that is sent twice is stored once. */
@@ -31853,13 +32120,69 @@ var MeetingListItemSchema = external_exports.strictObject({
 });
 var MeetingListResponseSchema = external_exports.strictObject({
   items: external_exports.array(MeetingListItemSchema),
-  nextCursor: external_exports.string().nullable()
+  nextCursor: external_exports.string().nullable(),
+  /** Readable meetings in the asked date range, across every page (1.64.0). */
+  total: external_exports.number().int().nonnegative().optional()
 });
+var MeetingListQuerySchema = external_exports.object({
+  cursor: external_exports.string().min(1).max(1024).optional(),
+  from: TimestampSchema.optional(),
+  to: TimestampSchema.optional(),
+  limit: external_exports.coerce.number().int().min(1).max(100).optional()
+});
+var MeetingDetailQuerySchema = external_exports.object({ transcript: external_exports.enum(["none", "final"]).optional() });
+var MeetingTranscriptQuerySchema = external_exports.object({
+  from_ms: external_exports.coerce.number().int().nonnegative().optional(),
+  to_ms: external_exports.coerce.number().int().nonnegative().optional(),
+  max_chars: external_exports.coerce.number().int().min(500).max(32e3).optional()
+});
+var MeetingTranscriptWindowSchema = external_exports.strictObject({
+  meetingId: IdSchema,
+  fromMs: external_exports.number().int(),
+  toMs: external_exports.number().int(),
+  turns: external_exports.array(
+    external_exports.strictObject({
+      startMs: external_exports.number().int(),
+      endMs: external_exports.number().int(),
+      speaker: external_exports.string(),
+      text: external_exports.string()
+    })
+  ),
+  /** Turns in [fromMs, toMs]. */
+  totalTurns: external_exports.number().int().nonnegative(),
+  returned: external_exports.number().int().nonnegative(),
+  truncated: external_exports.boolean(),
+  nextFromMs: external_exports.number().int().nullable()
+});
+var MeetingIndexQueuedResponseSchema = external_exports.strictObject({ queued: external_exports.literal(true) });
+var MeetingBriefStatusSchema = external_exports.enum(["pending", "ready", "failed"]);
+var MeetingBriefSchema = external_exports.strictObject({
+  status: MeetingBriefStatusSchema,
+  panels: external_exports.array(DocumentPanelSchema)
+});
+var MeetingBriefQuerySchema = external_exports.strictObject({
+  iCalUid: external_exports.string().min(1).max(1024),
+  start: TimestampSchema
+});
+var MeetingBriefResponseSchema = external_exports.strictObject({ brief: MeetingBriefSchema.nullable() });
 var MeetingDetailSchema = external_exports.strictObject({
   meeting: MeetingSchema,
   document: DocumentSchema,
   transcript: external_exports.array(TranscriptChunkSchema),
-  panels: external_exports.array(DocumentPanelSchema)
+  panels: external_exports.array(DocumentPanelSchema),
+  /** Absent when the meeting was started from no calendar event, or its event has no brief. */
+  brief: MeetingBriefSchema.optional(),
+  /** The names heard, as the speaker map resolves each transcript label (1.64.0). */
+  speakers: external_exports.array(external_exports.string()).optional()
+});
+var GetMeetingResultSchema = external_exports.strictObject({
+  meeting: MeetingListItemSchema,
+  callId: IdSchema.nullable(),
+  engagements: external_exports.array(CallEngagementSchema),
+  speakers: external_exports.array(external_exports.string()),
+  summary: external_exports.string().nullable(),
+  notes: external_exports.string().nullable(),
+  transcript: MeetingTranscriptWindowSchema.nullable()
 });
 var SummaryRequestedResponseSchema = external_exports.strictObject({ status: external_exports.literal("queued") });
 var SpaceIdSchema = external_exports.union([external_exports.literal("mine"), IdSchema]);
@@ -31882,7 +32205,7 @@ var SpaceItemsResponseSchema = external_exports.strictObject({
   items: external_exports.array(SpaceItemSchema),
   nextCursor: external_exports.string().nullable()
 });
-var SpeakerCandidateSourceSchema = external_exports.enum(["user", "platform", "mic", "llm"]);
+var SpeakerCandidateSourceSchema = external_exports.enum(["user", "platform", "voice", "mic", "llm"]);
 var SpeakerLabelSchema = external_exports.string().regex(/^(me|them)(:[1-9]\d{0,3})?$/);
 var SpeakerCandidateSchema = external_exports.strictObject({
   source: SpeakerCandidateSourceSchema,
@@ -32160,6 +32483,67 @@ var platform = {
   ]
 };
 
+// src/apiError.ts
+var ApiError = class extends Error {
+  constructor(code, message, status, requestId) {
+    super(message);
+    this.code = code;
+    this.status = status;
+    this.requestId = requestId;
+  }
+  code;
+  status;
+  requestId;
+};
+
+// src/responses.ts
+var MAX_STRIP_ROUNDS = 20;
+function removals(issues, prefix, all) {
+  const found = [];
+  for (const issue2 of issues) {
+    const path9 = [...prefix, ...issue2.path];
+    if (issue2.code === "unrecognized_keys") {
+      found.push({ path: path9, keys: issue2.keys });
+      continue;
+    }
+    const branch = issue2.code === "invalid_union" ? issue2.errors.map((branchIssues) => removals(branchIssues, path9, true)).find(Boolean) : void 0;
+    if (branch) found.push(...branch);
+    else if (all) return null;
+  }
+  return found;
+}
+function strip(value, { path: path9, keys }) {
+  let target = value;
+  for (const step of path9) {
+    if (target === null || typeof target !== "object") return;
+    target = target[step];
+  }
+  if (target === null || typeof target !== "object") return;
+  for (const key of keys) delete target[key];
+}
+function readResponse(schema, value) {
+  let current = value;
+  let result = schema.safeParse(current);
+  for (let round = 0; !result.success && round < MAX_STRIP_ROUNDS; round += 1) {
+    const found = removals(result.error.issues, [], false) ?? [];
+    if (!found.length) break;
+    if (current === value) current = structuredClone(value);
+    for (const removal of found) strip(current, removal);
+    result = schema.safeParse(current);
+  }
+  return result;
+}
+function parseResponse(schema, value) {
+  const result = readResponse(schema, value);
+  if (result.success) return result.data;
+  const issues = result.error.issues.slice(0, 3).map((issue2) => `${issue2.path.join(".") || "(root)"}: ${issue2.message}`).join("; ");
+  throw new ApiError(
+    "INVALID_RESPONSE",
+    `The app returned an unexpected response shape (${issues || "unparseable"}). Update the plugin, or the app.`,
+    0
+  );
+}
+
 // src/signIn.ts
 function signInUrl(pending) {
   return `${pending.serviceUrl}/plugin/auth/${platform.authPath}?ticket=${encodeURIComponent(pending.ticketId)}&loginWindow=${pending.loginWindow}`;
@@ -32171,7 +32555,8 @@ async function pollSignIn(call, pending, now = Date.now()) {
   }
   let poll;
   try {
-    poll = HandoffTicketPollSchema.parse(
+    poll = parseResponse(
+      HandoffTicketPollSchema,
       await call(
         "GET",
         `/plugin/handoff-tickets/${encodeURIComponent(pending.ticketId)}?verifier=${encodeURIComponent(pending.verifier)}`
@@ -32202,17 +32587,6 @@ function settled() {
 }
 
 // src/client.ts
-var ApiError = class extends Error {
-  constructor(code, message, status, requestId) {
-    super(message);
-    this.code = code;
-    this.status = status;
-    this.requestId = requestId;
-  }
-  code;
-  status;
-  requestId;
-};
 function clientHeaders(pluginVersion, platform2) {
   return {
     "x-context-graph-client": platform2.cliBinary,
@@ -32276,7 +32650,7 @@ function createApiClient(platform2, pluginVersion, options = {}) {
       }
     }
     if (!response.ok) {
-      const parsed = ApiErrorSchema.safeParse(payload);
+      const parsed = readResponse(ApiErrorSchema, payload);
       if (parsed.success)
         throw new ApiError(
           parsed.data.error.code,
@@ -40543,10 +40917,13 @@ var listGranolaNotes = {
 var getGranolaNote = {
   name: "get_granola_note",
   title: "Get Granola note",
-  description: "One meeting note: title, date, attendees, Granola's summary and, when asked, the transcript (an imported note has one only if its connection imports transcripts). The owner's private notes are never included.",
+  description: "One meeting note: title, date, attendees, Granola's summary and, when asked, its transcript: a stretch of lines with fromLine and toLine, or all of it with transcript (an imported note has one only if its connection imports transcripts). The owner's private notes are never included.",
   inputSchema: {
     noteId: granolaNoteId,
-    transcript: bool().default(false).describe("Include the full transcript (long).")
+    transcript: bool().default(false).describe("Include the full transcript (long). Prefer fromLine and toLine."),
+    fromLine: int2(external_exports.number().min(1)).optional().describe("Read the transcript from this line (1-based), e.g. the line a search_meetings hit names."),
+    toLine: int2(external_exports.number().min(1)).optional().describe("Read the transcript up to this line."),
+    maxChars: int2(external_exports.number().min(500).max(32e3)).default(8e3).describe("Most characters of transcript lines to return with fromLine or toLine.")
   },
   outputSchema: GranolaNoteSchema
 };
@@ -40571,9 +40948,56 @@ var unlinkGranolaNote = {
   description: "Remove a linked meeting note from this project. The note stays in Granola. Editors and admins only.",
   inputSchema: { noteId: granolaNoteId }
 };
+var timestamp = external_exports.iso.datetime({ offset: true }).describe("A date and time with its offset, e.g. 2026-11-01T00:00:00Z.");
+var listMeetings = {
+  name: "list_meetings",
+  title: "List meetings",
+  description: "This workspace's meetings recorded in Plum that the person may read, newest first, optionally in a date range: id, title, start, state and length. States the total in range. Imported Granola notes are listed by list_granola_notes; search_meetings covers both.",
+  inputSchema: {
+    from: timestamp.optional().describe("Only meetings that started at or after this time."),
+    to: timestamp.optional().describe("Only meetings that started at or before this time."),
+    limit: int2(external_exports.number().min(1).max(100)).default(30).describe("Meetings per page."),
+    cursor: external_exports.string().min(1).max(1024).optional().describe("The cursor an earlier answer ended with.")
+  },
+  outputSchema: MeetingListResponseSchema
+};
+var getMeeting = {
+  name: "get_meeting",
+  title: "Get meeting",
+  description: "One meeting recorded in Plum: title, date, the engagement it belongs to, who spoke, the generated summary and the notes. Give fromMs and toMs (milliseconds into the recording, as search_meetings hits give them) to also read that stretch of the transcript, capped; the whole transcript is never returned at once.",
+  inputSchema: {
+    meetingId: external_exports.string().min(1).max(200).describe("A meeting id from list_meetings or search_meetings."),
+    fromMs: int2(external_exports.number().min(0)).optional().describe("Read the transcript from this many milliseconds in."),
+    toMs: int2(external_exports.number().min(0)).optional().describe("Read the transcript up to this many milliseconds in."),
+    maxChars: int2(external_exports.number().min(500).max(32e3)).default(8e3).describe("Most characters of transcript to return; the answer says where to read on.")
+  },
+  outputSchema: GetMeetingResultSchema
+};
+var searchMeetings = {
+  name: "search_meetings",
+  title: "Search meetings",
+  description: "Ask a question in plain words and get the transcript passages that answer it, matched by meaning and by words, once per meeting, with engagement, time and speakers. Covers meetings recorded in Plum and imported Granola notes that the person may read. Returns nothing when nothing is relevant. Private meetings (in the person's own notes) are left out unless includePrivate is set. Capped; says how many matched and how to get the next page.",
+  inputSchema: {
+    question: external_exports.string().trim().min(1).max(1e3).describe("The question as the person would ask it."),
+    from: timestamp.optional().describe("Only meetings at or after this time."),
+    to: timestamp.optional().describe("Only meetings at or before this time."),
+    callIds: external_exports.array(external_exports.string().min(1).max(200)).max(50).optional().describe("Only these calls."),
+    speaker: external_exports.string().trim().min(1).max(200).optional().describe("Only passages where this person speaks."),
+    origin: external_exports.enum(["plum", "granola"]).optional().describe("Only meetings recorded in Plum, or only imported Granola notes."),
+    workspaceId: external_exports.string().min(1).max(200).optional().describe("Search another workspace of the organization (organization admins only; list_workspaces gives ids)."),
+    allWorkspaces: bool().default(false).describe("Search every workspace of the organization (organization admins only)."),
+    includePrivate: bool().default(false).describe(
+      "Include the person's private meetings. Show such a passage to them before writing it anywhere shared."
+    ),
+    limit: int2(external_exports.number().min(1).max(20)).default(10).describe("Most passages to return."),
+    maxChars: int2(external_exports.number().min(1e3).max(32e3)).default(8e3).describe("Most characters of passages to return."),
+    cursor: external_exports.string().min(1).max(100).optional().describe("The cursor an earlier answer to the same question ended with.")
+  },
+  outputSchema: MeetingSearchResultSchema
+};
 var ontologyPath = external_exports.string().min(1).max(300).describe("Repository path from list_ontology_files, e.g. AGENT.md or gtm/definitions/icp.md.");
 var ontologyTarget = PlumOntologyTargetSchema.optional().describe(
-  `"playbook" for the firm's playbook at the repository root (skills, patterns, workflows, templates, AGENT.md, glossary.md) instead of this workspace's client ontology; omit for the client ontology. Proposing to the playbook takes an admin and never touches engagements/.`
+  `"playbook" for the firm's playbook at the repository root (skills, patterns, workflows, templates, AGENT.md, glossary.md) instead of this workspace's ontology, from any workspace; omit for this workspace's own ontology (an engagement folder, or organization/ in the organization workspace). Proposing to the playbook takes an admin and never touches engagements/ or organization/.`
 );
 var listOntologyFiles = {
   name: "list_ontology_files",
@@ -40633,7 +41057,7 @@ var previewOntologyUpdate = {
 var proposeOntologyUpdate = {
   name: "propose_ontology_update",
   title: "Propose ontology update",
-  description: `Open new, changed or removed ontology files as one pull request on the ontology repository for a person to approve in the app or on GitHub. Nothing reaches the approved ontology until they do. Send each file whole, frontmatter included, following the repository layout: one topic per file, edit the file that owns a topic instead of adding another, label statements confirmed, inferred or unknown, write unknowns as OPEN, and update AGENT.md's navigation or the folder README when you add or remove a file. Read the files you change first and preview_ontology_update the result: the proposal is opened against the folder and version of the last preview and refused when the workspace reads another folder now or the approved version moved (preview again). With target "playbook" (an admin only) it lands on the firm's playbook at the repository root, from this engagement workspace, as a playbook update every engagement reads once it merges. ${PLUM_UPDATE_LIMITS_TEXT}`,
+  description: `Open new, changed or removed ontology files as one pull request on the ontology repository for a person to approve in the app or on GitHub. Nothing reaches the approved ontology until they do. Send each file whole, frontmatter included, following the repository layout: one topic per file, edit the file that owns a topic instead of adding another, label statements confirmed, inferred or unknown, write unknowns as OPEN, and update AGENT.md's navigation or the folder README when you add or remove a file. Read the files you change first and preview_ontology_update the result: the proposal is opened against the folder and version of the last preview and refused when the workspace reads another folder now or the approved version moved (preview again). With target "playbook" (an admin only) it lands on the firm's playbook at the repository root, from any workspace, as a playbook update every engagement reads once it merges. ${PLUM_UPDATE_LIMITS_TEXT}`,
   inputSchema: {
     title: external_exports.string().trim().min(1).max(200).describe("What the change does, in a few words."),
     rationale: external_exports.string().trim().min(1).max(4e3).describe(`The pull request description the reviewer reads. ${PLUM_RATIONALE_TEXT}`),
@@ -40644,13 +41068,13 @@ var proposeOntologyUpdate = {
 var listOntologyUpdates = {
   name: "list_ontology_updates",
   title: "List ontology updates",
-  description: "Recent ontology updates in the folder this workspace reads, newest first, with status (open: waiting for approval; merged: in the approved ontology) and their review links. An update opened for another engagement folder is listed in that workspace, not here.",
+  description: "Recent ontology updates in the folder this workspace reads, newest first, with status (open: waiting for approval; merged: in the approved ontology), their review links and, for an update a meeting import opened, its score out of 8 on the import rubric (a reading aid for the reviewer, never a gate). An update opened for another engagement folder is listed in that workspace, not here.",
   inputSchema: {}
 };
 var reviewOntologyUpdate = {
   name: "review_ontology_update",
   title: "Review ontology update",
-  description: "One ontology update from list_ontology_updates: its status, who opened it and why, the review link, every file it adds, changes or removes against the approved version, and the diff of each (or of one file when path is given). When the update changes files outside the folder this workspace reads, it names their full paths and the folder they belong to. Read-only; approving happens in the app or on GitHub.",
+  description: "One ontology update from list_ontology_updates: its status, who opened it and why, the review link, for an update a meeting import opened its score on the four import dimensions (call, company, engagement, split; 0 to 2 each) with the reason and what the meeting said that the import missed, every file it adds, changes or removes against the approved version, and the diff of each (or of one file when path is given). When the update changes files outside the folder this workspace reads, it names their full paths and the folder they belong to. Read-only; approving happens in the app or on GitHub.",
   inputSchema: {
     id: external_exports.string().trim().min(1).max(100).describe("The update id (pr_\u2026) from list_ontology_updates."),
     path: ontologyPath.optional().describe("Show only this file of the update.")
@@ -41020,7 +41444,7 @@ var switchOrganization = {
 var listWorkspaces = {
   name: "list_workspaces",
   title: "List workspaces",
-  description: "The workspaces of the organization this install is in, each one engagement and a tenant of its own (sources, ontology, views), with the one the install acts in marked current and the engagement folder it is named; a workspace without an engagement reads the repository root, which in the playbook repository is the playbook itself (skills, patterns, templates). A workspace is made with its folder and never points elsewhere. Call before switch_workspace, and when something the person expects is missing: it may be in another workspace of the same organization.",
+  description: "The workspaces of the organization this install is in, each a tenant of its own (sources, ontology, views), with the one the install acts in marked current and its kind: the organization workspace (at most one; it reads organization/, the firm itself: team, ways of working, portfolio, and the organization sources such as Granola, and sees every engagement folder read-only) or an engagement (it reads its own engagements/<Client>/ folder and the playbook). An engagement is made with its folder and never points elsewhere. Call before switch_workspace, and when something the person expects is missing: it may be in another workspace of the same organization.",
   inputSchema: {},
   outputSchema: WorkspaceListSchema
 };
@@ -41063,6 +41487,9 @@ var ALL_TOOL_CONTRACTS = [
   searchGranolaNotes,
   linkGranolaNote,
   unlinkGranolaNote,
+  listMeetings,
+  getMeeting,
+  searchMeetings,
   getOntology,
   getOntologyVersion,
   saveOntologyVersion,
@@ -41114,7 +41541,7 @@ function createResourceReaders(client) {
   return {
     async ontology(which) {
       const uri = which === "newest" ? ONTOLOGY_NEWEST_URI : ONTOLOGY_PUBLISHED_URI;
-      const state = OntologyStateSchema.parse(await client.get("/ontology"));
+      const state = parseResponse(OntologyStateSchema, await client.get("/ontology"));
       const version2 = which === "newest" ? state.versions[0] : state.versions.find((item) => item.version === state.publishedVersion);
       if (!version2)
         return {
@@ -41126,7 +41553,7 @@ function createResourceReaders(client) {
     },
     /** Every file of the ontology repository the workspace reads, AGENT.md first. */
     async listOntologyFiles() {
-      const list = PlumOntologyFilesResponseSchema.parse(await client.get("/plum/files"));
+      const list = parseResponse(PlumOntologyFilesResponseSchema, await client.get("/plum/files"));
       const files = [...list.files].sort(
         (a, b) => a.path === "AGENT.md" ? -1 : b.path === "AGENT.md" ? 1 : a.path.localeCompare(b.path)
       );
@@ -41140,7 +41567,7 @@ function createResourceReaders(client) {
       }));
     },
     async ontologyFile(path9) {
-      const file2 = PlumOntologyDocumentSchema.parse(await client.get("/plum/document", { path: path9 }));
+      const file2 = parseResponse(PlumOntologyDocumentSchema, await client.get("/plum/document", { path: path9 }));
       return { uri: ontologyFileUri(path9), mimeType: "text/markdown", text: file2.text };
     }
   };
@@ -41406,7 +41833,7 @@ var RUN_STATUS_ORDER = ["queued", "running", "waiting_for_input", "completed", "
 var plain = (status) => status.replace(/_/g, " ");
 function describeRunCounts(counts) {
   const known = RUN_STATUS_ORDER.filter((status) => counts[status]).map((status) => `${counts[status]} ${plain(status)}`);
-  const other = Object.entries(counts).filter(([status, count]) => count && !RUN_STATUS_ORDER.includes(status)).map(([status, count]) => `${count} ${plain(status)}`);
+  const other = Object.entries(counts).filter(([status, count2]) => count2 && !RUN_STATUS_ORDER.includes(status)).map(([status, count2]) => `${count2} ${plain(status)}`);
   return [...known, ...other].join(" \xB7 ");
 }
 function describeDomains(working, detailed = false) {
@@ -41467,7 +41894,7 @@ function createDiscoveryHandlers(client, parse3) {
         `Discovery in this workspace \xB7 head revision ${state.revision} \xB7 intake: ${current ? describeIntake(current) : "none yet (save_discovery_intake names the company and its website)"}`
       ];
       if (state.runs.items.length) {
-        const total = Object.values(state.runCounts).reduce((sum, count) => sum + count, 0);
+        const total = Object.values(state.runCounts).reduce((sum, count2) => sum + count2, 0);
         const counted = total ? `${total} in all: ${describeRunCounts(state.runCounts)}; ` : "";
         lines.push(
           "",
@@ -41639,6 +42066,185 @@ function numberLines(text4) {
 }
 var NUMBERED_FILE_NOTE = "Lines are numbered; the numbers are not part of the file. Send the file back without them.";
 var NOTE_CONTEXT = "Informal, dated and machine transcribed, so names can be misheard. The ontology files are the approved record.";
+
+// src/meetingTools.ts
+var SUMMARY_TITLE = "Summary";
+var structured = (value, data) => ({
+  content: [{ type: "text", text: value }],
+  structuredContent: data
+});
+var minute = (iso) => iso ? `${iso.slice(0, 10)} ${iso.slice(11, 16)}` : "no date";
+function clock(ms) {
+  const seconds = Math.floor(ms / 1e3);
+  const [h, m, s] = [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60];
+  const pad = (value) => String(value).padStart(2, "0");
+  return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+function length(startedAt, endedAt) {
+  if (!startedAt || !endedAt) return null;
+  const minutes = Math.round((Date.parse(endedAt) - Date.parse(startedAt)) / 6e4);
+  return minutes >= 0 ? `${minutes} min` : null;
+}
+function engagementLine(engagements) {
+  const live = engagements.filter((engagement) => engagement.status !== "removed");
+  if (!live.length) return "Engagement: none yet (the meeting is in its own workspace or My notes).";
+  const how = (engagement) => engagement.status === "confirmed" ? "chosen by a person" : `predicted from the ${engagement.method === "decision" ? "routing model" : engagement.method}`;
+  return `Engagement: ${live.map((engagement) => `${engagement.name} (${how(engagement)})`).join(", ")}`;
+}
+function summaryOf(panels) {
+  const generated = panels.filter((panel2) => panel2.generatedBy !== null);
+  const panel = generated.find((item) => item.title === SUMMARY_TITLE) ?? generated[0];
+  const value = panel ? proseMirrorText(panel.content).trim() : "";
+  return value || null;
+}
+function windowLines(window, meetingId) {
+  const lines = [
+    `Transcript ${clock(window.fromMs)}\u2013${clock(window.toMs)} (${window.returned} of ${window.totalTurns} turns in this range):`,
+    ...window.turns.map((turn) => `[${clock(turn.startMs)}] ${turn.speaker}: ${turn.text}`)
+  ];
+  if (window.truncated && window.nextFromMs !== null)
+    lines.push(
+      `More in this range: call get_meeting with meetingId "${meetingId}", fromMs ${window.nextFromMs} and toMs ${window.toMs}.`
+    );
+  return lines;
+}
+var placeOf = (hit) => hit.engagement ?? (hit.private ? "My notes" : "organization workspace");
+function hitLines(hit) {
+  const at = hit.startMs !== null ? clock(hit.startMs) : hit.startLine !== null ? `L${hit.startLine}${hit.endLine !== null && hit.endLine !== hit.startLine ? `-${hit.endLine}` : ""}` : "";
+  const read = hit.origin === "plum" && hit.meetingId ? `get_meeting meetingId "${hit.meetingId}"${hit.startMs !== null ? ` fromMs ${hit.startMs}` : ""}${hit.endMs !== null ? ` toMs ${hit.endMs}` : ""}` : hit.noteId ? `get_granola_note noteId "${hit.noteId}"${hit.startLine !== null ? ` fromLine ${hit.startLine}` : ""}${hit.endLine !== null ? ` toLine ${hit.endLine}` : ""}` : null;
+  const head = [
+    `${hit.rank}.`,
+    ...hit.private ? ["PRIVATE"] : [],
+    `[${placeOf(hit)}]`,
+    hit.title,
+    minute(hit.meetingAt),
+    ...at ? [`[${at}]`] : [],
+    `(${hit.foundBy.join(" + ")})`,
+    ...hit.speakers.length ? [hit.speakers.join(", ")] : []
+  ].join(" ");
+  return [
+    head,
+    `   ${hit.text.replace(/\n/g, "\n   ")}`,
+    ...hit.otherCopy ? ["   A Granola note of the same call exists."] : [],
+    ...read ? [`   Read around it: ${read}`] : []
+  ];
+}
+function createMeetingHandlers(client, parse3) {
+  return {
+    async list_meetings(args) {
+      const { from, to, limit, cursor } = args;
+      const list = parse3(
+        MeetingListResponseSchema,
+        await client.get("/meetings", { from, to, cursor, limit: String(limit) })
+      );
+      const range = from || to ? ` between ${from ? minute(from) : "the start"} and ${to ? minute(to) : "now"}` : "";
+      if (!list.items.length)
+        return structured(
+          `No recorded meetings in this workspace${range}${cursor ? " on this page" : ""}. search_meetings also covers imported Granola notes.`,
+          list
+        );
+      const total = list.total ?? null;
+      return structured(
+        [
+          `Recorded meetings in this workspace${range}: ${total !== null ? `${total} in range, ` : ""}${list.items.length} on this page, newest first:`,
+          ...list.items.map(
+            (item) => [
+              `- ${item.id}`,
+              minute(item.startedAt),
+              item.title || "(untitled)",
+              item.state,
+              ...length(item.startedAt, item.endedAt) ? [length(item.startedAt, item.endedAt)] : []
+            ].join(" \xB7 ")
+          ),
+          ...list.nextCursor ? [`More: call list_meetings again with cursor "${list.nextCursor}".`] : [],
+          "get_meeting reads one; search_meetings finds the passages that answer a question."
+        ].join("\n"),
+        list
+      );
+    },
+    async get_meeting(args) {
+      const { meetingId, fromMs, toMs, maxChars } = args;
+      const id = encodeURIComponent(meetingId);
+      const detail = parse3(MeetingDetailSchema, await client.get(`/meetings/${id}`, { transcript: "none" }));
+      const ranged = fromMs !== void 0 || toMs !== void 0;
+      const transcript = ranged ? parse3(
+        MeetingTranscriptWindowSchema,
+        await client.get(`/meetings/${id}/transcript`, {
+          from_ms: fromMs === void 0 ? void 0 : String(fromMs),
+          to_ms: toMs === void 0 ? void 0 : String(toMs),
+          max_chars: String(maxChars)
+        })
+      ) : null;
+      const { meeting, document } = detail;
+      const result = {
+        meeting: {
+          id: meeting.id,
+          documentId: meeting.documentId,
+          title: document.title,
+          state: meeting.state,
+          startedAt: meeting.startedAt,
+          endedAt: meeting.endedAt
+        },
+        callId: meeting.callId ?? null,
+        engagements: meeting.engagements ?? [],
+        speakers: detail.speakers ?? [],
+        summary: summaryOf(detail.panels),
+        notes: document.notesMarkdown?.trim() || null,
+        transcript
+      };
+      const span = length(meeting.startedAt, meeting.endedAt);
+      return structured(
+        [
+          [
+            document.title || "(untitled)",
+            minute(meeting.startedAt),
+            ...span ? [span] : [],
+            meeting.state,
+            meeting.id
+          ].join(" \xB7 "),
+          engagementLine(result.engagements),
+          `Speakers: ${result.speakers.join(", ") || "none named"}`,
+          NOTE_CONTEXT,
+          "",
+          "Summary:",
+          result.summary ?? "(No summary yet. A summary is written after the recording stops.)",
+          ...result.notes ? ["", "Notes:", result.notes] : [],
+          "",
+          ...transcript ? windowLines(transcript, meeting.id) : [
+            "No transcript in this answer. Ask again with fromMs and toMs (milliseconds into the recording; search_meetings hits give them) for that stretch."
+          ]
+        ].join("\n"),
+        result
+      );
+    },
+    async search_meetings(args) {
+      const request = Object.fromEntries(Object.entries(args).filter(([, value]) => value !== void 0));
+      const result = parse3(MeetingSearchResultSchema, await client.post("/meetings/search", request));
+      const where = `${result.searched.length} workspace${result.searched.length === 1 ? "" : "s"}`;
+      const mode = result.mode === "lexical_only" ? ["Matched by words only: the app could not match by meaning for this search, so paraphrases can be missed."] : [];
+      if (!result.hits.length)
+        return structured(
+          [
+            `Nothing relevant to "${result.question}" in ${where}${args.includePrivate ? "" : " (private meetings left out)"}.`,
+            ...mode,
+            "Try other words, a wider date range, or list_meetings to browse by date."
+          ].join("\n"),
+          result
+        );
+      return structured(
+        [
+          `${result.candidates} passage${result.candidates === 1 ? "" : "s"} matched in ${where}, ${result.returned} returned${args.includePrivate ? "" : " (private meetings left out)"}.`,
+          ...mode,
+          "Transcripts are machine transcribed, so names can be misheard. A PRIVATE passage is from the person\u2019s own notes: show it to them before writing it anywhere shared.",
+          "",
+          ...result.hits.flatMap(hitLines),
+          ...result.truncated && result.nextCursor ? ["", `More: call search_meetings again with the same question and cursor "${result.nextCursor}".`] : []
+        ].join("\n"),
+        result
+      );
+    }
+  };
+}
 
 // src/pending.ts
 import fs3 from "node:fs";
@@ -41859,7 +42465,7 @@ function capText(tool, value, budget = OUTPUT_BUDGET, directory = path5.join(os4
 
 // src/toolHandlers.ts
 var text3 = (value) => ({ content: [{ type: "text", text: value }] });
-var structured = (value, data) => ({
+var structured2 = (value, data) => ({
   content: [{ type: "text", text: value }],
   structuredContent: data
 });
@@ -41868,7 +42474,10 @@ async function resolveType(client, requested, connectionId) {
   const found = [];
   let cursor;
   for (let pages = 0; pages < 20; pages++) {
-    const page2 = ModelResponseSchema.parse(await client.get("/graph/model", { limit: 100, cursor, connectionId }));
+    const page2 = parseResponse(
+      ModelResponseSchema,
+      await client.get("/graph/model", { limit: 100, cursor, connectionId })
+    );
     for (const node2 of page2.nodes)
       if (node2.type.id === requested || node2.type.nativeName === requested)
         found.push({ id: node2.type.id, nativeName: node2.type.nativeName, connectionId: node2.type.connectionId });
@@ -41895,6 +42504,18 @@ var ARTIFACT_ID_TOOLS = /* @__PURE__ */ new Set([
 var ELSEWHERE_HINT = `Not here? list_artifacts with workspaces "others" checks the organization's other workspaces.`;
 var shorten2 = (value, max = 160) => value.length > max ? `${value.slice(0, max - 1)}\u2026` : value;
 var when2 = (iso) => iso.replace("T", " ").replace(/\.\d+Z$/, "Z");
+var scoreMark = (score) => score ? ` \xB7 score ${Math.round(score.total * 8)}/8${score.total < PLUM_SCORE_NEEDS_WORK ? " (needs work)" : ""}` : "";
+function scoreLines(score) {
+  if (!score) return [];
+  const { call, company, engagement, split } = score.scores;
+  const rubric = score.rubric === "playbook" ? `rubric playbook ${score.rubricVersion.slice(0, 12)}` : "rubric built-in";
+  const missed = score.keyPoints.filter((point) => point.handled === "missed").map((point) => point.point);
+  return [
+    `Score: ${Math.round(score.total * 8)}/8${score.total < PLUM_SCORE_NEEDS_WORK ? " (needs work)" : ""} (call ${call}, company ${company}, engagement ${engagement}, split ${split}; ${rubric}): ${score.reason}`,
+    ...missed.length ? [`Missed in the meeting: ${missed.join(" | ")}`] : [],
+    ...score.invented.length ? [`Not in the transcript: ${score.invented.join(" | ")}`] : []
+  ];
+}
 var FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 var REVIEW_DIFF_FILES = 10;
 var targetQuery = (target) => target === "playbook" ? { target } : {};
@@ -41921,6 +42542,10 @@ function readPage(htmlFile, html) {
     };
   return { html: page2 };
 }
+function workspaceReads(item) {
+  if (item.kind === "organization") return "the organization workspace (reads organization/)";
+  return item.engagement ? `is engagements/${item.engagement}` : "reads the repository root";
+}
 function artifactLine(item) {
   return `- ${item.id} \xB7 "${item.title}" \xB7 revision ${item.revision}${item.publishedRevision ? ` \xB7 public at revision ${item.publishedRevision}` : " \xB7 private"} \xB7 owner ${item.ownerSubjectId} \xB7 ${when2(item.updatedAt)}`;
 }
@@ -41929,21 +42554,11 @@ function versionLine(version2, published) {
   return `- v${version2.version} \xB7 ${version2.version === published ? "PUBLISHED" : version2.state} \xB7 ${when2(version2.createdAt)} \xB7 by ${version2.author} \xB7 ${version2.definitions.length} definitions (${executable} executable)`;
 }
 function createToolHandlers(client, telemetry2 = telemetryOff) {
-  const parse3 = (schema, value) => {
-    try {
-      return schema.parse(value);
-    } catch (error62) {
-      const issues = error62 instanceof external_exports.ZodError ? error62.issues.slice(0, 3).map((issue2) => `${issue2.path.join(".") || "(root)"}: ${issue2.message}`).join("; ") : "";
-      throw new ApiError(
-        "INVALID_RESPONSE",
-        `The app returned an unexpected response shape (${issues || "unparseable"}). Update the plugin, or the app.`,
-        0
-      );
-    }
-  };
+  const parse3 = (schema, value) => parseResponse(schema, value);
   const ontology = async () => parse3(OntologyStateSchema, await client.get("/ontology"));
   const handlers = {
     ...createDiscoveryHandlers(client, parse3),
+    ...createMeetingHandlers(client, parse3),
     async get_ontology() {
       const current = await ontology();
       const selection = current.selection;
@@ -42201,8 +42816,8 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
     },
     async list_sources() {
       const sources = parse3(SourceListResponseSchema, await client.get("/sources", { limit: 100 }));
-      if (!sources.items.length) return structured("No sources connected. Connect one in the app (step 1).", sources);
-      return structured(
+      if (!sources.items.length) return structured2("No sources connected. Connect one in the app (step 1).", sources);
+      return structured2(
         [
           "Sources:",
           ...sources.items.map(
@@ -42258,7 +42873,7 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
         await client.get("/entities", { typeId, search, limit: limit ?? 20, cursor })
       );
       if (!page2.items.length)
-        return structured(
+        return structured2(
           `No records of ${typeId}${search ? ` matching "${search}"` : ""}${cursor ? " after that cursor" : ""}.`,
           page2
         );
@@ -42273,7 +42888,7 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
           "",
           `Next page: call search_entities again with the same typeId${search ? " and search" : ""} and cursor: ${JSON.stringify(page2.page.nextCursor)}. For totals use aggregate_records, not pages of rows.`
         );
-      return structured(lines.join("\n"), page2);
+      return structured2(lines.join("\n"), page2);
     },
     async aggregate_records(args) {
       const { typeId, connectionId, where, groupBy, metrics, orderBy, limit } = args;
@@ -42313,7 +42928,7 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
         }),
         "```"
       ];
-      return structured(lines.join("\n"), result);
+      return structured2(lines.join("\n"), result);
     },
     async export_records(args) {
       const {
@@ -42380,11 +42995,11 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
         const elsewhere = parse3(ArtifactsElsewhereResponseSchema, body);
         const all = { items: elsewhere.workspaces.flatMap((group) => group.items), serverTime: elsewhere.serverTime };
         if (!elsewhere.workspaces.length)
-          return structured(
+          return structured2(
             "No artifacts in this organization's other workspaces. If the person expected one, it may live in another organization (list_organizations).",
             all
           );
-        return structured(
+        return structured2(
           [
             "Artifacts in this organization's other workspaces (newest change first in each):",
             ...elsewhere.workspaces.flatMap((group) => [
@@ -42410,11 +43025,11 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
         )
       ] : [];
       if (!list.items.length && !external.length)
-        return structured(
+        return structured2(
           `No artifacts in this workspace yet. create_artifact starts one from a template or a document. ${ELSEWHERE_HINT}`,
           list
         );
-      return structured(
+      return structured2(
         [
           ...list.items.length ? [`Artifacts (${list.items.length}, newest change first):`, ...list.items.map(artifactLine)] : ["No composed artifacts in this workspace yet."],
           ...links,
@@ -42582,11 +43197,11 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       const { target } = args ?? {};
       const list = parse3(PlumOntologyFilesResponseSchema, await client.get("/plum/files", targetQuery(target)));
       if (!list.files.length)
-        return structured(
+        return structured2(
           "The company ontology is empty. Propose AGENT.md and the first files with propose_ontology_update.",
           list
         );
-      return structured(
+      return structured2(
         [
           `${target === "playbook" ? "Playbook" : "Company ontology"} at ${list.ontologyVersion.slice(0, 12)} (${list.files.length} files):`,
           ...list.files.map((file2) => `- ${file2.path} \xB7 ${file2.kind} \xB7 ${file2.title}`),
@@ -42603,7 +43218,7 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
         await client.get("/plum/document", { path: filePath, ...targetQuery(target) })
       );
       const history = file2.history.slice(0, 5).map((entry) => `- ${when2(entry.date)} \xB7 ${shorten2(entry.message.split("\n")[0] ?? "", 100)}`);
-      return structured(
+      return structured2(
         [
           `${file2.path} at ${file2.ontologyVersion.slice(0, 12)}:`,
           NUMBERED_FILE_NOTE,
@@ -42619,11 +43234,11 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       const { query } = args;
       const result = parse3(PlumOntologySearchResultSchema, await client.get("/plum/search", { q: query }));
       if (!result.hits.length)
-        return structured(
+        return structured2(
           `Nothing in the ontology mentions "${query}". Try the words people use for it, or list_ontology_files.`,
           result
         );
-      return structured(
+      return structured2(
         [
           `${result.hits.length} files mention "${query}":`,
           ...result.hits.map((hit) => `- ${hit.path} (${hit.title})
@@ -42752,6 +43367,7 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       const head = [
         `${proposal.id} \xB7 ${proposal.status} \xB7 "${proposal.title}" \xB7 opened ${when2(proposal.createdAt)} by ${review.proposedByName ?? review.proposedBy}${proposal.url ? ` \xB7 ${proposal.url}` : ""}`,
         ...review.rationale ? [`Why: ${review.rationale}`] : [],
+        ...scoreLines(proposal.score),
         review.head ? `${review.changes.length} file${review.changes.length === 1 ? "" : "s"} against ontology ${review.base.slice(0, 12)}:` : proposal.status === "merged" ? `Merged${proposal.mergeCommit ? ` as ${proposal.mergeCommit.slice(0, 12)}` : ""}; its branch is gone, so there is no diff left to show.` : "Its branch no longer exists, so there is no diff to show.",
         ...review.changes.map((change) => `- ${change.status} ${change.path} (${change.title})`),
         ...review.elsewhere.length ? [
@@ -42805,7 +43421,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         [
           `Ontology updates (${proposals.length}, newest first):`,
           ...proposals.map(
-            (item) => `- ${item.id} \xB7 ${item.status} \xB7 ${item.kind} \xB7 "${shorten2(item.title, 100)}" \xB7 ${when2(item.createdAt)}${item.engagement ? ` \xB7 in ${item.engagement}` : ""}${item.url ? ` \xB7 ${item.url}` : ""}`
+            (item) => `- ${item.id} \xB7 ${item.status} \xB7 ${item.kind} \xB7 "${shorten2(item.title, 100)}" \xB7 ${when2(item.createdAt)}${scoreMark(item.score)}${item.engagement ? ` \xB7 in ${item.engagement}` : ""}${item.url ? ` \xB7 ${item.url}` : ""}`
           ),
           "An editor or admin approves open updates in the app. Updates opened for another engagement folder are listed in that workspace."
         ].join("\n")
@@ -42814,12 +43430,12 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
     async list_granola_notes() {
       const list = parse3(GranolaNoteListSchema, await client.get("/granola/notes"));
       if (!list.notes.length)
-        return structured(
+        return structured2(
           "This workspace has no Granola notes yet. An operator connects Granola on the Connect page (spaces, folders or single notes), or link one note here with link_granola_note from its Granola link or id.",
           list
         );
       const imported = list.notes.filter((note) => note.origin === "imported").length;
-      return structured(
+      return structured2(
         [
           `Granola notes in this workspace (${list.notes.length}: ${imported} imported, ${list.notes.length - imported} linked by hand; newest meeting first):`,
           ...list.notes.map(
@@ -42831,15 +43447,37 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
       );
     },
     async get_granola_note(args) {
-      const { noteId, transcript } = args;
+      const { noteId, transcript, fromLine, toLine, maxChars } = args;
+      const ranged = fromLine !== void 0 || toLine !== void 0;
       const note = parse3(
         GranolaNoteSchema,
         await client.get(`/granola/notes/${encodeURIComponent(noteId)}`, {
-          transcript: transcript ? "true" : void 0
+          transcript: transcript && !ranged ? "true" : void 0
         })
       );
+      const window = ranged ? parse3(
+        GranolaTranscriptWindowSchema,
+        await client.get(`/granola/notes/${encodeURIComponent(noteId)}/transcript`, {
+          from_line: fromLine === void 0 ? void 0 : String(fromLine),
+          to_line: toLine === void 0 ? void 0 : String(toLine),
+          max_chars: String(maxChars)
+        })
+      ) : null;
       const people = note.attendees.map((person) => person.name ?? person.email ?? "unknown").join(", ");
-      return structured(
+      const transcriptLines = window ? [
+        "",
+        `Transcript lines ${window.fromLine}-${window.toLine} (${window.returned} returned of ${window.totalLines} lines in the note):`,
+        ...window.lines.map((line) => `L${line.line} ${line.speaker ?? "Speaker"}: ${line.text}`),
+        ...window.truncated && window.nextFromLine !== null ? [`More: call get_granola_note with fromLine ${window.nextFromLine} and toLine ${window.toLine}.`] : []
+      ] : note.transcript ? ["", "Transcript:", ...note.transcript.map((line) => `${line.speaker ?? "Speaker"}: ${line.text}`)] : [
+        "",
+        "Ask again with fromLine and toLine for a stretch of the transcript, or transcript: true for all of it."
+      ];
+      const data = window ? {
+        ...note,
+        transcript: window.lines.map((line) => ({ speaker: line.speaker, text: line.text, startTime: null }))
+      } : note;
+      return structured2(
         [
           `${note.title ?? "(untitled)"} \xB7 ${when2(note.meetingAt)} \xB7 ${note.noteId}`,
           `Attendees: ${people || "none listed"}`,
@@ -42847,20 +43485,20 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
           NOTE_CONTEXT,
           "",
           note.summary || "(Granola has no summary for this meeting.)",
-          ...note.transcript ? ["", "Transcript:", ...note.transcript.map((line) => `${line.speaker ?? "Speaker"}: ${line.text}`)] : ["", "Ask again with transcript: true for the full transcript."]
+          ...transcriptLines
         ].join("\n"),
-        note
+        data
       );
     },
     async search_granola_notes(args) {
       const { query } = args;
       const result = parse3(GranolaSearchResultSchema, await client.get("/granola/search", { q: query }));
       if (!result.hits.length)
-        return structured(
+        return structured2(
           `None of the ${result.searched} notes in this workspace mention "${query}". list_granola_notes shows them all.`,
           result
         );
-      return structured(
+      return structured2(
         [
           `${result.hits.length} of ${result.searched} notes mention "${query}":`,
           ...result.hits.map(
@@ -42891,7 +43529,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
     },
     async whoami() {
       const who = parse3(PluginWhoAmISchema, await client.get("/plugin/whoami"));
-      return structured(
+      return structured2(
         [
           `Signed in to ${client.serviceUrl} as ${who.principal.subjectId} (${who.principal.role}) in workspace ${who.principal.workspaceId}. Token "${who.token.label}" created ${when2(who.token.createdAt)}.`,
           "Sources, ontology and views all belong to this one workspace; list_organizations shows the others this person can reach."
@@ -42914,7 +43552,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         lines.push(
           `Sources, ontology and views are per organization: what is missing from ${current?.name ?? "this one"} may be saved in another. switch_organization moves this install; the browser follows when the person picks the same organization in the app.`
         );
-      return structured(lines.join("\n"), list);
+      return structured2(lines.join("\n"), list);
     },
     async switch_organization(args) {
       const { organizationId, label } = args;
@@ -42938,11 +43576,11 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
     async list_workspaces() {
       const list = parse3(WorkspaceListSchema, await client.get("/workspaces"));
       const lines = [
-        list.organizationId ? `Workspaces of this organization (${list.items.length}), each one engagement and its own tenant:` : "This install is outside any organization; its one workspace:"
+        list.organizationId ? `Workspaces of this organization (${list.items.length}): its organization workspace, if it has one, and its engagements, each its own tenant:` : "This install is outside any organization; its one workspace:"
       ];
       for (const item of list.items)
         lines.push(
-          `- ${item.current ? "* " : "  "}${item.name} \xB7 id ${item.id} \xB7 ${item.engagement ? `is engagements/${item.engagement}` : "reads the repository root (the playbook, when this is the playbook repository)"}${item.current ? " \xB7 current" : ""}`
+          `- ${item.current ? "* " : "  "}${item.name} \xB7 id ${item.id} \xB7 ${workspaceReads(item)}${item.current ? " \xB7 current" : ""}`
         );
       if (list.items.length > 1)
         lines.push(
@@ -42950,9 +43588,9 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         );
       if (list.canCreate)
         lines.push(
-          `An admin makes another from the app sidebar ("New engagement"): a workspace with a folder of its own, or the playbook workspace that reads the repository root. From an engagement's settings in the sidebar an admin renames it or moves it to another folder the repository holds; everyone in it reads the new folder at once.`
+          `An admin makes another engagement from the app sidebar ("New engagement"), a workspace with a folder of its own. From an engagement's settings in the sidebar an admin renames it or moves it to another folder the repository holds; everyone in it reads the new folder at once.${list.items.some((item) => item.kind === "organization") ? "" : " An admin can also make one engagement the organization workspace from its settings, once and for good."}`
         );
-      return structured(lines.join("\n"), list);
+      return structured2(lines.join("\n"), list);
     },
     async switch_workspace(args) {
       const { workspaceId, label } = args;
@@ -42965,7 +43603,7 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
       if (result.token) saveToken(result.token);
       return text3(
         [
-          `Switched to ${result.workspace.name} (workspace ${result.workspace.id}${result.workspace.engagement ? `, reads engagements/${result.workspace.engagement}` : ""}). Every tool now reads and writes that workspace, and later requests in this session act there until another workspace is named.`,
+          `Switched to ${result.workspace.name} (workspace ${result.workspace.id}${result.workspace.kind === "organization" ? ", the organization workspace, reads organization/" : result.workspace.engagement ? `, reads engagements/${result.workspace.engagement}` : ""}). Every tool now reads and writes that workspace, and later requests in this session act there until another workspace is named.`,
           "The browser does not follow on its own: pick the same workspace in the sidebar to watch the plugin work.",
           "Sources, ontology and views here are this workspace's own; re-read them rather than reusing what was in hand."
         ].join("\n")
@@ -42980,12 +43618,12 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
       for (const event of activity.events)
         lines.push(`- ${when2(event.at)} \xB7 ${event.action} \xB7 HTTP ${event.status} \xB7 ${JSON.stringify(event.detail)}`);
       if (!activity.events.length) lines.push("- No plugin changes recorded yet.");
-      return structured(lines.join("\n"), activity);
+      return structured2(lines.join("\n"), activity);
     }
   };
   async function artifactElsewhere(error62, tool, args) {
     if (error62.code !== "NOT_FOUND" || !ARTIFACT_ID_TOOLS.has(tool) || typeof args.id !== "string") return null;
-    const location = await client.get(`/artifacts/${encodeURIComponent(args.id)}/workspace`).then((body) => ArtifactLocationSchema.parse(body)).catch(() => null);
+    const location = await client.get(`/artifacts/${encodeURIComponent(args.id)}/workspace`).then((body) => parseResponse(ArtifactLocationSchema, body)).catch(() => null);
     if (!location || location.workspace.current) return null;
     const { workspace } = location;
     return [

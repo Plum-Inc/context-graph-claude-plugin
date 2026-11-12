@@ -62,7 +62,7 @@ Read `$ARGUMENTS` first. If its first token is one of the modes below, run that 
 
    Relay the link as a clickable URL in case the browser did not open. The browser asks the person to sign in to the app and then shows "Connected". When the command prints `Signed in as …`, continue. If it prints `expired` or `timed out`, ask whether to try again and re-run with `--force`.
 3. Call `mcp__plugin_plum_Plum__whoami` once to confirm the MCP server sees the token (the server reads the saved token per call, so no restart is needed; never tell the person to restart after a sign-in). If it reports `UNAUTHENTICATED`, the token file was not written: re-run step 2.
-4. Call `mcp__plugin_plum_Plum__list_workspaces` and say which workspace the plugin is in and what it reads (an engagement folder, or the repository root). Call `mcp__plugin_plum_Plum__list_ontology_files`. If the ontology is empty, say that discovery in the app, or `/plum:improve`, writes the first files. Otherwise print the link to the Ontology page:
+4. Call `mcp__plugin_plum_Plum__list_workspaces` and say which workspace the plugin is in and what it reads (an engagement folder, or `organization/` in the organization workspace). Call `mcp__plugin_plum_Plum__list_ontology_files`. If the ontology is empty, say that discovery in the app, or `/plum:improve`, writes the first files. Otherwise print the link to the Ontology page:
 
    ```bash
    node "${CLAUDE_PLUGIN_ROOT}/dist/commands/pageLink.js" --page ontology
@@ -94,18 +94,18 @@ Every organization is its own workspace: its own sources, discovery, ontology an
 
 ## Workspace
 
-An organization holds one or more workspaces, each one engagement with its own sources, ontology (one engagement folder of the playbook repository, fixed when the workspace was made, or the repository root, which is the playbook itself) and artifacts. The plugin's token is bound to exactly one of them. "The plugin cannot see the Dundas AI files", "my view is gone" and "I cannot change the playbook from here" are usually one workspace away from being true.
+An organization holds one or more workspaces, an organization workspace (the firm itself; at most one, with the organization's own sources such as Granola and the firm's folder `organization/`) and engagements, each with its own sources, ontology (one engagement folder of the shared repository, fixed when the workspace was made) and artifacts. The plugin's token is bound to exactly one of them. "The plugin cannot see the Dundas AI files", "my view is gone" and "I cannot change the playbook from here" are usually one workspace away from being true.
 
-1. Call `mcp__plugin_plum_Plum__list_workspaces`. It marks the workspace the plugin is in now and names the others with the engagement folder each is; a workspace without one reads the repository root.
+1. Call `mcp__plugin_plum_Plum__list_workspaces`. It marks the workspace the plugin is in now and names the others: the organization workspace (if there is one) and the engagement folder each engagement is.
 
-   - **Only one workspace**: say which one the plugin is in and that an admin makes another from the app's sidebar ("New engagement": a folder of its own, or the playbook workspace that reads the repository root). When the person named another engagement folder, say that no workspace reads it yet and that nothing here can answer from it until one exists. Stop.
+   - **Only one workspace**: say which one the plugin is in and that an admin makes another from the app's sidebar ("New engagement": a folder of its own). When the person named another engagement folder, say that no workspace reads it yet and that nothing here can answer from it until one exists. Stop.
    - **The person named one** (in their request): match it case-insensitively against the names and the engagement folders. On exactly one match, use its id. On none or several, ask.
    - **The person is looking for their other artifacts**: call `mcp__plugin_plum_Plum__list_artifacts` with `workspaces` "others" first, so each workspace in the question below shows how many artifacts it holds and which. None anywhere else: say so and stop.
    - **Otherwise**: use `AskUserQuestion` to choose, listing each workspace by name and engagement and marking the current one.
 2. Switch with `mcp__plugin_plum_Plum__switch_workspace`, passing the chosen `workspaceId`. The server checks the membership, issues a token bound to that workspace and retires the old one; the plugin saves the new token itself. Equivalent from Bash: `node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" switch_workspace '{"workspaceId":"<id>"}'`.
 
    Never print, read or ask for a token, and never read files under `~/.config/plum`.
-3. Report the switch in two lines: which workspace the plugin now reads and writes (its engagement folder, or the repository root), and that the browser does not follow on its own: the person picks the same workspace in the app's sidebar to watch the plugin work. Then call `mcp__plugin_plum_Plum__list_ontology_files` and say how many files the ontology holds, with the Ontology page link from `pageLink.js --page ontology`. Stop.
+3. Report the switch in two lines: which workspace the plugin now reads and writes (its engagement folder, or `organization/` in the organization workspace), and that the browser does not follow on its own: the person picks the same workspace in the app's sidebar to watch the plugin work. Then call `mcp__plugin_plum_Plum__list_ontology_files` and say how many files the ontology holds, with the Ontology page link from `pageLink.js --page ontology`. Stop.
 
 A prompt that names an engagement does the same without this skill: the session banner names the organization's workspaces, so the model calls `mcp__plugin_plum_Plum__switch_workspace` with that workspace's id, says so in one line, and stays there for the rest of the session unless another is named.
 

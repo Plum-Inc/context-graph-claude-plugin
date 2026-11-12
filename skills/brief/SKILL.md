@@ -1,7 +1,7 @@
 ---
 description: Write a one-page call prep (a brief) for a meeting with the client from the engagement's ontology, structured by the ten sections of the Discovery Framework (business model, revenue model, funding model, technology model, competitive model, ideal customer profile, point of differentiation, industry trends, org chart, company news), with the open questions to ask first, every line labelled and cited to its file and line, website claims dated and weighed low, and meeting notes read after the files so a note that disagrees with a file is shown as a change to propose rather than as the answer. Reads only. TRIGGER when the user is preparing for a call, meeting, demo, kickoff, review or interview with a client or prospect, or says 'prep me for', 'brief me on', 'what should I ask on the call', 'call prep', 'before my meeting with', 'one-pager on the client'. SKIP when the user wants to read or search the ontology with no meeting in view (use /plum:learn), to write what a meeting said into the ontology (use /plum:improve ingest), to start or steer the discovery agent (use /plum:discovery), or is not signed in yet (use /plum:setup).
 argument-hint: "[<meeting, person or topic>]"
-allowed-tools: ["Bash", "AskUserQuestion", "Read", "Write", "mcp__plugin_plum_Plum__list_ontology_files", "mcp__plugin_plum_Plum__get_ontology_file", "mcp__plugin_plum_Plum__search_ontology", "mcp__plugin_plum_Plum__exec_bash", "mcp__plugin_plum_Plum__list_granola_notes", "mcp__plugin_plum_Plum__get_granola_note", "mcp__plugin_plum_Plum__search_granola_notes", "mcp__plugin_plum_Plum__whoami", "mcp__plugin_plum_Plum__list_workspaces"]
+allowed-tools: ["Bash", "AskUserQuestion", "Read", "Write", "mcp__plugin_plum_Plum__list_ontology_files", "mcp__plugin_plum_Plum__get_ontology_file", "mcp__plugin_plum_Plum__search_ontology", "mcp__plugin_plum_Plum__exec_bash", "mcp__plugin_plum_Plum__list_meetings", "mcp__plugin_plum_Plum__get_meeting", "mcp__plugin_plum_Plum__search_meetings", "mcp__plugin_plum_Plum__list_granola_notes", "mcp__plugin_plum_Plum__get_granola_note", "mcp__plugin_plum_Plum__search_granola_notes", "mcp__plugin_plum_Plum__whoami", "mcp__plugin_plum_Plum__list_workspaces"]
 ---
 
 # plum: Brief for a call
@@ -31,7 +31,7 @@ The `mcp__plugin_plum_Plum__*` tools come from this plugin's MCP server. When on
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" get_ontology_file '{"path":"AGENT.md"}'
 node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" exec_bash '{"command":"grep -rn \"OPEN:\" . | sort"}'
-node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" search_granola_notes '{"query":"kickoff"}'
+node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" search_meetings '{"question":"what did they say about pricing"}'
 ```
 
 `tool.js --list` prints every tool. `pageLink.js --page ontology [--path <file>]` prints the link to the Ontology page; never invent a link. Never substitute curl, git, the GitHub CLI, hand-written API calls, or files under `~/.config/plum` (the token there is a secret: do not read or print it). The repository is reached only through these tools; never clone it. If neither route works, tell the user to run `/mcp`, check that the Plum server is connected, and restart Claude Code, then stop.
@@ -40,7 +40,7 @@ node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" search_granola_notes '{"query
 
 ### 1. Scope
 
-1. The company is the engagement this workspace is: `AGENT.md`'s business in brief names it. When `$ARGUMENTS` names another company, call `mcp__plugin_plum_Plum__list_workspaces`; when a workspace is that engagement, say that `/plum:setup workspace <name>` moves the plugin there, and stop; otherwise say the ontology holds nothing about that company, and stop.
+1. The company is the engagement this workspace is: `AGENT.md`'s business in brief names it. In the organization workspace, a brief works for any meeting. For an internal meeting (a stand-up, planning, a review of the firm's own work), the company is the firm and the brief is written from `organization/` (its team, portfolio, strategy and open questions), with the same ten sections. For a client meeting, read that client's folder at `/engagements/<Client>` with `exec_bash` and add what the portfolio file says about the engagement (terms, scope, cadence, stage). When `$ARGUMENTS` names another company in an engagement workspace, call `mcp__plugin_plum_Plum__list_workspaces`; when a workspace is that engagement, say that `/plum:setup workspace <name>` moves the plugin there, and stop; otherwise say the ontology holds nothing about that company, and stop.
 2. `$ARGUMENTS` may name a meeting (words from its title, or a date), a person, or a topic. That is the focus: it picks which open questions come first and which notes are read. Without arguments the brief is for the next call with the company, whatever it is about.
 3. Never ask what the meeting is about. A brief with no focus is still the one page the user needs.
 
@@ -50,12 +50,13 @@ node "${CLAUDE_PLUGIN_ROOT}/dist/commands/tool.js" search_granola_notes '{"query
 2. For each of the ten sections, read whole the files the navigation routes to, and call `mcp__plugin_plum_Plum__search_ontology` with the section's words from the table below to catch files the navigation misses. Read `open-questions.md` when it exists, and call `mcp__plugin_plum_Plum__exec_bash` with `grep -rn "OPEN:" .` for every open line in place.
 3. Keep each file's `as_of`. For a line that cites a `src_` id, read the id's `connector` and `fetched_at` from `sources/<id>.md` (one `exec_bash` with `grep -H "connector:\|fetched_at:" sources/*.md` covers them all).
 
-The ontology is one engagement folder, so reading every file the navigation routes to is the right amount; never read a note's transcript to fill a section.
+The ontology is one folder (an engagement's, or `organization/`), so reading every file the navigation routes to is the right amount; never read a note's transcript to fill a section.
 
 ### 3. Then the meeting notes
 
-1. Call `mcp__plugin_plum_Plum__search_granola_notes` with the focus words and the company's name; when the focus is a date, or the search finds nothing, call `mcp__plugin_plum_Plum__list_granola_notes`. Read the three most recent matching notes with `mcp__plugin_plum_Plum__get_granola_note` (the summary; the transcript only when the user asks for it).
-2. The notes give three things: who the user is likely to meet (attendees, with titles when the note names them), what was said last time, and statements newer than the `as_of` of the file that owns their topic.
+1. Call `mcp__plugin_plum_Plum__search_meetings` first, with a question in plain words about the focus and the company ("what did <company> say about <focus>"); it searches the meetings recorded in Plum and the workspace's Granola notes together and returns the passages that answer, with their time and speakers. When a passage needs the speech around it, read that stretch only: `get_meeting` with its `fromMs` and `toMs` for a Plum recording, `get_granola_note` with its `fromLine` and `toLine` for a Granola note. When the focus is a date, or the search finds nothing, call `mcp__plugin_plum_Plum__list_meetings` and `mcp__plugin_plum_Plum__list_granola_notes` for that range and read the three most recent with `get_meeting` or `get_granola_note` (the summary; a transcript stretch only when the user asks for it).
+   Private meetings are left out unless the user asks for them. A passage marked PRIVATE is from the user's own notes: it can go in the brief shown to them, and is named as private when the brief is written to a file.
+2. The notes give three things: who the user is likely to meet (attendees, with titles when the note names them), what was said last time, and statements the file that owns their topic does not hold yet. A note whose `src_` id that file already cites is in the file, whatever the file's `as_of`: an ingest adds a meeting's statements without changing `as_of`.
 3. A note never fills a section on its own. A section with nothing in the files stays unknown, and what the note says about it goes under "Since the files"; a note statement that contradicts a file line goes there too, side by side with the line.
 
 ### 4. Weigh website claims
@@ -89,7 +90,7 @@ unknown
 ```
 
 - **Ask first** holds every `OPEN` line that touches the focus, then one question for each section the files leave unknown, in the framework's own words. Order: questions someone on the call can answer first, then the framework's order. At most ten; when more were left out, say how many and that `/plum:learn questions` lists them all.
-- **Since the files** appears only when a note adds to or disagrees with a file; leave the heading out when it would be empty.
+- **Since the files** appears only when a note adds to or disagrees with a file; leave the heading out when it would be empty. A line from a search passage names the meeting, its date and the time or line it was said at.
 - **What we know** has all ten sections every time, in the framework's order, each heading carrying the framework's question; one to three lines per section; a section with nothing says "unknown". No line in it comes from a note.
 - **People on the call** comes from the org chart files and the notes' attendees; a title the files do not give stays "title unknown".
 - No narration, no closing summary, no advice beyond the questions. End with the Ontology page link from `pageLink.js --page ontology`.
