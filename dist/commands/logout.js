@@ -19677,7 +19677,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.66.0";
+var CONTRACT_VERSION = "1.67.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var SOURCE_SCOPES = ["organization", "workspace", "either"];
@@ -22105,6 +22105,48 @@ var PlumProposalApproveRequestSchema = external_exports.strictObject({
 });
 var PlumProposalRejectRequestSchema = external_exports.strictObject({
   reason: external_exports.string().trim().min(1).max(2e3).describe("Why, for the proposer and the record.")
+});
+var PlumIngestStatsSchema = external_exports.object({
+  days: external_exports.number().int(),
+  since: external_exports.string(),
+  /** Notes an ingest took at least one claim from: how many opened a proposal and how many did not. */
+  notes: external_exports.object({ withClaims: external_exports.number().int(), proposed: external_exports.number().int(), notProposed: external_exports.number().int() }),
+  claims: external_exports.object({
+    total: external_exports.number().int(),
+    /** Stored, and nothing written from it yet (or the write failed). */
+    pending: external_exports.number().int(),
+    /** In an open proposal. */
+    proposed: external_exports.number().int(),
+    merged: external_exports.number().int(),
+    /** In a file the reviewer left out while approving the rest. */
+    leftOut: external_exports.number().int(),
+    /** In a proposal the reviewer rejected whole. */
+    rejected: external_exports.number().int(),
+    /** In no file of the proposal, or the note opened none. */
+    notWritten: external_exports.number().int(),
+    /** Where it was said could not be found in the note. */
+    withoutEvidence: external_exports.number().int()
+  }),
+  /** Files that carried a claim, by what the reviewer did with them. */
+  files: external_exports.object({ merged: external_exports.number().int(), leftOut: external_exports.number().int() }),
+  /** Proposals ingest opened in the window, by where they stand now. */
+  proposals: external_exports.object({
+    opened: external_exports.number().int(),
+    open: external_exports.number().int(),
+    merged: external_exports.number().int(),
+    rejected: external_exports.number().int(),
+    withFilesLeftOut: external_exports.number().int()
+  }),
+  /** The latest reasons a reviewer left a file out or rejected a proposal, newest first. */
+  reasons: external_exports.array(
+    external_exports.object({
+      kind: external_exports.enum(["file", "proposal"]),
+      proposalId: external_exports.string(),
+      path: external_exports.string().nullable(),
+      reason: external_exports.string(),
+      at: external_exports.string()
+    })
+  )
 });
 var PlumProposalFileSchema = PlumProposalChangeSchema.extend({
   /** The file on main, or null when the proposal adds it. */
