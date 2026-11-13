@@ -19694,7 +19694,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.67.0";
+var CONTRACT_VERSION = "1.68.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var SOURCE_SCOPES = ["organization", "workspace", "either"];
@@ -21931,6 +21931,10 @@ var PlumProposalSchema = external_exports.object({
   status: external_exports.enum(["open", "recorded", "merged", "rejected"]),
   runId: external_exports.string().nullable(),
   mergeCommit: external_exports.string().nullable().default(null),
+  /** Why a reviewer rejected it, in their words (1.68.0); null unless rejected. */
+  rejectionReason: external_exports.string().nullable().default(null),
+  /** The files a reviewer left out while approving the rest, each with the reason (1.68.0). */
+  leftOut: external_exports.array(external_exports.object({ path: external_exports.string(), reason: external_exports.string() })).default([]),
   /** The slug of the engagement folder the proposal lands in, read from its branch (1.29.0); null when the branch does not say. */
   engagement: external_exports.string().nullable().default(null),
   /** True when it changes the firm's playbook at the repository root rather than the workspace's own ontology (1.36.0). */
@@ -22144,6 +22148,8 @@ var PlumIngestStatsSchema = external_exports.object({
     /** Where it was said could not be found in the note. */
     withoutEvidence: external_exports.number().int()
   }),
+  /** Claims by the verdict the resolve step gave before anything was written (1.68.0); `unresolved` when none ran. */
+  verdicts: external_exports.record(external_exports.string(), external_exports.number().int()).default({}),
   /** Files that carried a claim, by what the reviewer did with them. */
   files: external_exports.object({ merged: external_exports.number().int(), leftOut: external_exports.number().int() }),
   /** Proposals ingest opened in the window, by where they stand now. */
@@ -22180,6 +22186,8 @@ var PlumOntologySearchResultSchema = external_exports.object({
       title: external_exports.string(),
       /** Lines around the best match, so the caller can decide whether to read the whole file. */
       excerpt: external_exports.string(),
+      /** The best-matching line, from 1 (1.68.0). */
+      line: external_exports.number().int().default(1),
       score: external_exports.number()
     })
   )

@@ -47,7 +47,7 @@ Beside the pipeline:
 
 The plugin registers an MCP server named `Plum`; tools appear as `mcp__plugin_plum_Plum__<tool>`.
 
-Ontology repository: `list_ontology_files`, `get_ontology_file`, `search_ontology`, `exec_bash` (one read-only bash command over every file, with the playbook mounted beside an engagement when the deployment has one), `preview_ontology_update` (diff proposed files against the approved version, name what the repository would refuse), `propose_ontology_update` (open the files as one proposal), `list_ontology_updates` and `review_ontology_update` (an update's status, files and diffs).
+Ontology repository: `list_ontology_files`, `get_ontology_file`, `search_ontology`, `resolve_person` (who a name belongs to and whether they are on our side or the client's), `exec_bash` (one read-only bash command over every file, with the playbook mounted beside an engagement when the deployment has one), `preview_ontology_update` (diff proposed files against the approved version, name what the repository would refuse), `propose_ontology_update` (open the files as one proposal), `list_ontology_updates` and `review_ontology_update` (an update's status, files and diffs).
 
 Meeting notes: `list_granola_notes`, `get_granola_note`, `search_granola_notes`, `link_granola_note`, `unlink_granola_note`.
 

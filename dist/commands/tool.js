@@ -19677,7 +19677,7 @@ function date4(params) {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.67.0";
+var CONTRACT_VERSION = "1.68.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var SOURCE_SCOPES = ["organization", "workspace", "either"];
@@ -22079,6 +22079,10 @@ var PlumProposalSchema = external_exports.object({
   status: external_exports.enum(["open", "recorded", "merged", "rejected"]),
   runId: external_exports.string().nullable(),
   mergeCommit: external_exports.string().nullable().default(null),
+  /** Why a reviewer rejected it, in their words (1.68.0); null unless rejected. */
+  rejectionReason: external_exports.string().nullable().default(null),
+  /** The files a reviewer left out while approving the rest, each with the reason (1.68.0). */
+  leftOut: external_exports.array(external_exports.object({ path: external_exports.string(), reason: external_exports.string() })).default([]),
   /** The slug of the engagement folder the proposal lands in, read from its branch (1.29.0); null when the branch does not say. */
   engagement: external_exports.string().nullable().default(null),
   /** True when it changes the firm's playbook at the repository root rather than the workspace's own ontology (1.36.0). */
@@ -22294,6 +22298,8 @@ var PlumIngestStatsSchema = external_exports.object({
     /** Where it was said could not be found in the note. */
     withoutEvidence: external_exports.number().int()
   }),
+  /** Claims by the verdict the resolve step gave before anything was written (1.68.0); `unresolved` when none ran. */
+  verdicts: external_exports.record(external_exports.string(), external_exports.number().int()).default({}),
   /** Files that carried a claim, by what the reviewer did with them. */
   files: external_exports.object({ merged: external_exports.number().int(), leftOut: external_exports.number().int() }),
   /** Proposals ingest opened in the window, by where they stand now. */
@@ -22330,6 +22336,8 @@ var PlumOntologySearchResultSchema = external_exports.object({
       title: external_exports.string(),
       /** Lines around the best match, so the caller can decide whether to read the whole file. */
       excerpt: external_exports.string(),
+      /** The best-matching line, from 1 (1.68.0). */
+      line: external_exports.number().int().default(1),
       score: external_exports.number()
     })
   )
@@ -24214,14 +24222,19 @@ var listOntologyFiles = {
 var getOntologyFile = {
   name: "get_ontology_file",
   title: "Read ontology file",
-  description: `One ontology file as stored, frontmatter included, at the current approved version, with its recent history. With target "playbook", a file of the firm's playbook.`,
-  inputSchema: { path: ontologyPath, target: ontologyTarget },
+  description: `One ontology file as stored, frontmatter included, at the current approved version, with its recent history. With target "playbook", a file of the firm's playbook. Give fromLine and toLine, the line numbers search_ontology returns, to read part of a long file.`,
+  inputSchema: {
+    path: ontologyPath,
+    target: ontologyTarget,
+    fromLine: int2(external_exports.number().int().min(1)).optional().describe("First line to show, from 1; omit for the whole file."),
+    toLine: int2(external_exports.number().int().min(1)).optional().describe("Last line to show; omit to read to the end.")
+  },
   outputSchema: PlumOntologyDocumentSchema
 };
 var searchOntology = {
   name: "search_ontology",
   title: "Search ontology",
-  description: "Find ontology files that mention these words, folder READMEs included, best matches first, each with the lines around the match. Use the words people say; READMEs list synonyms.",
+  description: "Find ontology files that mention these words, folder READMEs included, best matches first, each with the number of the best-matching line and the lines around it. Use the words people say; READMEs list synonyms.",
   inputSchema: { query: external_exports.string().trim().min(1).max(500).describe("Words to look for.") },
   outputSchema: PlumOntologySearchResultSchema
 };
@@ -24273,8 +24286,16 @@ var proposeOntologyUpdate = {
 var listOntologyUpdates = {
   name: "list_ontology_updates",
   title: "List ontology updates",
-  description: "Recent ontology updates in the folder this workspace reads, newest first, with status (open: waiting for approval; merged: in the approved ontology), their review links and, for an update a meeting import opened, its score out of 8 on the import rubric (a reading aid for the reviewer, never a gate). An update opened for another engagement folder is listed in that workspace, not here.",
-  inputSchema: {}
+  description: "Recent ontology updates in the folder this workspace reads, newest first, with status (open: waiting for approval; merged: in the approved ontology; rejected: turned down, with the reviewer's reason), their review links, the files a reviewer left out of a merged one and why, and, for an update a meeting import opened, its score out of 8 on the import rubric (a reading aid for the reviewer, never a gate). Read the rejected ones before proposing a statement again. An update opened for another engagement folder is listed in that workspace, not here.",
+  inputSchema: {
+    status: external_exports.enum(["open", "merged", "rejected"]).optional().describe("Only updates in this status; omit for all of them.")
+  }
+};
+var resolvePerson = {
+  name: "resolve_person",
+  title: "Look up a person",
+  description: "Who a name or an email belongs to in this engagement: the title, department and role the people directory holds, and whether the person is on our side or the client's. Use it before treating what someone said in a meeting as the client's word. Read-only; a name the directory does not hold returns no one.",
+  inputSchema: { name: external_exports.string().trim().min(2).max(200).describe("A name, part of one, or an email address.") }
 };
 var reviewOntologyUpdate = {
   name: "review_ontology_update",
@@ -24677,6 +24698,7 @@ var ALL_TOOL_CONTRACTS = [
   previewOntologyUpdate,
   proposeOntologyUpdate,
   listOntologyUpdates,
+  resolvePerson,
   reviewOntologyUpdate,
   rejectOntologyUpdate,
   getDiscovery,
@@ -25369,6 +25391,7 @@ var REPOSITORY_TOOLS = /* @__PURE__ */ new Set([
   "preview_ontology_update",
   "propose_ontology_update",
   "list_ontology_updates",
+  "resolve_person",
   "review_ontology_update"
 ]);
 var ONTOLOGY_TOOLS = /* @__PURE__ */ new Set([
@@ -26261,18 +26284,32 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       );
     },
     async get_ontology_file(args) {
-      const { path: filePath, target } = args;
+      const {
+        path: filePath,
+        target,
+        fromLine,
+        toLine
+      } = args;
       const file2 = parse3(
         PlumOntologyDocumentSchema,
         await client.get("/plum/document", { path: filePath, ...targetQuery(target) })
       );
+      const lines = file2.text.replace(/\r\n/g, "\n").split("\n");
+      const from = Math.min(fromLine ?? 1, lines.length);
+      const to = Math.max(from, Math.min(toLine ?? lines.length, lines.length));
+      const part = fromLine !== void 0 || toLine !== void 0 ? {
+        from,
+        to,
+        total: lines.length,
+        text: lines.slice(from - 1, to).map((line, index) => `${String(from + index).padStart(String(to).length)}	${line}`).join("\n")
+      } : null;
       const history = file2.history.slice(0, 5).map((entry) => `- ${when2(entry.date)} \xB7 ${shorten2(entry.message.split("\n")[0] ?? "", 100)}`);
       return structured2(
         [
-          `${file2.path} at ${file2.ontologyVersion.slice(0, 12)}:`,
+          `${file2.path} at ${file2.ontologyVersion.slice(0, 12)}${part ? `, lines ${part.from} to ${part.to} of ${part.total}` : ""}:`,
           NUMBERED_FILE_NOTE,
           "",
-          numberLines(file2.text),
+          part ? part.text : numberLines(file2.text),
           ...history.length ? ["", "Recent changes:", ...history] : [],
           `Open in the app: ${pageUrl(client.serviceUrl, "ontology", { path: file2.path })}`
         ].join("\n"),
@@ -26290,9 +26327,11 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
       return structured2(
         [
           `${result.hits.length} files mention "${query}":`,
-          ...result.hits.map((hit) => `- ${hit.path} (${hit.title})
-  ${hit.excerpt.replace(/\n/g, "\n  ")}`),
-          "get_ontology_file reads a whole file."
+          ...result.hits.map(
+            (hit) => `- ${hit.path}:${hit.line} (${hit.title})
+  ${hit.excerpt.replace(/\n/g, "\n  ")}`
+          ),
+          "get_ontology_file reads a whole file, or the lines around a match with fromLine and toLine."
         ].join("\n"),
         result
       );
@@ -26466,19 +26505,58 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         ].join("\n")
       );
     },
-    async list_ontology_updates() {
-      const { proposals } = parse3(
+    async list_ontology_updates(args) {
+      const { status } = args;
+      const all = parse3(
         external_exports.object({ proposals: external_exports.array(PlumProposalSchema) }),
         await client.get("/plum/proposals")
-      );
-      if (!proposals.length) return text3("No ontology updates yet in this workspace.");
+      ).proposals;
+      const proposals = status ? all.filter((item) => item.status === status) : all;
+      if (!all.length) return text3("No ontology updates yet in this workspace.");
+      if (!proposals.length) return text3(`No ${status} ontology updates in this workspace (${all.length} in all).`);
       return text3(
         [
           `Ontology updates (${proposals.length}, newest first):`,
           ...proposals.map(
-            (item) => `- ${item.id} \xB7 ${item.status} \xB7 ${item.kind} \xB7 "${shorten2(item.title, 100)}" \xB7 ${when2(item.createdAt)}${scoreMark(item.score)}${item.engagement ? ` \xB7 in ${item.engagement}` : ""}${item.url ? ` \xB7 ${item.url}` : ""}`
+            (item) => `- ${item.id} \xB7 ${item.status} \xB7 ${item.kind} \xB7 "${shorten2(item.title, 100)}" \xB7 ${when2(item.createdAt)}${scoreMark(item.score)}${item.engagement ? ` \xB7 in ${item.engagement}` : ""}${item.url ? ` \xB7 ${item.url}` : ""}${item.rejectionReason ? `
+  rejected because: ${shorten2(item.rejectionReason, 300)}` : ""}${item.leftOut.map((file2) => `
+  left out ${file2.path}: ${shorten2(file2.reason, 200)}`).join("")}`
           ),
           "An editor or admin approves open updates in the app. Updates opened for another engagement folder are listed in that workspace."
+        ].join("\n")
+      );
+    },
+    async resolve_person(args) {
+      const { name } = args;
+      const { result } = parse3(
+        external_exports.object({
+          result: external_exports.object({
+            people: external_exports.array(
+              external_exports.object({
+                name: external_exports.string(),
+                email: external_exports.string().nullable(),
+                title: external_exports.string().nullable(),
+                department: external_exports.string().nullable(),
+                role: external_exports.string().nullable(),
+                active: external_exports.boolean(),
+                side: external_exports.enum(["ours", "client", "unknown"])
+              })
+            )
+          })
+        }),
+        await client.post("/plum/tools/resolve_person", { name })
+      );
+      if (!result.people.length)
+        return text3(
+          `The people directory of this engagement holds no one matching "${name}". A name heard in a meeting can be misspelled; try part of it.`
+        );
+      const side = { ours: "our side", client: "the client's side", unknown: "side unknown (no email on record)" };
+      return text3(
+        [
+          `${result.people.length} in the people directory match "${name}":`,
+          ...result.people.map(
+            (person) => `- ${person.name}${person.email ? ` <${person.email}>` : ""} \xB7 ${[person.title, person.department, person.role].filter(Boolean).join(", ") || "no title on record"} \xB7 ${side[person.side]}${person.active ? "" : " \xB7 no longer active"}`
+          )
         ].join("\n")
       );
     },
