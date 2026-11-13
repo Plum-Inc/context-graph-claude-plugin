@@ -19674,7 +19674,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.65.0";
+var CONTRACT_VERSION = "1.66.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var SOURCE_SCOPES = ["organization", "workspace", "either"];
@@ -22050,6 +22050,14 @@ var PlumOntologyUpdateRequestSchema = external_exports.strictObject({
 var PlumProposalChangeSchema = PlumOntologyEntrySchema.extend({
   status: external_exports.enum(["added", "modified", "deleted"])
 });
+var PlumProposalRejectedFileSchema = external_exports.object({
+  path: external_exports.string(),
+  status: external_exports.enum(["added", "modified", "deleted"]),
+  reason: external_exports.string(),
+  by: external_exports.string(),
+  byName: external_exports.string().nullable().default(null),
+  at: external_exports.string()
+});
 var PlumProposalReviewSchema = external_exports.object({
   proposal: PlumProposalSchema,
   /** Why, as the proposer wrote it; for discovery, what it was written from and what it left out. */
@@ -22079,7 +22087,18 @@ var PlumProposalReviewSchema = external_exports.object({
    * Who merged the proposal (1.39.0); null unless merged, or merged before 1.39.0 recorded nothing. outsideReview: its
    * pull request was merged on GitHub, not approved in Plum, and `by` is `github:<login>`.
    */
-  merge: external_exports.object({ by: external_exports.string(), byName: external_exports.string().nullable().default(null), outsideReview: external_exports.boolean() }).nullable().default(null)
+  merge: external_exports.object({ by: external_exports.string(), byName: external_exports.string().nullable().default(null), outsideReview: external_exports.boolean() }).nullable().default(null),
+  /** The files the reviewer rejected, with each reason (1.66.0); they are no longer among `changes`. */
+  rejectedFiles: external_exports.array(PlumProposalRejectedFileSchema).default([])
+});
+var PLUM_PROPOSAL_REJECTED_FILES_MAX = 50;
+var PlumProposalApproveRequestSchema = external_exports.strictObject({
+  rejected: external_exports.array(
+    external_exports.strictObject({
+      path: external_exports.string().trim().min(1).max(512),
+      reason: external_exports.string().trim().min(1).max(2e3).describe("Why this file is left out, for the proposer.")
+    })
+  ).max(PLUM_PROPOSAL_REJECTED_FILES_MAX).default([])
 });
 var PlumProposalRejectRequestSchema = external_exports.strictObject({
   reason: external_exports.string().trim().min(1).max(2e3).describe("Why, for the proposer and the record.")

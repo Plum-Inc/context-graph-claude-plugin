@@ -19677,7 +19677,7 @@ function date4(params) {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.65.0";
+var CONTRACT_VERSION = "1.66.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var SOURCE_SCOPES = ["organization", "workspace", "either"];
@@ -22220,6 +22220,14 @@ var PlumOntologyUpdateRequestSchema = external_exports.strictObject({
 var PlumProposalChangeSchema = PlumOntologyEntrySchema.extend({
   status: external_exports.enum(["added", "modified", "deleted"])
 });
+var PlumProposalRejectedFileSchema = external_exports.object({
+  path: external_exports.string(),
+  status: external_exports.enum(["added", "modified", "deleted"]),
+  reason: external_exports.string(),
+  by: external_exports.string(),
+  byName: external_exports.string().nullable().default(null),
+  at: external_exports.string()
+});
 var PlumProposalReviewSchema = external_exports.object({
   proposal: PlumProposalSchema,
   /** Why, as the proposer wrote it; for discovery, what it was written from and what it left out. */
@@ -22249,7 +22257,18 @@ var PlumProposalReviewSchema = external_exports.object({
    * Who merged the proposal (1.39.0); null unless merged, or merged before 1.39.0 recorded nothing. outsideReview: its
    * pull request was merged on GitHub, not approved in Plum, and `by` is `github:<login>`.
    */
-  merge: external_exports.object({ by: external_exports.string(), byName: external_exports.string().nullable().default(null), outsideReview: external_exports.boolean() }).nullable().default(null)
+  merge: external_exports.object({ by: external_exports.string(), byName: external_exports.string().nullable().default(null), outsideReview: external_exports.boolean() }).nullable().default(null),
+  /** The files the reviewer rejected, with each reason (1.66.0); they are no longer among `changes`. */
+  rejectedFiles: external_exports.array(PlumProposalRejectedFileSchema).default([])
+});
+var PLUM_PROPOSAL_REJECTED_FILES_MAX = 50;
+var PlumProposalApproveRequestSchema = external_exports.strictObject({
+  rejected: external_exports.array(
+    external_exports.strictObject({
+      path: external_exports.string().trim().min(1).max(512),
+      reason: external_exports.string().trim().min(1).max(2e3).describe("Why this file is left out, for the proposer.")
+    })
+  ).max(PLUM_PROPOSAL_REJECTED_FILES_MAX).default([])
 });
 var PlumProposalRejectRequestSchema = external_exports.strictObject({
   reason: external_exports.string().trim().min(1).max(2e3).describe("Why, for the proposer and the record.")
@@ -24218,7 +24237,7 @@ var listOntologyUpdates = {
 var reviewOntologyUpdate = {
   name: "review_ontology_update",
   title: "Review ontology update",
-  description: "One ontology update from list_ontology_updates: its status, who opened it and why, the review link, for an update a meeting import opened its score on the four import dimensions (call, company, engagement, split; 0 to 2 each) with the reason and what the meeting said that the import missed, every file it adds, changes or removes against the approved version, and the diff of each (or of one file when path is given). When the update changes files outside the folder this workspace reads, it names their full paths and the folder they belong to. Read-only; approving happens in the app or on GitHub.",
+  description: "One ontology update from list_ontology_updates: its status, who opened it and why, the review link, for an update a meeting import opened its score on the four import dimensions (call, company, engagement, split; 0 to 2 each) with the reason and what the meeting said that the import missed, every file it adds, changes or removes against the approved version, the files a reviewer rejected and left out while approving the rest (each with who and why), and the diff of each (or of one file when path is given). When the update changes files outside the folder this workspace reads, it names their full paths and the folder they belong to. Read-only; approving happens in the app or on GitHub.",
   inputSchema: {
     id: external_exports.string().trim().min(1).max(100).describe("The update id (pr_\u2026) from list_ontology_updates."),
     path: ontologyPath.optional().describe("Show only this file of the update.")
@@ -26358,6 +26377,12 @@ Questions: ${shorten2(selection.questions || "(none)", 300)}` : "Selection: none
         ...scoreLines(proposal.score),
         review.head ? `${review.changes.length} file${review.changes.length === 1 ? "" : "s"} against ontology ${review.base.slice(0, 12)}:` : proposal.status === "merged" ? `Merged${proposal.mergeCommit ? ` as ${proposal.mergeCommit.slice(0, 12)}` : ""}; its branch is gone, so there is no diff left to show.` : "Its branch no longer exists, so there is no diff to show.",
         ...review.changes.map((change) => `- ${change.status} ${change.path} (${change.title})`),
+        ...review.rejectedFiles.length ? [
+          `${review.rejectedFiles.length} file${review.rejectedFiles.length === 1 ? " was" : "s were"} rejected and left out${proposal.status === "merged" ? " when the rest was approved" : ""}:`,
+          ...review.rejectedFiles.map(
+            (file2) => `- ${file2.path}, by ${file2.byName ?? file2.by} on ${when2(file2.at)}: ${file2.reason}`
+          )
+        ] : [],
         ...review.elsewhere.length ? [
           `It changes ${review.elsewhere.length} file${review.elsewhere.length === 1 ? "" : "s"} outside the folder this workspace reads, so there is no diff to show here:`,
           ...review.elsewhere.map((path9) => `- ${path9}`),
