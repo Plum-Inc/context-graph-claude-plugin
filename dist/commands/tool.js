@@ -19677,7 +19677,7 @@ function date4(params) {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.68.0";
+var CONTRACT_VERSION = "1.69.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var SOURCE_SCOPES = ["organization", "workspace", "either"];
@@ -22083,6 +22083,12 @@ var PlumProposalSchema = external_exports.object({
   rejectionReason: external_exports.string().nullable().default(null),
   /** The files a reviewer left out while approving the rest, each with the reason (1.68.0). */
   leftOut: external_exports.array(external_exports.object({ path: external_exports.string(), reason: external_exports.string() })).default([]),
+  /**
+   * Applied by the meeting ingest without review (1.69.0, ADR 0031): labels raised from inferred to confirmed because
+   * a client-side attendee said the statement. `merged` while it stands; `rejected`, with the reason, once a person
+   * undid it.
+   */
+  automatic: external_exports.boolean().default(false),
   /** The slug of the engagement folder the proposal lands in, read from its branch (1.29.0); null when the branch does not say. */
   engagement: external_exports.string().nullable().default(null),
   /** True when it changes the firm's playbook at the repository root rather than the workspace's own ontology (1.36.0). */
@@ -22263,7 +22269,12 @@ var PlumProposalReviewSchema = external_exports.object({
    */
   merge: external_exports.object({ by: external_exports.string(), byName: external_exports.string().nullable().default(null), outsideReview: external_exports.boolean() }).nullable().default(null),
   /** The files the reviewer rejected, with each reason (1.66.0); they are no longer among `changes`. */
-  rejectedFiles: external_exports.array(PlumProposalRejectedFileSchema).default([])
+  rejectedFiles: external_exports.array(PlumProposalRejectedFileSchema).default([]),
+  /**
+   * The lines a change applied automatically raised (1.69.0), each as it was and as it was applied; empty for any other
+   * proposal. Such a change has no branch left to compare, so this is what the reviewer reads.
+   */
+  appliedLabels: external_exports.array(external_exports.object({ path: external_exports.string(), before: external_exports.string(), after: external_exports.string() })).default([])
 });
 var PLUM_PROPOSAL_REJECTED_FILES_MAX = 50;
 var PlumProposalApproveRequestSchema = external_exports.strictObject({
@@ -22295,6 +22306,8 @@ var PlumIngestStatsSchema = external_exports.object({
     rejected: external_exports.number().int(),
     /** In no file of the proposal, or the note opened none. */
     notWritten: external_exports.number().int(),
+    /** Would only change a label, so it waits for the next proposal that touches its file (1.69.0). */
+    held: external_exports.number().int().default(0),
     /** Where it was said could not be found in the note. */
     withoutEvidence: external_exports.number().int()
   }),
@@ -22308,7 +22321,10 @@ var PlumIngestStatsSchema = external_exports.object({
     open: external_exports.number().int(),
     merged: external_exports.number().int(),
     rejected: external_exports.number().int(),
-    withFilesLeftOut: external_exports.number().int()
+    withFilesLeftOut: external_exports.number().int(),
+    /** Label upgrades applied without review, and how many of those a person undid (1.69.0). */
+    appliedAutomatically: external_exports.number().int().default(0),
+    undone: external_exports.number().int().default(0)
   }),
   /** The latest reasons a reviewer left a file out or rejected a proposal, newest first. */
   reasons: external_exports.array(
@@ -25125,7 +25141,7 @@ function createDiscoveryHandlers(client, parse3) {
 // src/lineage.ts
 var SOURCES_CONTEXT = [
   "About this business's sources:",
-  "- The approved ontology is the record. Its statements are labelled confirmed, inferred or OPEN: an inferred one is not settled, an OPEN one is unknown, and only a person confirms one.",
+  "- The approved ontology is the record. Its statements are labelled confirmed, inferred or OPEN: an inferred one is not settled and an OPEN one is unknown. A statement is confirmed by a person, or by a meeting import when someone from the client\u2019s side said it in that meeting; you never confirm one yourself.",
   "- A meeting note is informal and dated, and can be newer than the ontology. Notes are machine transcribed, so names of people, companies and tools can be misheard. When a note disagrees with a file, /plum:improve proposes the change.",
   "- The ids in files and notes (clm_, src_, not_), commits and line numbers are for tracing a statement when someone asks where it comes from."
 ].join("\n");
@@ -26518,8 +26534,8 @@ ${file2.after ?? ""}` : file2.after === null ? `--- ${change.path} (deleted)` : 
         [
           `Ontology updates (${proposals.length}, newest first):`,
           ...proposals.map(
-            (item) => `- ${item.id} \xB7 ${item.status} \xB7 ${item.kind} \xB7 "${shorten2(item.title, 100)}" \xB7 ${when2(item.createdAt)}${scoreMark(item.score)}${item.engagement ? ` \xB7 in ${item.engagement}` : ""}${item.url ? ` \xB7 ${item.url}` : ""}${item.rejectionReason ? `
-  rejected because: ${shorten2(item.rejectionReason, 300)}` : ""}${item.leftOut.map((file2) => `
+            (item) => `- ${item.id} \xB7 ${item.status} \xB7 ${item.kind} \xB7 "${shorten2(item.title, 100)}" \xB7 ${when2(item.createdAt)}${scoreMark(item.score)}${item.engagement ? ` \xB7 in ${item.engagement}` : ""}${item.url ? ` \xB7 ${item.url}` : ""}${item.automatic ? "\n  applied automatically by a meeting import, without review" : ""}${item.rejectionReason ? `
+  ${item.automatic ? "undone" : "rejected"} because: ${shorten2(item.rejectionReason, 300)}` : ""}${item.leftOut.map((file2) => `
   left out ${file2.path}: ${shorten2(file2.reason, 200)}`).join("")}`
           ),
           "An editor or admin approves open updates in the app. Updates opened for another engagement folder are listed in that workspace."
