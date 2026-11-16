@@ -31555,16 +31555,17 @@ var ArtifactFactsSchema = external_exports.record(
 );
 var ARTIFACT_HTML_MAX_CHARS = 15e5;
 var ARTIFACT_SCRIPT_HOSTS = ["https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"];
+var ARTIFACT_MAP_TILE_HOSTS = ["https://server.arcgisonline.com"];
 var ARTIFACT_FRAME_POLICY = [
   "default-src 'none'",
   `script-src 'unsafe-inline' ${ARTIFACT_SCRIPT_HOSTS.join(" ")}`,
   "style-src 'unsafe-inline' https://fonts.googleapis.com",
   "font-src https://fonts.gstatic.com data:",
-  "img-src data: blob:",
+  `img-src data: blob: ${ARTIFACT_MAP_TILE_HOSTS.join(" ")}`,
   "connect-src 'none'",
   "form-action 'none'"
 ].join("; ");
-var ARTIFACT_PAGE_RULES = `The page is one self-contained HTML document that runs in a sandboxed frame with no network: it cannot fetch or call anything, so every number is embedded in it. Styles and scripts are inline; a script may also load from ${ARTIFACT_SCRIPT_HOSTS.map((host) => host.replace("https://", "")).join(", ")} (a chart library, pinned to an exact version), and fonts from Google Fonts. Images are data: URIs (inline SVG works too). Links open in a new tab.`;
+var ARTIFACT_PAGE_RULES = `The page is one self-contained HTML document that runs in a sandboxed frame with no network beyond what is named here: it cannot fetch or call anything, so every number is embedded in it. Styles and scripts are inline; a script may also load from ${ARTIFACT_SCRIPT_HOSTS.map((host) => host.replace("https://", "")).join(", ")} (a chart library, pinned to an exact version), and fonts from Google Fonts. Images are data: URIs (inline SVG works too); a map may also draw raster tiles as images from ${ARTIFACT_MAP_TILE_HOSTS.map((host) => host.replace("https://", "")).join(", ")}, with its map library loaded as a script and that library's styles inline. Links open in a new tab.`;
 var ARTIFACT_RECIPIENT_MAX_CHARS = 80;
 var ArtifactDocumentSchema = external_exports.strictObject({
   title: ArtifactTitleSchema,
