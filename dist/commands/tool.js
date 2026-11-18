@@ -19677,7 +19677,7 @@ function date4(params) {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.69.0";
+var CONTRACT_VERSION = "1.70.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var SOURCE_SCOPES = ["organization", "workspace", "either"];
@@ -23556,6 +23556,28 @@ var MeetingRecordingPlaybackSchema = MeetingRecordingSchema.extend({
 var MeetingRecordingsResponseSchema = external_exports.strictObject({
   recordings: external_exports.array(MeetingRecordingPlaybackSchema)
 });
+var VoiceprintEmailSchema = external_exports.string().min(3).max(320);
+var VoiceprintSchema = external_exports.strictObject({
+  email: VoiceprintEmailSchema,
+  name: external_exports.string().min(1).max(200),
+  samples: external_exports.number().int().min(1),
+  /** Whether the person read the passage aloud. */
+  reading: external_exports.boolean(),
+  updatedAt: TimestampSchema
+});
+var VoiceprintsResponseSchema = external_exports.strictObject({ voiceprints: external_exports.array(VoiceprintSchema) });
+var VoiceprintStatusResponseSchema = external_exports.strictObject({
+  /** The caller's email as the organization holds it; null when it holds none, and then they cannot read. */
+  email: VoiceprintEmailSchema.nullable(),
+  voiceprint: VoiceprintSchema.nullable(),
+  /** False where voice recognition is not set up; `lengthMs` is how long the passage is read for. */
+  reading: external_exports.strictObject({ available: external_exports.boolean(), lengthMs: external_exports.number().int().positive() }),
+  /** Whether the caller may list and delete other people's voiceprints. */
+  canManage: external_exports.boolean()
+});
+var VoiceReadingQuerySchema = external_exports.strictObject({ durationMs: external_exports.coerce.number().int().min(1).max(6e5) });
+var VoiceReadingResponseSchema = external_exports.strictObject({ voiceprint: VoiceprintSchema });
+var DeleteVoiceprintResponseSchema = external_exports.strictObject({ removed: external_exports.number().int().min(0) });
 
 // src/config.ts
 import fs from "node:fs";
