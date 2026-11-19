@@ -19677,7 +19677,7 @@ function date4(params) {
 import os3 from "node:os";
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.70.0";
+var CONTRACT_VERSION = "1.71.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var SOURCE_SCOPES = ["organization", "workspace", "either"];
@@ -22409,6 +22409,46 @@ var PlumOntologyExecResultSchema = external_exports.object({
   stderr: external_exports.string(),
   exitCode: external_exports.number().int(),
   truncated: external_exports.boolean()
+});
+
+// ../../packages/shared/src/analyst.ts
+var AnalystStatusSchema = external_exports.strictObject({ available: external_exports.boolean() });
+function isAnalystUrl(value) {
+  let url2;
+  try {
+    url2 = new URL(value);
+  } catch {
+    return false;
+  }
+  const local = url2.hostname === "localhost" || url2.hostname === "127.0.0.1";
+  return url2.protocol === "https:" || url2.protocol === "http:" && local;
+}
+var AnalystTicketSchema = external_exports.strictObject({
+  url: external_exports.string().refine(isAnalystUrl, "Use an https address (http only on localhost)."),
+  ticket: external_exports.string().min(1),
+  /** ISO time after which the analyst refuses the ticket. */
+  expiresAt: external_exports.string().min(1)
+});
+var AnalystAskRequestSchema = external_exports.strictObject({
+  question: external_exports.string().min(1).max(2e3),
+  thread: external_exports.string().min(1).optional()
+});
+var AnalystAnswerSchema = external_exports.looseObject({
+  ok: external_exports.boolean(),
+  thread: external_exports.string(),
+  answer: external_exports.string(),
+  /** Every query the analyst ran, in order. */
+  sql: external_exports.array(external_exports.string()),
+  costUsd: external_exports.number().nullable(),
+  gateRevisions: external_exports.number(),
+  /** The answer checks still unmet when the answer was delivered. */
+  gateUnmet: external_exports.array(external_exports.string()),
+  resumed: external_exports.boolean(),
+  timings: external_exports.looseObject({ startMs: external_exports.number(), askMs: external_exports.number(), stopMs: external_exports.number(), totalMs: external_exports.number() }),
+  error: external_exports.string().optional(),
+  phase: external_exports.string().optional(),
+  /** True when the thread was still answering an earlier question (sent with HTTP 409). */
+  busy: external_exports.boolean().optional()
 });
 
 // ../../packages/shared/src/automations.ts
