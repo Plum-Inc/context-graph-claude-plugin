@@ -19694,7 +19694,7 @@ function date4(params) {
 }
 
 // ../../packages/shared/src/schemas/core.ts
-var CONTRACT_VERSION = "1.71.0";
+var CONTRACT_VERSION = "1.73.0";
 var SOURCE_PROVIDERS = ["salesforce", "codebase", "postgres", "notion", "website", "granola"];
 var SourceProviderSchema = external_exports.enum(SOURCE_PROVIDERS);
 var SOURCE_SCOPES = ["organization", "workspace", "either"];
@@ -22283,6 +22283,19 @@ var AnalystAskRequestSchema = external_exports.strictObject({
   question: external_exports.string().min(1).max(2e3),
   thread: external_exports.string().min(1).optional()
 });
+var AnalystStepKindSchema = external_exports.enum(["context", "warehouse", "sql", "skill", "note", "check", "thought"]);
+var AnalystStepSchema = external_exports.looseObject({
+  /** Stable across updates of the same step. */
+  id: external_exports.string().min(1),
+  kind: AnalystStepKindSchema,
+  /** One line for a person, e.g. "Read data/roof-doctor.md lines 30-80". */
+  label: external_exports.string(),
+  /** More, on demand: the SQL of a query, a note's full text, the unmet checks, an error. */
+  detail: external_exports.string().optional(),
+  state: external_exports.enum(["running", "done", "failed"]),
+  /** How long a tool call took. */
+  ms: external_exports.number().nonnegative().optional()
+});
 var AnalystAnswerSchema = external_exports.looseObject({
   ok: external_exports.boolean(),
   thread: external_exports.string(),
@@ -22298,7 +22311,33 @@ var AnalystAnswerSchema = external_exports.looseObject({
   error: external_exports.string().optional(),
   phase: external_exports.string().optional(),
   /** True when the thread was still answering an earlier question (sent with HTTP 409). */
-  busy: external_exports.boolean().optional()
+  busy: external_exports.boolean().optional(),
+  /** Every step of the work log, in order. Absent from an analyst older than contract 1.72.0. */
+  steps: external_exports.array(AnalystStepSchema).optional(),
+  /** True when the run was stopped before it answered (contract 1.73.0); `ok` is then false. */
+  stopped: external_exports.boolean().optional()
+});
+var AnalystStartedLineSchema = external_exports.looseObject({
+  type: external_exports.literal("started"),
+  thread: external_exports.string().min(1).optional(),
+  stop: external_exports.string().min(1).optional()
+});
+var AnalystStreamLineSchema = external_exports.discriminatedUnion("type", [
+  AnalystStartedLineSchema,
+  external_exports.looseObject({ type: external_exports.literal("step"), step: AnalystStepSchema }),
+  external_exports.looseObject({ type: external_exports.literal("result"), result: AnalystAnswerSchema })
+]);
+var AnalystStopRequestSchema = external_exports.strictObject({
+  token: external_exports.string().min(1),
+  thread: external_exports.string().min(1).optional()
+});
+var AnalystStopReplySchema = external_exports.looseObject({
+  ok: external_exports.boolean(),
+  stopped: external_exports.boolean(),
+  finished: external_exports.boolean().optional(),
+  step: external_exports.union([external_exports.literal(1), external_exports.literal(2), external_exports.literal(3)]).optional(),
+  ms: external_exports.number().nonnegative().optional(),
+  error: external_exports.string().optional()
 });
 
 // ../../packages/shared/src/automations.ts
